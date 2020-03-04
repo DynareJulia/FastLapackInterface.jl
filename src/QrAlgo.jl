@@ -1,0 +1,83 @@
+using LinearAlgebra
+import LinearAlgebra: BlasInt
+import LinearAlgebra.BLAS: @blasfunc
+import LinearAlgebra.LAPACK: liblapack, chklapackerror
+
+export QrWs, dgeqrf_core!, dormrqf_core!
+
+struct QrWs{T <: Number} 
+    tau::Vector{T}
+    work::Vector{T}
+    lwork::Ref{BlasInt}
+    info::Ref{BlasInt}
+end
+
+for (geqrf, ormqr, elty) in
+    ((:dgeqrf_, :dormqr_, :Float64),
+     (:sgeqrf_, :sormqr_, :Float32),
+     (:zgeqrf_, :zormqr_, :ComplexF64),
+     (:cgeqrf_, :cormqr_, :ComplexF32))
+
+    @eval begin
+
+        function QrWs(A::StridedMatrix{T}) where T <: $elty
+            nn, mm = size(A)
+            m = Ref{BlasInt}(mm)
+            n = Ref{BlasInt}(nn)
+            RldA = Ref{BlasInt}(max(1,stride(A,2)))
+            tau = Vector{T}(undef, min(nn,mm))
+            work = Vector{T}(undef, 1)
+            lwork = Ref{BlasInt}(-1)
+            info = Ref{BlasInt}(0)
+            ccall((@blasfunc($geqrf), liblapack), Nothing,
+                  (Ref{BlasInt}, Ref{BlasInt}, Ptr{T}, Ref{BlasInt},
+                   Ptr{T}, Ptr{T}, Ref{BlasInt}, Ref{BlasInt}),
+                  m, n, A, RldA, tau, work, lwork, info)
+            chklapackerror(info[])
+            lwork = Ref{BlasInt}(real(work[1]))
+            work = Array{T}(undef, lwork[])
+            QrWs(tau, work, lwork, info)
+        end
+
+        function dgeqrf_core!(A::StridedMatrix{$elty}, ws::QrWs)
+            mm,nn = size(A)
+            m = Ref{BlasInt}(mm)
+            n = Ref{BlasInt}(nn)
+            RldA = Ref{BlasInt}(max(1,stride(A,2)))
+            ccall((@blasfunc($geqrf), liblapack), Nothing,
+                  (Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
+                   Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
+                  m,n,A,RldA,ws.tau,ws.work,ws.lwork,ws.info)
+            chklapackerror(ws.info[])
+        end
+
+        t1 = StridedMatrix{$elty}
+        t2 = Transpose{$elty, <: StridedMatrix}
+        t3 = Adjoint{$elty, <: StridedMatrix}
+    end
+
+    for (elty2, transchar) in
+        ((t1, 'N'),
+         (t2, 'T'),
+         (t3, 'C'))
+        
+        @eval begin
+            function ormrqf_core!(side::Ref{UInt8}, A::$elty2,
+                                  C::StridedMatrix{$elty}, ws::QrWs)
+                mm,nn = size(C)
+                m = Ref{BlasInt}(mm)
+                n = Ref{BlasInt}(nn)
+                k = Ref{BlasInt}(length(ws.tau))
+                RldA = Ref{BlasInt}(max(1,stride(A,2)))
+                RldC = Ref{BlasInt}(max(1,stride(C,2)))
+                ccall((@blasfunc($ormqr), liblapack), Nothing,
+                      (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
+                       Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
+                      side,$transchar,m,n,k,A,RldA,ws.tau,C,RldC,ws.work,ws.lwork,ws.info)
+                chklapackerror(ws.info[])
+            end
+        end
+    end    
+end 
+                      
+
