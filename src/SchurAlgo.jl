@@ -10,7 +10,7 @@ import LinearAlgebra.BLAS: @blasfunc, libblas
 import LinearAlgebra.LAPACK: liblapack, chklapackerror
 import Base: has_offset_axes
 
-export DgeesWS, dgees!, DggesWS, dgges!
+export DgeesWs, dgees!, DggesWs, dgges!
 
 const criterium = 1+1e-6
 
@@ -27,7 +27,7 @@ function mycompare(alphar_::Ptr{T}, alphai_::Ptr{T}, beta_::Ptr{T})::Cint where 
     return convert(Cint, ((alphar*alphar + alphai*alphai) < criterium*beta*beta) ? 1 : 0)
 end
 
-mutable struct DgeesWS
+mutable struct DgeesWs
     jobvs::Ref{UInt8}
     sdim::Ref{BlasInt}
     wr::Vector{Float64}
@@ -40,7 +40,7 @@ mutable struct DgeesWS
     eigen_values::Vector{Complex{Float64}}
     info::Ref{BlasInt}
 
-    function DgeesWS(jobvs::Ref{UInt8}, A::StridedMatrix{Float64}, sdim::Ref{BlasInt},
+    function DgeesWs(jobvs::Ref{UInt8}, A::StridedMatrix{Float64}, sdim::Ref{BlasInt},
                       wr::Vector{Float64}, wi::Vector{Float64}, ldvs::Ref{BlasInt}, vs::Matrix{Float64},
                       work::Vector{Float64}, lwork::Ref{BlasInt}, bwork::Vector{Int64},
                       eigen_values::Vector{Complex{Float64}}, info::Ref{BlasInt})
@@ -70,7 +70,7 @@ mutable struct DgeesWS
 end
 
 
-function DgeesWS(A::StridedMatrix{Float64})
+function DgeesWs(A::StridedMatrix{Float64})
     chkstride1(A)
     n, = checksquare(A)
     jobvs = Ref{UInt8}('V')
@@ -84,16 +84,16 @@ function DgeesWS(A::StridedMatrix{Float64})
     bwork = Vector{Int64}(undef, n)
     eigen_values = Vector{Complex{Float64}}(undef, n)
     info = Ref{BlasInt}(0)
-    DgeesWS(jobvs, A, sdim, wr, wi, ldvs, vs, work, lwork, bwork, eigen_values, info)
+    DgeesWs(jobvs, A, sdim, wr, wi, ldvs, vs, work, lwork, bwork, eigen_values, info)
 
 end
 
-function DgeesWS(n::Int64)
+function DgeesWs(n::Int64)
     A = zeros(n,n)
-    DgeesWS(A)
+    DgeesWs(A)
 end
 
-function dgees!(ws::DgeesWS,A::StridedMatrix{Float64})
+function dgees!(ws::DgeesWs,A::StridedMatrix{Float64})
     n = Ref{BlasInt}(size(A,1))
     RldA = Ref{BlasInt}(max(1,stride(A,2)))
     mycompare_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
@@ -114,7 +114,7 @@ function dgees!(ws::DgeesWS,A::StridedMatrix{Float64})
     chklapackerror(ws.info[])
 end
             
-mutable struct DggesWS
+mutable struct DggesWs
     alphar::Vector{Float64}
     alphai::Vector{Float64}
     beta::Vector{Float64}
@@ -123,7 +123,7 @@ mutable struct DggesWS
     bwork::Vector{Int64}
     sdim::BlasInt
 
-    function DggesWS(jobvsl::Ref{UInt8}, jobvsr::Ref{UInt8}, sort::Ref{UInt8}, A::StridedMatrix{Float64}, B::StridedMatrix{Float64})
+    function DggesWs(jobvsl::Ref{UInt8}, jobvsr::Ref{UInt8}, sort::Ref{UInt8}, A::StridedMatrix{Float64}, B::StridedMatrix{Float64})
         chkstride1(A, B)
         n, m = checksquare(A, B)
         if n != m
@@ -162,13 +162,13 @@ mutable struct DggesWS
     end
 end
 
-function DggesWS(A::StridedMatrix{Float64}, B::StridedMatrix{Float64})
-    DggesWS(Ref{UInt8}('N'), Ref{UInt8}('N'), Ref{UInt8}('N'), A, B)
+function DggesWs(A::StridedMatrix{Float64}, B::StridedMatrix{Float64})
+    DggesWs(Ref{UInt8}('N'), Ref{UInt8}('N'), Ref{UInt8}('N'), A, B)
 end
 
 function dgges!(jobvsl::Char, jobvsr::Char, A::StridedMatrix{Float64}, B::StridedMatrix{Float64},
                 vsl::Matrix{Float64}, vsr::Matrix{Float64}, eigval::Array{ComplexF64,1},
-                ws::DggesWS)
+                ws::DggesWs)
     n = size(A,1)
     ldvsl = jobvsl == 'V' ? n : 1
     ldvsr = jobvsr == 'V' ? n : 1
