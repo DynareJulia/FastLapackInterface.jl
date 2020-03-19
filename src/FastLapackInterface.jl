@@ -1,5 +1,7 @@
 module FastLapackInterface
 
-greet() = print("Hello World!")
+include("LinSolveAlgo.jl")
+include("QrAlgo.jl")
+include("SchurAlgo.jl")
 
 end # module
