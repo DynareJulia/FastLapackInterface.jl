@@ -64,22 +64,31 @@ for (geqrf, ormqr, elty) in
      (:sgeqrf_, :sormqr_, :Float32))
 
     @eval begin
-        t1 = StridedMatrix{$elty}
-        t2 = Transpose{$elty, <: StridedMatrix}
-        t3 = Adjoint{$elty, <: StridedMatrix}
+        function ormqr_core!(side::Ref{UInt8}, A::StridedMatrix{$elty},
+                              C::StridedMatrix{$elty}, ws::QrWs)
+            mm,nn = size(C)
+            m = Ref{BlasInt}(mm)
+            n = Ref{BlasInt}(nn)
+            k = Ref{BlasInt}(length(ws.tau))
+            RldA = Ref{BlasInt}(max(1,stride(A,2)))
+            RldC = Ref{BlasInt}(max(1,stride(C,2)))
+            ccall((@blasfunc($ormqr), liblapack), Nothing,
+                  (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
+                   Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
+                  side, 'N', m, n, k, A, RldA, ws.tau, C, RldC, ws.work, ws.lwork, ws.info)
+            chklapackerror(ws.info[])
+        end
+    end
+
+    @eval begin
+        t1 = Transpose{$elty, <: StridedMatrix}
+        t2 = Adjoint{$elty, <: StridedMatrix}
     end
     
-    for (elty2, transchar) in
-        ((t1, 'N'),
-         (t2, 'T'),
-         (t3, 'T'))
-
-        if (transchar == 'C' && ((elty == Float32) || (elty == Float64)))
-            transchar = 'T'
-        end
+    for elty2 in (t1, t2)
         
         @eval begin
-            function ormrqf_core!(side::Ref{UInt8}, A::StridedMatrix{$elty},
+            function ormqr_core!(side::Ref{UInt8}, A::$elty2,
                                   C::StridedMatrix{$elty}, ws::QrWs)
                 mm,nn = size(C)
                 m = Ref{BlasInt}(mm)
@@ -90,20 +99,11 @@ for (geqrf, ormqr, elty) in
                 ccall((@blasfunc($ormqr), liblapack), Nothing,
                       (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
                        Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
-                      side,$transchar,m,n,k,A,RldA,ws.tau,C,RldC,ws.work,ws.lwork,ws.info)
+                      side, 'T', m, n, k, A.parent, RldA, ws.tau, C, RldC, ws.work, ws.lwork, ws.info)
                 chklapackerror(ws.info[])
             end
         end
     end    
-
-    @eval begin
-        ormrqf_core!(side::Ref{UInt8}, A::Transpose{$elty},
-                     C::StridedMatrix{$elty}, ws::QrWs) =
-                         ormrqf_core!(side, A.parent, C, ws)
-        ormrqf_core!(side::Ref{UInt8}, A::Adjoint{$elty},
-                     C::StridedMatrix{$elty}, ws::QrWs) =
-                         ormrqf_core!(side, A.parent, C, ws)
-    end
 end 
                       
 for (geqrf, ormqr, elty) in
@@ -111,22 +111,33 @@ for (geqrf, ormqr, elty) in
      (:cgeqrf_, :cormqr_, :ComplexF32))
 
     @eval begin
-        t1 = StridedMatrix{$elty}
-        t2 = Transpose{$elty, <: StridedMatrix}
-        t3 = Adjoint{$elty, <: StridedMatrix}
+        function ormqr_core!(side::Ref{UInt8}, A::StridedMatrix{$elty},
+                              C::StridedMatrix{$elty}, ws::QrWs)
+            mm,nn = size(C)
+            m = Ref{BlasInt}(mm)
+            n = Ref{BlasInt}(nn)
+            k = Ref{BlasInt}(length(ws.tau))
+            RldA = Ref{BlasInt}(max(1,stride(A,2)))
+            RldC = Ref{BlasInt}(max(1,stride(C,2)))
+            ccall((@blasfunc($ormqr), liblapack), Nothing,
+                  (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
+                   Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
+                  side, 'N', m, n, k, A, RldA, ws.tau, C, RldC, ws.work, ws.lwork, ws.info)
+            chklapackerror(ws.info[])
+        end
+    end
+
+    @eval begin
+        t1 = Transpose{$elty, <: StridedMatrix}
+        t2 = Adjoint{$elty, <: StridedMatrix}
     end
     
     for (elty2, transchar) in
-        ((t1, 'N'),
-         (t2, 'T'),
-         (t3, 'C'))
+         ((t2, 'T'),
+          (t3, 'C'))
 
-        if (transchar == 'C' && ((elty == Float32) || (elty == Float64)))
-            transchar = 'T'
-        end
-        
         @eval begin
-            function ormrqf_core!(side::Ref{UInt8}, A::StridedMatrix{$elty},
+            function ormqr_core!(side::Ref{UInt8}, A::$elty2,
                                   C::StridedMatrix{$elty}, ws::QrWs)
                 mm,nn = size(C)
                 m = Ref{BlasInt}(mm)
@@ -137,20 +148,11 @@ for (geqrf, ormqr, elty) in
                 ccall((@blasfunc($ormqr), liblapack), Nothing,
                       (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
                        Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
-                      side,$transchar,m,n,k,A,RldA,ws.tau,C,RldC,ws.work,ws.lwork,ws.info)
+                      side, $transchar, m, n, k, A.parent, RldA, ws.tau, C, RldC, ws.work, ws.lwork, ws.info)
                 chklapackerror(ws.info[])
             end
         end
     end    
-
-    @eval begin
-        ormrqf_core!(side::Ref{UInt8}, A::Transpose{$elty},
-                     C::StridedMatrix{$elty}, ws::QrWs) =
-                         ormrqf_core!(side, A.parent, C, ws)
-        ormrqf_core!(side::Ref{UInt8}, A::Adjoint{$elty},
-                     C::StridedMatrix{$elty}, ws::QrWs) =
-                         ormrqf_core!(side, A.parent, C, ws)
-    end
 end 
                       
 end
