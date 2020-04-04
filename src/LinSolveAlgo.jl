@@ -47,11 +47,6 @@ for (getrf, getrs, elty) in
             end
         end
 
-        # if a is an adjoint matrix, we compute lu decomposition
-        # for its parent as the transposition is done at the
-        # solution stage
-        lu!(a::Adjoint,
-            ws::LinSolveWs) = lu!(a.parent, ws)
 
         t1 = StridedMatrix{$elty}
         t2 = Transpose{$elty, <: StridedMatrix}
@@ -97,5 +92,9 @@ for (getrf, getrs, elty) in
     end
 end
 
+# if a is an adjoint matrix, we compute lu decomposition
+# for its parent as the transposition is done at the
+# solution stage
+lu!(a::Adjoint, ws::LinSolveWs) = lu!(a.parent, ws)
 
 end
