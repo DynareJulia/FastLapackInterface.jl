@@ -5,7 +5,7 @@ import LinearAlgebra: BlasInt
 import LinearAlgebra.BLAS: @blasfunc
 import LinearAlgebra.LAPACK: liblapack, chklapackerror
 
-export QrWs, geqrf_core!, ormrqf_core!
+export QrWs, geqrf_core!, ormqr_core!
 
 struct QrWs{T <: Number} 
     tau::Vector{T}
@@ -64,7 +64,7 @@ for (geqrf, ormqr, elty) in
      (:sgeqrf_, :sormqr_, :Float32))
 
     @eval begin
-        function ormqr_core!(side::Ref{UInt8}, A::StridedMatrix{$elty},
+        function ormqr_core!(side::Char, A::StridedMatrix{$elty},
                               C::StridedMatrix{$elty}, ws::QrWs)
             mm,nn = size(C)
             m = Ref{BlasInt}(mm)
@@ -88,7 +88,7 @@ for (geqrf, ormqr, elty) in
     for elty2 in (t1, t2)
         
         @eval begin
-            function ormqr_core!(side::Ref{UInt8}, A::$elty2,
+            function ormqr_core!(side::Char, A::$elty2,
                                   C::StridedMatrix{$elty}, ws::QrWs)
                 mm,nn = size(C)
                 m = Ref{BlasInt}(mm)
@@ -111,7 +111,7 @@ for (geqrf, ormqr, elty) in
      (:cgeqrf_, :cormqr_, :ComplexF32))
 
     @eval begin
-        function ormqr_core!(side::Ref{UInt8}, A::StridedMatrix{$elty},
+        function ormqr_core!(side::Char, A::StridedMatrix{$elty},
                               C::StridedMatrix{$elty}, ws::QrWs)
             mm,nn = size(C)
             m = Ref{BlasInt}(mm)
@@ -137,7 +137,7 @@ for (geqrf, ormqr, elty) in
           (t3, 'C'))
 
         @eval begin
-            function ormqr_core!(side::Ref{UInt8}, A::$elty2,
+            function ormqr_core!(side::Char, A::$elty2,
                                   C::StridedMatrix{$elty}, ws::QrWs)
                 mm,nn = size(C)
                 m = Ref{BlasInt}(mm)
