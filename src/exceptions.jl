@@ -4,4 +4,4 @@ struct DggesException <: Exception
     error_nbr::Int64
 end
 
-Base.showerror(io::IO, e::DggesException) = print(io, "error nbr", e.error_nbr)
+Base.showerror(io::IO, e::DggesException) = print(io, "dgges error ", e.error_nbr)
