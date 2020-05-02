@@ -48,7 +48,7 @@ for elty in (Float32, Float64, ComplexF32, ComplexF64)
     C = view(A, 1:n-1, 1:n-1)
     C1 = copy(C)
     LinSolveAlgo.lu!(C1, linws1)
-    F = lu!(C)
+    F = LinearAlgebra.lu!(C)
     @test triu(linws1.lu) ≈ F.U
     @test tril(linws1.lu, -1) ≈ tril(F.L, -1)
     
