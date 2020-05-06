@@ -81,8 +81,8 @@ for (geqrf, ormqr, elty) in
     end
 
     @eval begin
-        t1 = Transpose{$elty, <: StridedMatrix}
-        t2 = Adjoint{$elty, <: StridedMatrix}
+        t1 = Transpose{$elty, <: StridedMatrix{$elty}}
+        t2 = Adjoint{$elty, <: StridedMatrix{$elty}}
     end
     
     for elty2 in (t1, t2)
@@ -128,8 +128,8 @@ for (geqrf, ormqr, elty) in
     end
 
     @eval begin
-        t1 = Transpose{$elty, <: StridedMatrix}
-        t2 = Adjoint{$elty, <: StridedMatrix}
+        t1 = Transpose{$elty, <: StridedMatrix{$elty}}
+        t2 = Adjoint{$elty, <: StridedMatrix{$elty}}
     end
     
     for (elty2, transchar) in
