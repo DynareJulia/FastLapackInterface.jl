@@ -10,10 +10,10 @@ import LinearAlgebra.LAPACK: liblapack, chklapackerror
 export LinSolveWs, linsolve_core!, linsolve_core_no_lu!, lu!
 
 struct LinSolveWs{T <: Number, U <: Integer}
-    lu::Matrix{T}
+    lu::Vector{T}
     ipiv::Vector{BlasInt}
     function LinSolveWs{T, U}(n::U) where {T <: Number, U <: Integer}
-        lu = zeros(T, n, n)
+        lu = zeros(T, n*n)
         ipiv = zeros(BlasInt, n)
         new(lu, ipiv)
     end
@@ -32,11 +32,12 @@ for (getrf, getrs, elty) in
     @eval begin
         function lu!(a::StridedMatrix{$elty},
                      ws::LinSolveWs)
-            copy!(ws.lu, a)
+            copyto!(ws.lu, a)
             mm,nn = size(a)
             m = Ref{BlasInt}(mm)
             n = Ref{BlasInt}(nn)
-            lda = Ref{BlasInt}(max(1,stride(ws.lu,2)))
+            # ws.lu isn't a view and has continuous storage
+            lda = Ref{BlasInt}(max(1,mm))
             info = Ref{BlasInt}(0)
             ccall((@blasfunc($getrf), liblapack), Cvoid,
                   (Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
@@ -67,10 +68,10 @@ for (getrf, getrs, elty) in
                 m = Ref{BlasInt}(mm)
                 n = Ref{BlasInt}(nn)
                 nhrs = Ref{BlasInt}(size(b,2))
-                lda = Ref{BlasInt}(max(1,stride(ws.lu,2)))
+                # ws.lu isn't a view and has continuous storage
+                lda = Ref{BlasInt}(max(1,mm))
                 ldb = Ref{BlasInt}(max(1,stride(b,2)))
                 info = Ref{BlasInt}(0)
-                
                 ccall((@blasfunc($getrs), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
                        Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt},
