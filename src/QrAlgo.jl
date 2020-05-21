@@ -94,7 +94,7 @@ for (geqrf, ormqr, elty) in
                 m = Ref{BlasInt}(mm)
                 n = Ref{BlasInt}(nn)
                 k = Ref{BlasInt}(length(ws.tau))
-                RldA = Ref{BlasInt}(max(1,stride(A,2)))
+                RldA = Ref{BlasInt}(max(1,stride(A.parent,2)))
                 RldC = Ref{BlasInt}(max(1,stride(C,2)))
                 ccall((@blasfunc($ormqr), liblapack), Nothing,
                       (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
@@ -143,7 +143,7 @@ for (geqrf, ormqr, elty) in
                 m = Ref{BlasInt}(mm)
                 n = Ref{BlasInt}(nn)
                 k = Ref{BlasInt}(length(ws.tau))
-                RldA = Ref{BlasInt}(max(1,stride(A,2)))
+                RldA = Ref{BlasInt}(max(1,stride(A.parent,2)))
                 RldC = Ref{BlasInt}(max(1,stride(C,2)))
                 ccall((@blasfunc($ormqr), liblapack), Nothing,
                       (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
