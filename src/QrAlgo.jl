@@ -150,7 +150,8 @@ for (geqrf, ormqr, elty) in
                 ccall((@blasfunc($ormqr), liblapack), Nothing,
                       (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
                        Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
-                      side, $transchar, m, n, k, A.parent, RldA, ws.tau, C, RldC, ws.work, ws.lwork, ws.info)
+                      side, $transchar, m, n, k, A.parent, RldA,
+                      ws.tau, C, RldC, ws.work, ws.lwork, ws.info)
                 chklapackerror(ws.info[])
             end
         end
@@ -187,11 +188,6 @@ for (geqp3, elty) in
                   m, n, A, RldA, jpvt, tau, work, lwork, info)
             chklapackerror(info[])
             lwork = BlasInt(real(work[1]))
-            @show lwork
-            @show m
-            @show n
-            @show RldA
-            @show info[]
             work = resize!(work, lwork)
             QrpWs(tau, jpvt, work, lwork, info)
         end
