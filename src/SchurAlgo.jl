@@ -4,10 +4,12 @@ module SchurAlgo
 
 include("exceptions.jl")
 
+const libblastrampoline = "libblastrampoline"
+
 import LinearAlgebra: USE_BLAS64, LAPACKException
 import LinearAlgebra: BlasInt, BlasFloat, checksquare, chkstride1 
 import LinearAlgebra.BLAS: @blasfunc, libblas
-import LinearAlgebra.LAPACK: liblapack, chklapackerror
+import LinearAlgebra.LAPACK: chklapackerror
 import Base: has_offset_axes
 
 export DgeesWs, dgees!, DggesWs, dgges!
@@ -50,7 +52,7 @@ mutable struct DgeesWs
         RldA = Ref{BlasInt}(max(1,stride(A,2)))
         Rsort = Ref{UInt8}('N')
 #        mycompare_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
-        ccall((@blasfunc(dgees_), liblapack), Nothing,
+        ccall((@blasfunc(dgees_),  libblastrampoline), Nothing,
               (Ref{UInt8}, Ref{UInt8}, Ptr{Nothing},
                Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt},
                Ptr{BlasInt}, Ptr{Float64},
@@ -99,7 +101,7 @@ function dgees!(ws::DgeesWs,A::StridedMatrix{Float64})
     n = Ref{BlasInt}(size(A,1))
     RldA = Ref{BlasInt}(max(1,stride(A,2)))
     myfunc::Function = make_select_function(>=, 1.0)
-    ccall((@blasfunc(dgees_), liblapack), Cvoid,
+    ccall((@blasfunc(dgees_),  libblastrampoline), Cvoid,
           (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
            Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt},
            Ptr{BlasInt}, Ptr{Float64}, Ptr{Float64},
@@ -130,7 +132,7 @@ function dgees!(ws::DgeesWs, A::StridedMatrix{Float64}, op, crit)
     RldA = Ref{BlasInt}(max(1,stride(A,2)))
     myfunc::Function = make_select_function(op, crit)
     mycompare_c = @cfunction($myfunc, Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
-    ccall((@blasfunc(dgees_), liblapack), Cvoid,
+    ccall((@blasfunc(dgees_),  libblastrampoline), Cvoid,
           (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
            Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt},
            Ptr{BlasInt}, Ptr{Float64}, Ptr{Float64},
@@ -175,7 +177,7 @@ mutable struct DggesWs
         sdim = BlasInt(0)
         info = BlasInt(0)
         mycompare_g_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
-        ccall((@blasfunc(dgges_), liblapack), Nothing,
+        ccall((@blasfunc(dgges_),  libblastrampoline), Nothing,
               (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Nothing},
                Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt}, Ptr{Float64},
                Ref{BlasInt}, Ref{BlasInt}, Ptr{Float64}, Ptr{Float64},
@@ -209,7 +211,7 @@ function dgges!(jobvsl::Char, jobvsr::Char, A::StridedMatrix{Float64}, B::Stride
     sdim = Ref{BlasInt}(0)
     info = Ref{BlasInt}(0)
     mycompare_g_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
-    ccall((@blasfunc(dgges_), liblapack), Nothing,
+    ccall((@blasfunc(dgges_),  libblastrampoline), Nothing,
           (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Nothing},
            Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt}, Ptr{Float64},
            Ref{BlasInt}, Ptr{BlasInt}, Ptr{Float64}, Ptr{Float64},

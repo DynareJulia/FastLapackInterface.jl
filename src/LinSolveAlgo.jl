@@ -2,10 +2,12 @@ module LinSolveAlgo
 
 import Base.strides
 
+const libblastrampoline = "libblastrampoline"
+
 using LinearAlgebra
 import LinearAlgebra.BlasInt
 import LinearAlgebra.BLAS.@blasfunc
-import LinearAlgebra.LAPACK: liblapack, chklapackerror
+import LinearAlgebra.LAPACK:  chklapackerror
 
 export LinSolveWs, linsolve_core!, linsolve_core_no_lu!, lu!
 
@@ -39,7 +41,7 @@ for (getrf, getrs, elty) in
             # ws.lu isn't a view and has continuous storage
             lda = Ref{BlasInt}(max(1,mm))
             info = Ref{BlasInt}(0)
-            ccall((@blasfunc($getrf), liblapack), Cvoid,
+            ccall((@blasfunc($getrf),  libblastrampoline), Cvoid,
                   (Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
                    Ptr{BlasInt},Ref{BlasInt}),
                   m, n, ws.lu, lda, ws.ipiv, info)
@@ -72,7 +74,7 @@ for (getrf, getrs, elty) in
                 lda = Ref{BlasInt}(max(1,mm))
                 ldb = Ref{BlasInt}(max(1,stride(b,2)))
                 info = Ref{BlasInt}(0)
-                ccall((@blasfunc($getrs), liblapack), Cvoid,
+                ccall((@blasfunc($getrs),  libblastrampoline), Cvoid,
                       (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
                        Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt},
                        Ref{BlasInt}),
