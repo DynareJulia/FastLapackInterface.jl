@@ -109,7 +109,8 @@ for (geqrf, ormqr, elty) in
         end
     end    
 end 
-                      
+
+#=
 for (geqrf, ormqr, elty) in
     ((:zgeqrf_, :zormqr_, :ComplexF64),
      (:cgeqrf_, :cormqr_, :ComplexF32))
@@ -209,5 +210,5 @@ for (geqp3, elty) in
         t3 = Adjoint{$elty, <: StridedMatrix}
     end
 end
-
+=#
 end
