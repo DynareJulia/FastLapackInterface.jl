@@ -11,7 +11,7 @@ n = 10
 
     QrAlgo.geqp3!(A, ws)
 
-    target = qr(A0, Val(true))
+    target = qr(A0, ColumnNorm())
 
 #display(triu(A))
 #display(triu(target.R))

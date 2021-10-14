@@ -31,7 +31,7 @@ function mycompare(alphar_::Ptr{T}, alphai_::Ptr{T}, beta_::Ptr{T})::Cint where 
     return convert(Cint, ((alphar*alphar + alphai*alphai) < criterium*beta*beta) ? 1 : 0)
 end
 
-mutable struct DgeesWs
+struct DgeesWs
     jobvs::Ref{UInt8}
     sdim::Ref{BlasInt}
     wr::Vector{Float64}

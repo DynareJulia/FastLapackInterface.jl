@@ -160,7 +160,8 @@ for (geqrf, ormqr, elty) in
         end
     end    
 end 
-                      
+=#
+
 struct QrpWs{T <: Number}  <: QR
     tau::Vector{T}
     jpvt::Vector{BlasInt}
@@ -210,5 +211,5 @@ for (geqp3, elty) in
         t3 = Adjoint{$elty, <: StridedMatrix}
     end
 end
-=#
+
 end
