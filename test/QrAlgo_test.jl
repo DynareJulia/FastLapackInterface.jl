@@ -1,17 +1,17 @@
-    
+
 n = 10
 
 #for elty in (Float32, Float64, ComplexF32, ComplexF64)
 
 #    A0 = randn(elty, n, n)
-    A0 = randn(n, n)
+A0 = randn(n, n)
 
-    A = copy(A0)
-    ws = QrAlgo.QrpWs(A)
+A = copy(A0)
+ws = QrAlgo.QrpWs(A)
 
-    QrAlgo.geqp3!(A, ws)
+QrAlgo.geqp3!(A, ws)
 
-    target = qr(A0, ColumnNorm())
+target = qr(A0, ColumnNorm())
 
 #display(triu(A))
 #display(triu(target.R))

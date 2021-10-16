@@ -1,3 +1,3 @@
 using Documenter, FastLapackInterface
 
-makedocs(sitename="MyDocumentation")
+makedocs(sitename = "MyDocumentation")
