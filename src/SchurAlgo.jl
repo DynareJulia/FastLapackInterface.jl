@@ -66,7 +66,11 @@ struct DgeesWs
         Rsort = Ref{UInt8}('N')
         #        mycompare_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
         ccall(
+<<<<<<< HEAD
             (@blasfunc(dgees_), libblastrampoline),
+=======
+            (@blasfunc(dgees_), liblapack),
+>>>>>>> 92f6d1d (JuliaFormatter)
             Nothing,
             (
                 Ref{UInt8},

@@ -206,13 +206,16 @@ end
 
 #=
 for (geqrf, ormqr, elty) in
-    ((:zgeqrf_, :zormqr_, :ComplexF64),
-     (:cgeqrf_, :cormqr_, :ComplexF32))
+    ((:zgeqrf_, :zormqr_, :ComplexF64), (:cgeqrf_, :cormqr_, :ComplexF32))
 
     @eval begin
-        function ormqr_core!(side::Char, A::StridedMatrix{$elty},
-                              C::StridedMatrix{$elty}, ws::QR)
-            mm,nn = size(C)
+        function ormqr_core!(
+            side::Char,
+            A::StridedMatrix{$elty},
+            C::StridedMatrix{$elty},
+            ws::QR,
+        )
+            mm, nn = size(C)
             m = Ref{BlasInt}(mm)
             n = Ref{BlasInt}(nn)
             k = Ref{BlasInt}(length(ws.tau))
@@ -227,18 +230,15 @@ for (geqrf, ormqr, elty) in
     end
 
     @eval begin
-        t1 = Transpose{$elty, <: StridedMatrix{$elty}}
-        t2 = Adjoint{$elty, <: StridedMatrix{$elty}}
+        t1 = Transpose{$elty,<:StridedMatrix{$elty}}
+        t2 = Adjoint{$elty,<:StridedMatrix{$elty}}
     end
-    
-    for (elty2, transchar) in
-         ((t2, 'T'),
-          (t3, 'C'))
+
+    for (elty2, transchar) in ((t2, 'T'), (t3, 'C'))
 
         @eval begin
-            function ormqr_core!(side::Char, A::$elty2,
-                                  C::StridedMatrix{$elty}, ws::QR)
-                mm,nn = size(C)
+            function ormqr_core!(side::Char, A::$elty2, C::StridedMatrix{$elty}, ws::QR)
+                mm, nn = size(C)
                 m = Ref{BlasInt}(mm)
                 n = Ref{BlasInt}(nn)
                 k = Ref{BlasInt}(length(ws.tau))
