@@ -1,9 +1,11 @@
 module QrAlgo
 
+const libblastrampoline = "libblastrampoline"
+
 using LinearAlgebra
 import LinearAlgebra: BlasInt
 import LinearAlgebra.BLAS: @blasfunc
-import LinearAlgebra.LAPACK: liblapack, chklapackerror
+import LinearAlgebra.LAPACK: chklapackerror
 
 export QrWs, QrpWs, geqrf_core!, geqp3!, ormqr_core!
 
@@ -35,7 +37,7 @@ for (geqrf, ormqr, elty) in (
             lwork = Ref{BlasInt}(-1)
             info = Ref{BlasInt}(0)
             ccall(
-                (@blasfunc($geqrf), liblapack),
+                (@blasfunc($geqrf), libblastrampoline),
                 Nothing,
                 (
                     Ref{BlasInt},
@@ -68,7 +70,7 @@ for (geqrf, ormqr, elty) in (
             n = Ref{BlasInt}(nn)
             RldA = Ref{BlasInt}(max(1, stride(A, 2)))
             ccall(
-                (@blasfunc($geqrf), liblapack),
+                (@blasfunc($geqrf), libblastrampoline),
                 Nothing,
                 (
                     Ref{BlasInt},
@@ -114,7 +116,7 @@ for (geqrf, ormqr, elty) in ((:dgeqrf_, :dormqr_, :Float64), (:sgeqrf_, :sormqr_
             RldA = Ref{BlasInt}(max(1, stride(A, 2)))
             RldC = Ref{BlasInt}(max(1, stride(C, 2)))
             ccall(
-                (@blasfunc($ormqr), liblapack),
+                (@blasfunc($ormqr), libblastrampoline),
                 Nothing,
                 (
                     Ref{UInt8},
@@ -165,7 +167,7 @@ for (geqrf, ormqr, elty) in ((:dgeqrf_, :dormqr_, :Float64), (:sgeqrf_, :sormqr_
                 RldA = Ref{BlasInt}(max(1, stride(A.parent, 2)))
                 RldC = Ref{BlasInt}(max(1, stride(C, 2)))
                 ccall(
-                    (@blasfunc($ormqr), liblapack),
+                    (@blasfunc($ormqr), libblastrampoline),
                     Nothing,
                     (
                         Ref{UInt8},
@@ -202,6 +204,7 @@ for (geqrf, ormqr, elty) in ((:dgeqrf_, :dormqr_, :Float64), (:sgeqrf_, :sormqr_
     end
 end
 
+#=
 for (geqrf, ormqr, elty) in
     ((:zgeqrf_, :zormqr_, :ComplexF64), (:cgeqrf_, :cormqr_, :ComplexF32))
 
@@ -216,40 +219,12 @@ for (geqrf, ormqr, elty) in
             m = Ref{BlasInt}(mm)
             n = Ref{BlasInt}(nn)
             k = Ref{BlasInt}(length(ws.tau))
-            RldA = Ref{BlasInt}(max(1, stride(A, 2)))
-            RldC = Ref{BlasInt}(max(1, stride(C, 2)))
-            ccall(
-                (@blasfunc($ormqr), liblapack),
-                Nothing,
-                (
-                    Ref{UInt8},
-                    Ref{UInt8},
-                    Ref{BlasInt},
-                    Ref{BlasInt},
-                    Ref{BlasInt},
-                    Ptr{$elty},
-                    Ref{BlasInt},
-                    Ptr{$elty},
-                    Ptr{$elty},
-                    Ref{BlasInt},
-                    Ptr{$elty},
-                    Ref{BlasInt},
-                    Ref{BlasInt},
-                ),
-                side,
-                'N',
-                m,
-                n,
-                k,
-                A,
-                RldA,
-                ws.tau,
-                C,
-                RldC,
-                ws.work,
-                ws.lwork,
-                ws.info,
-            )
+            RldA = Ref{BlasInt}(max(1,stride(A,2)))
+            RldC = Ref{BlasInt}(max(1,stride(C,2)))
+            ccall((@blasfunc($ormqr),  libblastrampoline), Nothing,
+                  (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
+                   Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
+                  side, 'N', m, n, k, A, RldA, ws.tau, C, RldC, ws.work, ws.lwork, ws.info)
             chklapackerror(ws.info[])
         end
     end
@@ -267,45 +242,19 @@ for (geqrf, ormqr, elty) in
                 m = Ref{BlasInt}(mm)
                 n = Ref{BlasInt}(nn)
                 k = Ref{BlasInt}(length(ws.tau))
-                RldA = Ref{BlasInt}(max(1, stride(A.parent, 2)))
-                RldC = Ref{BlasInt}(max(1, stride(C, 2)))
-                ccall(
-                    (@blasfunc($ormqr), liblapack),
-                    Nothing,
-                    (
-                        Ref{UInt8},
-                        Ref{UInt8},
-                        Ref{BlasInt},
-                        Ref{BlasInt},
-                        Ref{BlasInt},
-                        Ptr{$elty},
-                        Ref{BlasInt},
-                        Ptr{$elty},
-                        Ptr{$elty},
-                        Ref{BlasInt},
-                        Ptr{$elty},
-                        Ref{BlasInt},
-                        Ref{BlasInt},
-                    ),
-                    side,
-                    $transchar,
-                    m,
-                    n,
-                    k,
-                    A.parent,
-                    RldA,
-                    ws.tau,
-                    C,
-                    RldC,
-                    ws.work,
-                    ws.lwork,
-                    ws.info,
-                )
+                RldA = Ref{BlasInt}(max(1,stride(A.parent,2)))
+                RldC = Ref{BlasInt}(max(1,stride(C,2)))
+                ccall((@blasfunc($ormqr),  libblastrampoline), Nothing,
+                      (Ref{UInt8},Ref{UInt8},Ref{BlasInt},Ref{BlasInt},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},
+                       Ptr{$elty},Ptr{$elty},Ref{BlasInt},Ptr{$elty},Ref{BlasInt},Ref{BlasInt}),
+                      side, $transchar, m, n, k, A.parent, RldA,
+                      ws.tau, C, RldC, ws.work, ws.lwork, ws.info)
                 chklapackerror(ws.info[])
             end
         end
-    end
-end
+    end    
+end 
+=#
 
 struct QrpWs{T<:Number} <: QR
     tau::Vector{T}
@@ -333,7 +282,7 @@ for (geqp3, elty) in (
             lwork = BlasInt(-1)
             info = Ref{BlasInt}()
             ccall(
-                (@blasfunc($geqp3), liblapack),
+                (@blasfunc($geqp3), libblastrampoline),
                 Nothing,
                 (
                     Ref{BlasInt},
@@ -366,7 +315,7 @@ for (geqp3, elty) in (
             m, n = size(A)
             RldA = BlasInt(max(1, stride(A, 2)))
             ccall(
-                (@blasfunc($geqp3), liblapack),
+                (@blasfunc($geqp3), libblastrampoline),
                 Nothing,
                 (
                     Ref{BlasInt},
