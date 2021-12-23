@@ -11,11 +11,7 @@ ws = QrAlgo.QrpWs(A)
 
 QrAlgo.geqp3!(A, ws)
 
-<<<<<<< HEAD
 target = qr(A0, ColumnNorm())
-=======
-target = qr(A0, Val(true))
->>>>>>> 92f6d1d (JuliaFormatter)
 
 #display(triu(A))
 #display(triu(target.R))
