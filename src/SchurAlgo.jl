@@ -1,28 +1,10 @@
-module SchurAlgo
 # general Schur decomposition with reordering
 # adataped from ./base/linalg/lapack.jl
 
 include("exceptions.jl")
 
-const libblastrampoline = "libblastrampoline"
-
-import LinearAlgebra: USE_BLAS64, LAPACKException
-import LinearAlgebra: BlasInt, BlasFloat, checksquare, chkstride1
-import LinearAlgebra.BLAS: @blasfunc, libblas
-import LinearAlgebra.LAPACK: chklapackerror
-import Base: has_offset_axes
-
-export DgeesWs, dgees!, DggesWs, dgges!
 
 const criterium = 1 + 1e-6
-
-#=
-function mycompare(wr_, wi_)::Cint
-    wr = unsafe_load(wr_)
-    wi = unsafe_load(wi_)
-    return convert(Cint, ((wr*wr + wi*wi) < criterium) ? 1 : 0)
-end
-=#
 
 function mycompare(alphar_::Ptr{T}, alphai_::Ptr{T}, beta_::Ptr{T})::Cint where {T}
     alphar = unsafe_load(alphar_)
@@ -64,9 +46,8 @@ struct DgeesWs
         n = Ref{BlasInt}(size(A, 1))
         RldA = Ref{BlasInt}(max(1, stride(A, 2)))
         Rsort = Ref{UInt8}('N')
-        #        mycompare_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
         ccall(
-            (@blasfunc(dgees_), libblastrampoline),
+            (@blasfunc(dgees_), liblapack),
             Nothing,
             (
                 Ref{UInt8},
@@ -138,7 +119,7 @@ function dgees!(ws::DgeesWs, A::StridedMatrix{Float64})
     RldA = Ref{BlasInt}(max(1, stride(A, 2)))
     myfunc::Function = make_select_function(>=, 1.0)
     ccall(
-        (@blasfunc(dgees_), libblastrampoline),
+        (@blasfunc(dgees_), liblapack),
         Cvoid,
         (
             Ref{UInt8},
@@ -192,7 +173,7 @@ function dgees!(ws::DgeesWs, A::StridedMatrix{Float64}, op, crit)
     myfunc::Function = make_select_function(op, crit)
     mycompare_c = @cfunction($myfunc, Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
     ccall(
-        (@blasfunc(dgees_), libblastrampoline),
+        (@blasfunc(dgees_), liblapack),
         Cvoid,
         (
             Ref{UInt8},
@@ -267,7 +248,7 @@ mutable struct DggesWs
         mycompare_g_c =
             @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
         ccall(
-            (@blasfunc(dgges_), libblastrampoline),
+            (@blasfunc(dgges_), liblapack),
             Nothing,
             (
                 Ref{UInt8},
@@ -343,7 +324,7 @@ function dgges!(
     info = Ref{BlasInt}(0)
     mycompare_g_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
     ccall(
-        (@blasfunc(dgges_), libblastrampoline),
+        (@blasfunc(dgges_), liblapack),
         Nothing,
         (
             Ref{UInt8},
@@ -399,4 +380,3 @@ function dgges!(
     end
 end
 
-end

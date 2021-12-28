@@ -1,4 +1,3 @@
-
 n = 10
 
 #for elty in (Float32, Float64, ComplexF32, ComplexF64)
@@ -7,19 +6,19 @@ n = 10
 A0 = randn(n, n)
 
 A = copy(A0)
-ws = QrAlgo.QrpWs(A)
+ws = QrpWs(A)
 
-QrAlgo.geqp3!(A, ws)
+geqp3!(A, ws)
 
-target = qr(A0, ColumnNorm())
-
-#display(triu(A))
-#display(triu(target.R))
-
+@static if VERSION < v"1.7"
+    target = qr(A0, Val(true))
+else
+    target = qr(A0, ColumnNorm())
+end
 
 A = randn(n, 15)
 vA = zeros(n, 2)
 vA .= view(A, :, [7, 9])
-ws = QrAlgo.QrWs(vA)
+ws = QrWs(vA)
 geqrf_core!(vA, ws)
 ormqr_core!('L', vA', A, ws)

@@ -1,16 +1,3 @@
-module LinSolveAlgo
-
-import Base.strides
-
-const libblastrampoline = "libblastrampoline"
-
-using LinearAlgebra
-import LinearAlgebra.BlasInt
-import LinearAlgebra.BLAS.@blasfunc
-import LinearAlgebra.LAPACK: chklapackerror
-
-export LinSolveWs, linsolve_core!, linsolve_core_no_lu!, lu!
-
 struct LinSolveWs{T<:Number,U<:Integer}
     lu::Vector{T}
     ipiv::Vector{BlasInt}
@@ -42,7 +29,7 @@ for (getrf, getrs, elty) in (
             lda = Ref{BlasInt}(max(1, mm))
             info = Ref{BlasInt}(0)
             ccall(
-                (@blasfunc($getrf), libblastrampoline),
+                (@blasfunc($getrf), liblapack),
                 Cvoid,
                 (
                     Ref{BlasInt},
@@ -88,7 +75,7 @@ for (getrf, getrs, elty) in (
                 ldb = Ref{BlasInt}(max(1, stride(b, 2)))
                 info = Ref{BlasInt}(0)
                 ccall(
-                    (@blasfunc($getrs), libblastrampoline),
+                    (@blasfunc($getrs), liblapack),
                     Cvoid,
                     (
                         Ref{UInt8},
@@ -129,5 +116,3 @@ end
 # for its parent as the transposition is done at the
 # solution stage
 lu!(a::Adjoint, ws::LinSolveWs) = lu!(a.parent, ws)
-
-end
