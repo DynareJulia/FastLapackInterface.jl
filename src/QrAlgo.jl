@@ -1,10 +1,11 @@
+using Base: require_one_based_indexing
+using LinearAlgebra: chkstride1
 abstract type QR end
 
-struct QrWs{T<:Number} <: QR
-    tau::Vector{T}
+struct QRWs{T<:Number} <: QR
     work::Vector{T}
-    lwork::Ref{BlasInt}
     info::Ref{BlasInt}
+    τ::Vector{T}
 end
 
 for (geqrf, ormqr, elty) in (
@@ -15,49 +16,44 @@ for (geqrf, ormqr, elty) in (
 )
 
     @eval begin
-
-        function QrWs(A::StridedMatrix{T}) where {T<:$elty}
-            nn, mm = size(A)
-            m = Ref{BlasInt}(mm)
-            n = Ref{BlasInt}(nn)
-            RldA = Ref{BlasInt}(max(1, stride(A, 2)))
-            tau = Vector{T}(undef, min(nn, mm))
-            work = Vector{T}(undef, 1)
-            lwork = Ref{BlasInt}(-1)
-            info = Ref{BlasInt}(0)
+        function QRWs(A::StridedMatrix{$elty})
+            m, n = size(A)
+            lda = max(1, stride(A, 2))
+            τ = Vector{$elty}(undef, min(m, n))
+            work = Vector{$elty}(undef, 1)
+            lwork = -1
+            info = Ref{BlasInt}()
             ccall(
                 (@blasfunc($geqrf), liblapack),
                 Nothing,
                 (
                     Ref{BlasInt},
                     Ref{BlasInt},
-                    Ptr{T},
+                    Ptr{$elty},
                     Ref{BlasInt},
-                    Ptr{T},
-                    Ptr{T},
+                    Ptr{$elty},
+                    Ptr{$elty},
                     Ref{BlasInt},
                     Ref{BlasInt},
                 ),
                 m,
                 n,
                 A,
-                RldA,
-                tau,
+                lda,
+                τ,
                 work,
                 lwork,
                 info,
             )
             chklapackerror(info[])
-            lwork = Ref{BlasInt}(real(work[1]))
-            work = Array{T}(undef, lwork[])
-            QrWs(tau, work, lwork, info)
+            resize!(work, Int(real(work[1])))
+            QRWs(work, info, τ)
         end
 
-        function geqrf_core!(A::StridedMatrix{$elty}, ws::QrWs)
-            mm, nn = size(A)
-            m = Ref{BlasInt}(mm)
-            n = Ref{BlasInt}(nn)
-            RldA = Ref{BlasInt}(max(1, stride(A, 2)))
+        function geqrf!(A::StridedMatrix{$elty}, ws::QRWs)
+            m, n = size(A)
+            lda = max(1, stride(A, 2))
+            lwork = length(ws.work)
             ccall(
                 (@blasfunc($geqrf), liblapack),
                 Nothing,
@@ -74,18 +70,67 @@ for (geqrf, ormqr, elty) in (
                 m,
                 n,
                 A,
-                RldA,
-                ws.tau,
+                lda,
+                ws.τ,
                 ws.work,
-                ws.lwork,
+                lwork,
                 ws.info,
             )
             chklapackerror(ws.info[])
+            return A, ws.τ 
         end
 
         t1 = StridedMatrix{$elty}
         t2 = Transpose{$elty,<:StridedMatrix}
         t3 = Adjoint{$elty,<:StridedMatrix}
+    end
+end
+
+struct QRWsNew{T<:Number} <: QR
+    work::Vector{T}
+    info::Ref{BlasInt}
+    T::StridedMatrix{T}
+end
+
+for (geqrt, ormqr, elty) in (
+    (:dgeqrt_, :dormqr_, :Float64),
+    (:sgeqrt_, :sormqr_, :Float32),
+    (:zgeqrt_, :zormqr_, :ComplexF64),
+    (:cgeqrt_, :cormqr_, :ComplexF32),
+)
+
+    @eval begin
+        function QRWsNew(A::StridedMatrix{$elty}; blocksize = 36)
+            require_one_based_indexing(A)
+            chkstride1(A)
+            m, n = BlasInt.(size(A))
+            @assert n > 0 ArgumentError("Not a Matrix")
+            m1 = min(m, n)
+            nb = min(m1, blocksize)
+            T = similar(A, nb, m1)
+            
+            work = Vector{$elty}(undef, nb*n)
+            return QRWsNew(work, Ref{BlasInt}(), T)
+        end
+        
+        function geqrt!(A::StridedMatrix{$elty}, ws::QRWsNew)
+            require_one_based_indexing(A)
+            chkstride1(A)
+            m, n = size(A)
+            nb = size(ws.T, 1)
+            lda = max(1, stride(A,2))
+            work = ws.work
+                
+            ccall((@blasfunc($geqrt), liblapack), Cvoid,
+                (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                 Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                 Ptr{BlasInt}),
+                 m, n, nb, A,
+                 lda, ws.T, max(1,stride(ws.T,2)), ws.work,
+                 ws.info)
+            chklapackerror(ws.info[])
+            A, ws.T
+        end
     end
 end
 
