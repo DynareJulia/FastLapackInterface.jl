@@ -1,7 +1,9 @@
 # general Schur decomposition with reordering
 # adataped from ./base/linalg/lapack.jl
+using LinearAlgebra: checksquare
 
 include("exceptions.jl")
+
 
 const criterium = 1 + 1e-6
 
@@ -9,341 +11,331 @@ function mycompare(alphar_::Ptr{T}, alphai_::Ptr{T}, beta_::Ptr{T})::Cint where 
     alphar = unsafe_load(alphar_)
     alphai = unsafe_load(alphai_)
     beta = unsafe_load(beta_)
-    return convert(Cint,
-                   ((alphar * alphar + alphai * alphai) < criterium * beta * beta) ? 1 : 0)
+    return convert(
+        Cint,
+        ((alphar * alphar + alphai * alphai) < criterium * beta * beta) ? 1 : 0,
+    )
 end
 
-struct DgeesWs
-    jobvs::Ref{UInt8}
-    sdim::Ref{BlasInt}
-    wr::Vector{Float64}
-    wi::Vector{Float64}
-    ldvs::Ref{BlasInt}
-    vs::Matrix{Float64}
-    work::Vector{Float64}
-    lwork::Ref{BlasInt}
-    bwork::Vector{Int64}
-    eigen_values::Vector{Complex{Float64}}
+
+# Do we ever want to SELECT?
+mutable struct GeesWs{T<:AbstractFloat}
+    work::Vector{T}
     info::Ref{BlasInt}
-
-    function DgeesWs(jobvs::Ref{UInt8},
-                     A::StridedMatrix{Float64},
-                     sdim::Ref{BlasInt},
-                     wr::Vector{Float64},
-                     wi::Vector{Float64},
-                     ldvs::Ref{BlasInt},
-                     vs::Matrix{Float64},
-                     work::Vector{Float64},
-                     lwork::Ref{BlasInt},
-                     bwork::Vector{Int64},
-                     eigen_values::Vector{Complex{Float64}},
-                     info::Ref{BlasInt})
-        n = Ref{BlasInt}(size(A, 1))
-        RldA = Ref{BlasInt}(max(1, stride(A, 2)))
-        Rsort = Ref{UInt8}('N')
-        ccall((@blasfunc(dgees_), liblapack),
-              Nothing,
-              (Ref{UInt8},
-               Ref{UInt8},
-               Ptr{Nothing},
-               Ref{BlasInt},
-               Ptr{Float64},
-               Ref{BlasInt},
-               Ptr{BlasInt},
-               Ptr{Float64},
-               Ptr{Float64},
-               Ptr{Float64},
-               Ref{BlasInt},
-               Ptr{Float64},
-               Ref{BlasInt},
-               Ptr{BlasInt},
-               Ptr{BlasInt}),
-              jobvs,
-              'N',
-              C_NULL,
-              n,
-              A,
-              RldA,
-              sdim,
-              wr,
-              wi,
-              vs,
-              ldvs,
-              work,
-              lwork,
-              bwork,
-              info)
-        chklapackerror(info[])
-        lwork = Ref{BlasInt}(real(work[1]))
-        work = Vector{Float64}(undef, lwork[])
-        return new(jobvs, sdim, wr, wi, ldvs, vs, work, lwork, bwork, eigen_values, info)
-    end
+    wr::Vector{T}
+    wi::Vector{T}
+    vs::Matrix{T}
+    eigen_values::Vector{Complex{T}}
 end
 
-function DgeesWs(A::StridedMatrix{Float64})
-    chkstride1(A)
-    n, = checksquare(A)
-    jobvs = Ref{UInt8}('V')
-    sdim = Ref{BlasInt}(0)
-    wr = Vector{Float64}(undef, n)
-    wi = Vector{Float64}(undef, n)
-    ldvs = Ref{BlasInt}(jobvs[] == UInt32('V') ? n : 1)
-    vs = Matrix{Float64}(undef, ldvs[], n)
-    work = Vector{Float64}(undef, 1)
-    lwork = Ref{BlasInt}(-1)
-    bwork = Vector{Int64}(undef, n)
-    eigen_values = Vector{Complex{Float64}}(undef, n)
-    info = Ref{BlasInt}(0)
-    return DgeesWs(jobvs, A, sdim, wr, wi, ldvs, vs, work, lwork, bwork, eigen_values, info)
+Base.length(ws::GeesWs) = length(ws.wr)
+
+Base.iterate(ws::GeesWs)               = (ws.work, Val(:info))
+Base.iterate(ws::GeesWs, ::Val{:info}) = (ws.info, Val(:wr))
+Base.iterate(ws::GeesWs, ::Val{:wr})   = (ws.wr, Val(:wi))
+Base.iterate(ws::GeesWs, ::Val{:wi})   = (ws.wi, Val(:vs))
+Base.iterate(ws::GeesWs, ::Val{:vs})   = (ws.vs, Val(:done))
+Base.iterate(::GeesWs, ::Val{:done})   = nothing
+
+for (gees,  elty) in
+    ((:dgees_,:Float64),
+     (:sgees_,:Float32))
+    @eval begin
+        function GeesWs(A::AbstractMatrix{$elty})
+            require_one_based_indexing(A)
+            chkstride1(A)
+            n = checksquare(A)
+            wr    = similar(A, $elty, n)
+            wi    = similar(A, $elty, n)
+            vs    = similar(A, $elty, n, n)
+            ldvs  = max(size(vs, 1), 1)
+            work  = Vector{$elty}(undef, 1)
+            lwork = BlasInt(-1)
+            info  = Ref{BlasInt}()
+            ccall((@blasfunc($gees), liblapack), Cvoid,
+                    (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty},
+                        Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}, Clong, Clong),
+                    'V', 'N', C_NULL, n,
+                        A, max(1, stride(A, 2)), C_NULL, wr,
+                        wi, vs, ldvs, work,
+                        lwork, C_NULL, info, 1, 1)
+                        
+            chklapackerror(info[])
+            
+            resize!(work, BlasInt(real(work[1])))
+            return GeesWs{$elty}(work, info, wr, wi, vs, similar(A, Complex{$elty}, n)) 
+        end
+        #     .. Scalar Arguments ..
+        #     CHARACTER          JOBVS, SORT
+        #     INTEGER            INFO, LDA, LDVS, LWORK, N, SDIM
+        #     ..
+        #     .. Array Arguments ..
+        #     LOGICAL            BWORK( * )
+        #     DOUBLE PRECISION   A( LDA, * ), VS( LDVS, * ), WI( * ), WORK( * ),
+        #    $                   WR( * )
+        function gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::GeesWs{$elty})
+            require_one_based_indexing(A)
+            chkstride1(A)
+            n     = checksquare(A)
+            @assert n <= length(ws) "Allocated Workspace too small."
+            work, info, wr, wi, vs = ws
+            ldvs  = max(size(vs, 1), 1)
+            lwork = length(work)
+            ccall((@blasfunc($gees), liblapack), Cvoid,
+                    (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
+                        Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}, Clong, Clong),
+                    jobvs, 'N', C_NULL, n,
+                        A, max(1, stride(A, 2)), Ref{BlasInt}(), wr,
+                        wi, vs, ldvs, work,
+                        lwork, C_NULL, info, 1, 1)
+
+            if iszero(wi)
+                return A, vs, wr
+            else
+                @inbounds for i in axes(A, 1)
+                    ws.eigen_values[i] = complex(wr[i], wi[i])
+                end
+                return A, vs, iszero(wi) ? wr : ws.eigen_values
+            end
+        end
+
+
+    end
 end
 
 function DgeesWs(n::Int64)
     A = zeros(n, n)
-    return DgeesWs(A)
+    DgeesWs(A)
 end
 
-function dgees!(ws::DgeesWs, A::StridedMatrix{Float64})
-    n = Ref{BlasInt}(size(A, 1))
-    RldA = Ref{BlasInt}(max(1, stride(A, 2)))
-    myfunc::Function = make_select_function(>=, 1.0)
-    ccall((@blasfunc(dgees_), liblapack),
-          Cvoid,
-          (Ref{UInt8},
-           Ref{UInt8},
-           Ptr{Cvoid},
-           Ref{BlasInt},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{BlasInt},
-           Ptr{Float64},
-           Ptr{Float64},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{BlasInt},
-           Ptr{BlasInt}),
-          ws.jobvs,
-          'N',
-          C_NULL,
-          n,
-          A,
-          RldA,
-          ws.sdim,
-          ws.wr,
-          ws.wi,
-          ws.vs,
-          ws.ldvs,
-          ws.work,
-          ws.lwork,
-          ws.bwork,
-          ws.info)
-    copyto!(ws.eigen_values, complex.(ws.wr, ws.wi))
-    return chklapackerror(ws.info[])
+# function dgees!(ws::DgeesWs, A::StridedMatrix{Float64})
+#     n = Ref{BlasInt}(size(A, 1))
+#     RldA = Ref{BlasInt}(max(1, stride(A, 2)))
+#     myfunc::Function = make_select_function(>=, 1.0)
+#     ccall(
+#         (@blasfunc(dgees_), liblapack),
+#         Cvoid,
+#         (
+#             Ref{UInt8},
+#             Ref{UInt8},
+#             Ptr{Cvoid},
+#             Ref{BlasInt},
+#             Ptr{Float64},
+#             Ref{BlasInt},
+#             Ptr{BlasInt},
+#             Ptr{Float64},
+#             Ptr{Float64},
+#             Ptr{Float64},
+#             Ref{BlasInt},
+#             Ptr{Float64},
+#             Ref{BlasInt},
+#             Ptr{BlasInt},
+#             Ptr{BlasInt},
+#         ),
+#         ws.jobvs,
+#         'N',
+#         C_NULL,
+#         n,
+#         A,
+#         RldA,
+#         ws.sdim,
+#         ws.wr,
+#         ws.wi,
+#         ws.vs,
+#         ws.ldvs,
+#         ws.work,
+#         ws.lwork,
+#         ws.bwork,
+#         ws.info,
+#     )
+#     copyto!(ws.eigen_values, complex.(ws.wr, ws.wi))
+#     chklapackerror(ws.info[])
+# end
+
+# function make_select_function(op, crit)::Function
+#     mycompare = function (wr_, wi_)
+#         wr = unsafe_load(wr_)
+#         wi = unsafe_load(wi_)
+#         return convert(Cint, op(wr * wr + wi * wi, crit) ? 1 : 0)
+#     end
+#     return mycompare
+# end
+
+# function dgees!(ws::DgeesWs, A::StridedMatrix{Float64}, op, crit)
+#     n = Ref{BlasInt}(size(A, 1))
+#     RldA = Ref{BlasInt}(max(1, stride(A, 2)))
+#     myfunc::Function = make_select_function(op, crit)
+#     mycompare_c = @cfunction($myfunc, Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
+#     ccall(
+#         (@blasfunc(dgees_), liblapack),
+#         Cvoid,
+#         (
+#             Ref{UInt8},
+#             Ref{UInt8},
+#             Ptr{Cvoid},
+#             Ref{BlasInt},
+#             Ptr{Float64},
+#             Ref{BlasInt},
+#             Ptr{BlasInt},
+#             Ptr{Float64},
+#             Ptr{Float64},
+#             Ptr{Float64},
+#             Ref{BlasInt},
+#             Ptr{Float64},
+#             Ref{BlasInt},
+#             Ptr{BlasInt},
+#             Ptr{BlasInt},
+#         ),
+#         ws.jobvs,
+#         'S',
+#         mycompare_c,
+#         n,
+#         A,
+#         RldA,
+#         ws.sdim,
+#         ws.wr,
+#         ws.wi,
+#         ws.vs,
+#         ws.ldvs,
+#         ws.work,
+#         ws.lwork,
+#         ws.bwork,
+#         ws.info,
+#     )
+#     copyto!(ws.eigen_values, complex.(ws.wr, ws.wi))
+#     chklapackerror(ws.info[])
+# end
+
+mutable struct GgesWs{T}
+    work::Vector{T}
+    info::Ref{BlasInt}
+    αr::Vector{T}
+    αi::Vector{T}
+    β::Vector{T}
+    vsl::Matrix{T}
+    vsr::Matrix{T}
+    eigen_values::Vector{Complex{T}}
 end
 
-function make_select_function(op, crit)::Function
-    mycompare = function (wr_, wi_)
-        wr = unsafe_load(wr_)
-        wi = unsafe_load(wi_)
-        return convert(Cint, op(wr * wr + wi * wi, crit) ? 1 : 0)
-    end
-    return mycompare
-end
+Base.length(ws::GgesWs) = length(ws.αr)
+Base.iterate(ws::GgesWs)               = (ws.work, Val(:info))
+Base.iterate(ws::GgesWs, ::Val{:info}) = (ws.info, Val(:αr))
+Base.iterate(ws::GgesWs, ::Val{:αr})   = (ws.αr, Val(:αi))
+Base.iterate(ws::GgesWs, ::Val{:αi})   = (ws.αi, Val(:β))
+Base.iterate(ws::GgesWs, ::Val{:β})    = (ws.β, Val(:vsl))
+Base.iterate(ws::GgesWs, ::Val{:vsl})  = (ws.vsl, Val(:vsr))
+Base.iterate(ws::GgesWs, ::Val{:vsr})  = (ws.vsr, Val(:done))
+Base.iterate(::GgesWs, ::Val{:done})   = nothing
 
-function dgees!(ws::DgeesWs, A::StridedMatrix{Float64}, op, crit)
-    n = Ref{BlasInt}(size(A, 1))
-    RldA = Ref{BlasInt}(max(1, stride(A, 2)))
-    myfunc::Function = make_select_function(op, crit)
-    mycompare_c = @cfunction($myfunc, Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
-    ccall((@blasfunc(dgees_), liblapack),
-          Cvoid,
-          (Ref{UInt8},
-           Ref{UInt8},
-           Ptr{Cvoid},
-           Ref{BlasInt},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{BlasInt},
-           Ptr{Float64},
-           Ptr{Float64},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{BlasInt},
-           Ptr{BlasInt}),
-          ws.jobvs,
-          'S',
-          mycompare_c,
-          n,
-          A,
-          RldA,
-          ws.sdim,
-          ws.wr,
-          ws.wi,
-          ws.vs,
-          ws.ldvs,
-          ws.work,
-          ws.lwork,
-          ws.bwork,
-          ws.info)
-    copyto!(ws.eigen_values, complex.(ws.wr, ws.wi))
-    return chklapackerror(ws.info[])
-end
 
-mutable struct DggesWs
-    alphar::Vector{Float64}
-    alphai::Vector{Float64}
-    beta::Vector{Float64}
-    lwork::BlasInt
-    work::Vector{Float64}
-    bwork::Vector{Int64}
-    sdim::BlasInt
+for (gges, elty) in ((:dgges_,:Float64), (:sgges_,:Float32))
+    @eval begin
+        function GgesWs(A::AbstractMatrix{$elty})
+            chkstride1(A)
+            n = checksquare(A)
+            αr    = similar(A, $elty, n)
+            αi    = similar(A, $elty, n)
+            β     = similar(A, $elty, n)
+            vsl   = similar(A, $elty, n, n)
+            vsr   = similar(A, $elty, n, n)
+            work  = Vector{$elty}(undef, 1)
+            lwork = BlasInt(-1)
+            info  = Ref{BlasInt}()
+            ccall((@blasfunc($gges), liblapack), Cvoid,
+                    (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty}, Ptr{$elty},
+                        Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
+                        Ref{BlasInt}, Clong, Clong, Clong),
+                    'V', 'V', 'N', C_NULL,
+                    n, A, max(1,stride(A, 2)), A,
+                    max(1,stride(A, 2)), C_NULL, αr, αi,
+                    β, vsl, n, vsr,
+                    n, work, lwork, C_NULL,
+                    info, 1, 1, 1)
+            
+           chklapackerror(info[])
+           resize!(work, BlasInt(real(work[1])))
+           return GgesWs(work, info, αr, αi, β, vsl, vsr, similar(A, Complex{$elty}, n))
+       end
+           
+        # *     .. Scalar Arguments ..
+        #       CHARACTER          JOBVSL, JOBVSR, SORT
+        #       INTEGER            INFO, LDA, LDB, LDVSL, LDVSR, LWORK, N, SDIM
+        # *     ..
+        # *     .. Array Arguments ..
+        #       LOGICAL            BWORK( * )
+        #       DOUBLE PRECISION   A( LDA, * ), ALPHAI( * ), ALPHAR( * ),
+        #      $                   B( LDB, * ), BETA( * ), VSL( LDVSL, * ),
+        #      $                   VSR( LDVSR, * ), WORK( * )
+        function gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}, ws::GgesWs{$elty})
+            chkstride1(A, B)
+            n, m = checksquare(A, B)
+            if n != m
+                throw(DimensionMismatch("dimensions of A, ($n,$n), and B, ($m,$m), must match"))
+            end
+            @assert n <= length(ws) "Allocated Workspace too small."
 
-    function DggesWs(jobvsl::Ref{UInt8},
-                     jobvsr::Ref{UInt8},
-                     sort::Ref{UInt8},
-                     A::StridedMatrix{Float64},
-                     B::StridedMatrix{Float64})
-        chkstride1(A, B)
-        n, m = checksquare(A, B)
-        if n != m
-            throw(DimensionMismatch("Dimensions of A, ($n,$n), and B, ($m,$m), must match"))
+            work, info, αr, αi, β, vsl, vsr = ws
+            ldvsl = size(vsl, 1)
+            ldvsr = size(vsr, 1)
+            ccall((@blasfunc($gges), liblapack), Cvoid,
+                (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                    Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                    Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                    Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                    Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
+                    Ref{BlasInt}, Clong, Clong, Clong),
+                jobvsl, jobvsr, 'N', C_NULL,
+                n, A, max(1,stride(A, 2)), B,
+                max(1,stride(B, 2)), Ref{BlasInt}(), αr, αi,
+                β, vsl, ldvsl, vsr,
+                ldvsr, work, length(work), C_NULL,
+                info, 1, 1, 1)
+            chklapackerror(info[])
+            @inbounds for i in axes(A, 1)
+                ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i])
+            end
+            A, B, ws.eigen_values, ws.β, view(vsl, 1:(jobvsl == 'V' ? n : 0), :), view(vsr, 1:(jobvsr == 'V' ? n : 0),:)
         end
-        n = BlasInt(size(A, 1))
-        alphar = Vector{Float64}(undef, n)
-        alphai = Vector{Float64}(undef, n)
-        beta = Vector{Float64}(undef, n)
-        bwork = Vector{Int64}(undef, n)
-        ldvsl = BlasInt(1)
-        ldvsr = BlasInt(1)
-        sdim = BlasInt(0)
-        lwork = BlasInt(-1)
-        work = Vector{Float64}(undef, 1)
-        sdim = BlasInt(0)
-        info = BlasInt(0)
-        mycompare_g_c = @cfunction(mycompare, Cint,
-                                   (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
-        ccall((@blasfunc(dgges_), liblapack),
-              Nothing,
-              (Ref{UInt8},
-               Ref{UInt8},
-               Ref{UInt8},
-               Ptr{Nothing},
-               Ref{BlasInt},
-               Ptr{Float64},
-               Ref{BlasInt},
-               Ptr{Float64},
-               Ref{BlasInt},
-               Ref{BlasInt},
-               Ptr{Float64},
-               Ptr{Float64},
-               Ptr{Float64},
-               Ptr{Float64},
-               Ref{BlasInt},
-               Ptr{Float64},
-               Ref{BlasInt},
-               Ptr{Float64},
-               Ref{BlasInt},
-               Ptr{Int64},
-               Ref{BlasInt}),
-              jobvsl,
-              jobvsr,
-              sort,
-              mycompare_g_c,
-              n,
-              A,
-              max(1, stride(A, 2)),
-              B,
-              max(1, stride(B, 2)),
-              sdim,
-              alphar,
-              alphai,
-              beta,
-              C_NULL,
-              ldvsl,
-              C_NULL,
-              ldvsr,
-              work,
-              lwork,
-              bwork,
-              info)
-        chklapackerror(info)
-        lwork = BlasInt(real(work[1]))
-        work = Vector{Float64}(undef, lwork)
-        return new(alphar, alphai, beta, lwork, work, bwork, sdim)
     end
 end
 
-function DggesWs(A::StridedMatrix{Float64}, B::StridedMatrix{Float64})
-    return DggesWs(Ref{UInt8}('N'), Ref{UInt8}('N'), Ref{UInt8}('N'), A, B)
-end
 
-function dgges!(jobvsl::Char,
-                jobvsr::Char,
-                A::StridedMatrix{Float64},
-                B::StridedMatrix{Float64},
-                vsl::Matrix{Float64},
-                vsr::Matrix{Float64},
-                eigval::Array{ComplexF64,1},
-                ws::DggesWs)
-    n = size(A, 1)
-    ldvsl = jobvsl == 'V' ? n : 1
-    ldvsr = jobvsr == 'V' ? n : 1
-    sort = 'S'
-    sdim = Ref{BlasInt}(0)
-    info = Ref{BlasInt}(0)
-    mycompare_g_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
-    ccall((@blasfunc(dgges_), liblapack),
-          Nothing,
-          (Ref{UInt8},
-           Ref{UInt8},
-           Ref{UInt8},
-           Ptr{Nothing},
-           Ref{BlasInt},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{BlasInt},
-           Ptr{Float64},
-           Ptr{Float64},
-           Ptr{Float64},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{Float64},
-           Ref{BlasInt},
-           Ptr{Int64},
-           Ref{Int64}),
-          jobvsl,
-          jobvsr,
-          sort,
-          mycompare_g_c,
-          n,
-          A,
-          max(1, stride(A, 2)),
-          B,
-          max(1, stride(B, 2)),
-          sdim,
-          ws.alphar,
-          ws.alphai,
-          ws.beta,
-          vsl,
-          ldvsl,
-          vsr,
-          ldvsr,
-          ws.work,
-          ws.lwork,
-          ws.bwork,
-          info)
-    ws.sdim = sdim[]
-    if info[] > 0
-        throw(DggesException(info[]))
-    end
-    for i in 1:n
-        eigval[i] = complex(ws.alphar[i], ws.alphai[i]) / ws.beta[i]
-    end
-end
+# function DggesWs(A::StridedMatrix{Float64}, B::StridedMatrix{Float64})
+#     DggesWs(Ref{UInt8}('N'), Ref{UInt8}('N'), Ref{UInt8}('N'), A, B)
+# end
+
+# function dgges!(
+#     jobvsl::Char,
+#     jobvsr::Char,
+#     A::StridedMatrix{Float64},
+#     B::StridedMatrix{Float64},
+#     vsl::Matrix{Float64},
+#     vsr::Matrix{Float64},
+#     eigval::Array{ComplexF64,1},
+#     ws::DggesWs,
+# )
+#     n = size(A, 1)
+#     ldvsl = jobvsl == 'V' ? n : 1
+#     ldvsr = jobvsr == 'V' ? n : 1
+#     sort = 'S'
+#     sdim = Ref{BlasInt}(0)
+#     info = Ref{BlasInt}(0)
+#     mycompare_g_c = @cfunction(mycompare, Cint, (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+#     ccall((@blasfunc(dgges_), liblapack), Cvoid,
+#         (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt}, Ptr{Float64}, Ref{BlasInt}, Ptr{Int64}, Ref{Int64}),
+#         jobvsl, jobvsr, sort, mycompare_g_c, n, A, max(1, stride(A, 2)), B, max(1, stride(B, 2)), sdim, ws.alphar, ws.alphai, ws.beta, vsl, ldvsl, vsr, ldvsr, ws.work, ws.lwork, ws.bwork, info)
+#     ws.sdim = sdim[]
+#     if info[] > 0
+#         throw(DggesException(info[]))
+#     end
+#     for i = 1:n
+#         eigval[i] = complex(ws.alphar[i], ws.alphai[i]) / ws.beta[i]
+#     end
+# end

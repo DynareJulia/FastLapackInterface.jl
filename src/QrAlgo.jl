@@ -2,6 +2,8 @@ using Base: require_one_based_indexing
 using LinearAlgebra.LAPACK: chkstride1, chktrans, chkside
 abstract type QR end
 
+
+# We should check for bounds etc when reusing caches
 struct QRWs{T<:Number} <: QR
     work::Vector{T}
     info::Ref{BlasInt}

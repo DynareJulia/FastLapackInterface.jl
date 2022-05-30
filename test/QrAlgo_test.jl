@@ -12,7 +12,6 @@ using LinearAlgebra.LAPACK
 #     target = qr(A0, ColumnNorm())
 # end
 
-using LinearAlgebra
 @testset "QRWs" begin
     n = 3
     @testset "Real, square" begin
