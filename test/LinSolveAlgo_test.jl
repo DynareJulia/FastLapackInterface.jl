@@ -2,7 +2,6 @@ n = 3
 m = 2
 
 for elty in (Float32, Float64, ComplexF32, ComplexF64)
-
     A0 = randn(elty, n, n)
     B0 = randn(elty, n, m)
     B1 = randn(elty, n, m)
@@ -125,5 +124,4 @@ for elty in (Float32, Float64, ComplexF32, ComplexF64)
     FastLapackInterface.linsolve_core_no_lu!(C', D, linws1)
     @test C == view(A, 2:n, 1:n-1)
     @test D ≈ C' \ D1
-
 end
