@@ -2,7 +2,6 @@ using Test
 using FastLapackInterface
 using LinearAlgebra.LAPACK
 
-n = 3
 #for elty in (Float32, Float64, ComplexF32, ComplexF64)
 
 #    A0 = randn(elty, n, n)
@@ -15,38 +14,67 @@ n = 3
 
 using LinearAlgebra
 @testset "QRWs" begin
-    A0 = randn(n, n)
-    tau1 = zeros(n)
-    
-    A = copy(A0)
-    ws = FastLapackInterface.QRWs(A)
-    AT, tau = FastLapackInterface.geqrf!(A, ws)
+    n = 3
+    @testset "Real, square" begin
+        A0 = randn(n, n)
+        ws = FastLapackInterface.QRWs(A0)
+        @testset "geqrf!" begin 
+            A = copy(A0)
+            AT, tau = FastLapackInterface.geqrf!(A, ws)
 
-    AT1, tau1 = LAPACK.geqrf!(copy(A0), tau1)
-    @test AT1 == AT
-    @test tau1 == tau
+            AT1, tau1 = LAPACK.geqrf!(copy(A0), randn(n))
+            @test AT1 == AT
+            @test tau1 == tau
+        end
+        
+        @testset "ormqr!" begin
+            C = randn(n, n)
+            tau = randn(n)
+            ws.τ .= tau
+            Cout = LAPACK.ormqr!('L', 'N', copy(A0), tau, copy(C))
+            Cout2 = FastLapackInterface.ormqr!('L', 'N', copy(A0), copy(C), ws)
+            @test isapprox(Cout, Cout2)
 
-    C = randn(n, n)
-    Cout = LAPACK.ormqr!('L', 'N', copy(A0), tau1, copy(C))
-    Cout2 = FastLapackInterface.ormqr!('L', 'N', copy(A0), copy(C), ws)
-    @test isapprox(Cout, Cout2)
-
-    # Is more testing required?
-    Cout2 = FastLapackInterface.ormqr!('L', 'T', copy(A0)', copy(C), ws)
-    @test isapprox(Cout, Cout2)
-
+            # Is more testing required?
+            Cout2 = FastLapackInterface.ormqr!('L', 'T', copy(A0)', copy(C), ws)
+            @test isapprox(Cout, Cout2)
+        end
+    end
 end
 
 @testset "QRWsWY" begin
-    A0 = randn(n, n)
+    n = 3
+    @testset "Real, square" begin
+        A0 = randn(n, n)
 
-    A = copy(A0)
-    t = FastLapackInterface.QRWsWY(A)
-    AT, taut = FastLapackInterface.geqrt!(A, t)
+        @testset "geqrt!" begin
+            A = copy(A0)
+            ws = FastLapackInterface.QRWsWY(A)
+            AT, taut = FastLapackInterface.geqrt!(A, ws)
 
-    AT1, taut1 = LinearAlgebra.LAPACK.geqrt!(copy(A0), zeros(size(t.T)))
-    @test AT1 == AT
-    @test isapprox(taut1, taut)
+            AT1, taut1 = LAPACK.geqrt!(copy(A0), zeros(size(ws.T)))
+            @test AT1 == AT
+            @test isapprox(taut1, taut)
+        end
+    end
+end
+
+@testset "QRpWs" begin
+    n = 3
+    @testset "Real, square" begin
+        A0 = randn(n, n)
+
+        @testset "geqp3!" begin
+            A = copy(A0)
+            ws = FastLapackInterface.QRpWs(A)
+            AT, taut, jpvt = FastLapackInterface.geqp3!(A, ws)
+
+            AT1, taut1, jpvt1 = LAPACK.geqp3!(copy(A0), zeros(Int, length(ws.jpvt)), zeros(size(ws.τ)))
+            @test isapprox(AT1, AT)
+            @test isapprox(jpvt1, jpvt)
+            @test isapprox(taut1, taut)
+        end
+    end
 end
 
 # tau = copy(t.τ)

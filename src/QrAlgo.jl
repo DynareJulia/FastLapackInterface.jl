@@ -25,7 +25,7 @@ for (geqrf, ormqr, elty) in ((:dgeqrf_, :dormqr_, :Float64),
                    Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
                   m, n, A, lda, τ, work, lwork, info)
             chklapackerror(info[])
-            resize!(work, Int(real(work[1])))
+            resize!(work, BlasInt(real(work[1])))
             return QRWs(work, info, τ)
         end
 
@@ -40,6 +40,9 @@ for (geqrf, ormqr, elty) in ((:dgeqrf_, :dormqr_, :Float64),
             chklapackerror(ws.info[])
             return A, ws.τ
         end
+        # t1 = StridedMatrix{$elty}
+        # t2 = Transpose{$elty,<:StridedMatrix}
+        # t3 = Adjoint{$elty,<:StridedMatrix}
     end
 end
 
@@ -192,12 +195,11 @@ for (geqrf, ormqr, elty) in
 end 
 =#
 
-struct QrpWs{T<:Number} <: QR
-    tau::Vector{T}
-    jpvt::Vector{BlasInt}
+struct QRpWs{T<:Number} <: QR
     work::Vector{T}
-    lwork::BlasInt
     info::Ref{BlasInt}
+    τ::Vector{T}
+    jpvt::Vector{BlasInt}
 end
 
 for (geqp3, elty) in ((:dgeqp3_, :Float64),
@@ -205,36 +207,51 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
                       (:zgeqp3_, :ComplexF64),
                       (:cgeqp3_, :ComplexF32))
     @eval begin
-        function QrpWs(A::StridedMatrix{$elty})
+        function QRpWs(A::StridedMatrix{$elty})
+            require_one_based_indexing(A)
+            chkstride1(A)
             m, n = size(A)
-            RldA = BlasInt(max(1, stride(A, 2)))
+            RldA = max(1, stride(A, 2))
             jpvt = zeros(BlasInt, n)
-            tau = Vector{$elty}(undef, min(m, n))
+            τ = Vector{$elty}(undef, min(m, n))
             work = Vector{$elty}(undef, 1)
             lwork = BlasInt(-1)
             info = Ref{BlasInt}()
             ccall((@blasfunc($geqp3), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
                    Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
-                  m, n, A, RldA, jpvt, tau, work, lwork, info)
+                  m, n, A, RldA, jpvt, τ, work, lwork, info)
             chklapackerror(info[])
-            lwork = BlasInt(real(work[1]))
-            work = resize!(work, lwork)
-            return QrpWs(tau, jpvt, work, lwork, info)
+            work = resize!(work, BlasInt(real(work[1])))
+            return QRpWs(work, info, τ, jpvt)
         end
-
-        function geqp3!(A::StridedMatrix{$elty}, ws::QrpWs)
+        
+        function geqp3!(A::AbstractMatrix{$elty}, ws::QRpWs{$elty})
             m, n = size(A)
-            RldA = BlasInt(max(1, stride(A, 2)))
+            if length(ws.τ) != min(m,n)
+                throw(DimensionMismatch("tau has length $(length(ws.τ)), but needs length $(min(m,n))"))
+            end
+            if length(ws.jpvt) != n
+                throw(DimensionMismatch("jpvt has length $(length(ws.jpvt)), but needs length $n"))
+            end
+            lda = stride(A,2)
+            if lda == 0
+                return A, ws.τ, ws.jpvt
+            end # Early exit
+            lwork = BlasInt(-1)
             ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                   Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
-                  m, n, A, RldA, ws.jpvt, ws.tau, ws.work, ws.lwork, ws.info)
-            return chklapackerror(ws.info[])
+                  (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                   Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                   Ptr{BlasInt}),
+                  m, n, A, lda,
+                  ws.jpvt, ws.τ, ws.work,
+                  length(ws.work), ws.info)
+            chklapackerror(ws.info[])
+            return A, ws.τ, ws.jpvt
         end
 
-        t1 = StridedMatrix{$elty}
-        t2 = Transpose{$elty,<:StridedMatrix}
-        t3 = Adjoint{$elty,<:StridedMatrix}
+        # t1 = StridedMatrix{$elty}
+        # t2 = Transpose{$elty,<:StridedMatrix}
+        # t3 = Adjoint{$elty,<:StridedMatrix}
     end
 end
