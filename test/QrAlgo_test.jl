@@ -17,7 +17,7 @@ using LinearAlgebra.LAPACK
     @testset "Real, square" begin
         A0 = randn(n, n)
         ws = FastLapackInterface.QRWs(A0)
-        @testset "geqrf!" begin 
+        @testset "geqrf!" begin
             A = copy(A0)
             AT, tau = FastLapackInterface.geqrf!(A, ws)
 
@@ -25,7 +25,7 @@ using LinearAlgebra.LAPACK
             @test AT1 == AT
             @test tau1 == tau
         end
-        
+
         @testset "ormqr!" begin
             C = randn(n, n)
             tau = randn(n)
@@ -68,7 +68,8 @@ end
             ws = FastLapackInterface.QRpWs(A)
             AT, taut, jpvt = FastLapackInterface.geqp3!(A, ws)
 
-            AT1, taut1, jpvt1 = LAPACK.geqp3!(copy(A0), zeros(Int, length(ws.jpvt)), zeros(size(ws.τ)))
+            AT1, taut1, jpvt1 = LAPACK.geqp3!(copy(A0), zeros(Int, length(ws.jpvt)),
+                                              zeros(size(ws.τ)))
             @test isapprox(AT1, AT)
             @test isapprox(jpvt1, jpvt)
             @test isapprox(taut1, taut)

@@ -7,7 +7,6 @@ using LinearAlgebra: BlasInt, BlasFloat, checksquare, chkstride1
 using LinearAlgebra.BLAS: @blasfunc
 using LinearAlgebra.LAPACK: chklapackerror
 
-
 @static if VERSION < v"1.7"
     using LinearAlgebra.LAPACK: liblapack
 else
@@ -23,4 +22,3 @@ export DgeesWs, dgees!, DggesWs, dgges!
 
 end #module
 #import LinearAlgebra: USE_BLAS64, LAPACKException
-

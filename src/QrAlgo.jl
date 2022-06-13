@@ -2,7 +2,6 @@ using Base: require_one_based_indexing
 using LinearAlgebra.LAPACK: chkstride1, chktrans, chkside
 abstract type QR end
 
-
 # We should check for bounds etc when reusing caches
 struct QRWs{T<:Number} <: QR
     work::Vector{T}
@@ -57,9 +56,9 @@ for (geqrf, ormqr, elty) in ((:dgeqrf_, :dormqr_, :Float64), (:sgeqrf_, :sormqr_
             chktrans(trans)
             chkside(side)
             chkstride1(A, C)
-            m,n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
-            mA  = size(A, 1)
-            k   = length(ws.τ)
+            m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
+            mA   = size(A, 1)
+            k    = length(ws.τ)
             if side == 'L' && m != mA
                 throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
             end
@@ -78,8 +77,8 @@ for (geqrf, ormqr, elty) in ((:dgeqrf_, :dormqr_, :Float64), (:sgeqrf_, :sormqr_
                    Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
                    Ptr{BlasInt}, Clong, Clong),
                   side, trans, m, n,
-                  k, A, max(1,stride(A,2)), ws.τ,
-                  C, max(1, stride(C,2)), ws.work, length(ws.work),
+                  k, A, max(1, stride(A, 2)), ws.τ,
+                  C, max(1, stride(C, 2)), ws.work, length(ws.work),
                   ws.info, 1, 1)
             chklapackerror(ws.info[])
             return C
@@ -89,16 +88,16 @@ for (geqrf, ormqr, elty) in ((:dgeqrf_, :dormqr_, :Float64), (:sgeqrf_, :sormqr_
     for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),
                   eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
         @eval begin
-            function ormqr!(side::AbstractChar, trans::AbstractChar, A::$elty2, C::StridedMatrix{$elty}, ws::QRWs{$elty})
+            function ormqr!(side::AbstractChar, trans::AbstractChar, A::$elty2,
+                            C::StridedMatrix{$elty}, ws::QRWs{$elty})
                 chktrans(trans)
                 chkside(side)
                 trans = trans == 'T' ? 'N' : 'T'
-                ormqr!(side, trans, A.parent, C, ws)
+                return ormqr!(side, trans, A.parent, C, ws)
             end
         end
     end
 end
-
 
 struct QRWsWY{T<:Number} <: QR
     work::Vector{T}
@@ -227,16 +226,16 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
             work = resize!(work, BlasInt(real(work[1])))
             return QRpWs(work, info, τ, jpvt)
         end
-        
+
         function geqp3!(A::AbstractMatrix{$elty}, ws::QRpWs{$elty})
             m, n = size(A)
-            if length(ws.τ) != min(m,n)
+            if length(ws.τ) != min(m, n)
                 throw(DimensionMismatch("tau has length $(length(ws.τ)), but needs length $(min(m,n))"))
             end
             if length(ws.jpvt) != n
                 throw(DimensionMismatch("jpvt has length $(length(ws.jpvt)), but needs length $n"))
             end
-            lda = stride(A,2)
+            lda = stride(A, 2)
             if lda == 0
                 return A, ws.τ, ws.jpvt
             end # Early exit

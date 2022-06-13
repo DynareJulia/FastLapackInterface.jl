@@ -1,5 +1,5 @@
 using LinearAlgebra.LAPACK: chkargsok
-using LAPACK
+
 struct LinSolveWs
     ipiv::Vector{BlasInt}
 end
@@ -16,14 +16,14 @@ for (getrf, getrs, elty) in ((:dgetrf_, :dgetrs_, :Float64),
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
-            lda  = max(1,stride(A, 2))
+            lda  = max(1, stride(A, 2))
             info = Ref{BlasInt}()
             ccall((@blasfunc($getrf), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
                    Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
                   m, n, A, lda, ws.ipiv, info)
             chkargsok(info[])
-            A, ws.ipiv, info[] #Error code is stored in LU factorization type
+            return A, ws.ipiv, info[] #Error code is stored in LU factorization type
         end
     end
 end
