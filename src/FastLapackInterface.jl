@@ -13,11 +13,11 @@ else
     const liblapack = "libblastrampoline"
 end
 
-include("LinSolveAlgo.jl")
+include("lu.jl")
 export LinSolveWs, linsolve_core!, linsolve_core_no_lu!, lu!
-include("QrAlgo.jl")
+include("qr.jl")
 export QrWs, QrpWs, geqrf_core!, geqp3!, ormqr_core!
-include("SchurAlgo.jl")
+include("schur.jl")
 export DgeesWs, dgees!, DggesWs, dgges!
 
 end #module

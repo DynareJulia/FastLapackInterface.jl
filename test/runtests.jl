@@ -2,6 +2,6 @@ using FastLapackInterface
 using LinearAlgebra
 using Test
 
-# include("LinSolveAlgo_test.jl")
-include("SchurAlgo_test.jl")
-include("QrAlgo_test.jl")
+include("linsolve_test.jl")
+include("schur_test.jl")
+include("qr_test.jl")
