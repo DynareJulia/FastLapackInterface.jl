@@ -6,18 +6,35 @@ using LinearAlgebra: checksquare
 include("exceptions.jl")
 
 
-const criterium = 1 + 1e-6
 
-function mycompare(alphar_::Ptr{T}, alphai_::Ptr{T}, beta_::Ptr{T})::Cint where {T}
-    alphar = unsafe_load(alphar_)
-    alphai = unsafe_load(alphai_)
-    beta = unsafe_load(beta_)
-    return convert(
-        Cint,
-        ((alphar * alphar + alphai * alphai) < criterium * beta * beta) ? 1 : 0,
-    )
+# Select functions
+# gees
+# Original default
+function schurselect(wr_::Ptr, wi_::Ptr)
+    schurselect((wr, wi) -> wr^2 + wi^2 >= 1.0, wr_, wi_)
 end
 
+# Generic
+function schurselect(f::Function, wr_::Ptr, wi_::Ptr)
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return convert(Cint, f(wr, wi) ? 1 : 0)
+end
+
+# gges
+const SCHUR_CRITERIUM = 1 + 1e-6
+# Original default
+function schurselect(αr_::Ptr, αi_::Ptr, β_::Ptr)
+    schurselect((αr, αi, β) -> αr^2 + αi^2 < SCHUR_CRITERIUM * β^2, αr_, αi_, β_)
+end
+
+# Generic
+function schurselect(f::Function, αr_::Ptr, αi_::Ptr, β_::Ptr)
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return convert(Cint, f(αr, αi, β) ? 1 : 0)
+end
 
 # Do we ever want to SELECT?
 mutable struct GeesWs{T<:AbstractFloat}
@@ -26,17 +43,21 @@ mutable struct GeesWs{T<:AbstractFloat}
     wr::Vector{T}
     wi::Vector{T}
     vs::Matrix{T}
+    sdim::Ref{BlasInt}
+    bwork::Vector{BlasInt}
     eigen_values::Vector{Complex{T}}
 end
 
 Base.length(ws::GeesWs) = length(ws.wr)
 
-Base.iterate(ws::GeesWs)               = (ws.work, Val(:info))
-Base.iterate(ws::GeesWs, ::Val{:info}) = (ws.info, Val(:wr))
-Base.iterate(ws::GeesWs, ::Val{:wr})   = (ws.wr, Val(:wi))
-Base.iterate(ws::GeesWs, ::Val{:wi})   = (ws.wi, Val(:vs))
-Base.iterate(ws::GeesWs, ::Val{:vs})   = (ws.vs, Val(:done))
-Base.iterate(::GeesWs, ::Val{:done})   = nothing
+Base.iterate(ws::GeesWs)                = (ws.work, Val(:info))
+Base.iterate(ws::GeesWs, ::Val{:info})  = (ws.info, Val(:wr))
+Base.iterate(ws::GeesWs, ::Val{:wr})    = (ws.wr, Val(:wi))
+Base.iterate(ws::GeesWs, ::Val{:wi})    = (ws.wi, Val(:vs))
+Base.iterate(ws::GeesWs, ::Val{:vs})    = (ws.vs, Val(:sdim))
+Base.iterate(ws::GeesWs, ::Val{:sdim})  = (ws.sdim, Val(:bwork))
+Base.iterate(ws::GeesWs, ::Val{:bwork}) = (ws.bwork, Val(:done))
+Base.iterate(::GeesWs, ::Val{:done})    = nothing
 
 for (gees,  elty) in
     ((:dgees_,:Float64),
@@ -66,7 +87,7 @@ for (gees,  elty) in
             chklapackerror(info[])
             
             resize!(work, BlasInt(real(work[1])))
-            return GeesWs{$elty}(work, info, wr, wi, vs, similar(A, Complex{$elty}, n)) 
+            return GeesWs{$elty}(work, info, wr, wi, vs, Ref{BlasInt}(), Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n)) 
         end
         #     .. Scalar Arguments ..
         #     CHARACTER          JOBVS, SORT
@@ -81,7 +102,7 @@ for (gees,  elty) in
             chkstride1(A)
             n     = checksquare(A)
             @assert n <= length(ws) "Allocated Workspace too small."
-            work, info, wr, wi, vs = ws
+            work, info, wr, wi, vs, _, __ = ws
             ldvs  = max(size(vs, 1), 1)
             lwork = length(work)
             ccall((@blasfunc($gees), liblapack), Cvoid,
@@ -93,6 +114,44 @@ for (gees,  elty) in
                         A, max(1, stride(A, 2)), Ref{BlasInt}(), wr,
                         wi, vs, ldvs, work,
                         lwork, C_NULL, info, 1, 1)
+
+            if iszero(wi)
+                return A, vs, wr
+            else
+                @inbounds for i in axes(A, 1)
+                    ws.eigen_values[i] = complex(wr[i], wi[i])
+                end
+                return A, vs, iszero(wi) ? wr : ws.eigen_values
+            end
+        end
+        
+        #     .. Scalar Arguments ..
+        #     CHARACTER          JOBVS, SORT
+        #     INTEGER            INFO, LDA, LDVS, LWORK, N, SDIM
+        #     ..
+        #     .. Array Arguments ..
+        #     LOGICAL            BWORK( * )
+        #     DOUBLE PRECISION   A( LDA, * ), VS( LDVS, * ), WI( * ), WORK( * ),
+        #    $                   WR( * )
+        function gees!(select_func::Function, jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::GeesWs{$elty})
+            require_one_based_indexing(A)
+            chkstride1(A)
+            n     = checksquare(A)
+            @assert n <= length(ws) "Allocated Workspace too small."
+            work, info, wr, wi, vs, sdim, bwork = ws
+            ldvs  = max(size(vs, 1), 1)
+            lwork = length(work)
+            sfunc(wr, wi) = schurselect(select_func, wr, wi)
+            sel_func = @cfunction($(Expr(:($), sfunc)), Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
+            ccall((@blasfunc($gees), liblapack), Cvoid,
+                    (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
+                        Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}, Clong, Clong),
+                    jobvs, 'S', sel_func, n,
+                        A, max(1, stride(A, 2)), sdim, wr,
+                        wi, vs, ldvs, work,
+                        lwork, bwork, info, 1, 1)
 
             if iszero(wi)
                 return A, vs, wr

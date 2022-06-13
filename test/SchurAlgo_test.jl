@@ -23,6 +23,16 @@ using LinearAlgebra.LAPACK
         @test isapprox(vs1, vs2)
         @test isapprox(wr1, wr2)
     end
+    @testset "Real, square, select" begin
+        A0 = randn(n, n)
+        ws = FastLapackInterface.GeesWs(copy(A0))
+
+        A1, vs1, wr1 = LAPACK.gees!('V', copy(A0))
+        A2, vs2, wr2 = FastLapackInterface.gees!((wr, wi) -> wi^2 + wr^2 >= 1, 'V', copy(A0), ws)
+        # @test isapprox(A1, A2)
+        # @test isapprox(vs1, vs2)
+        # @test isapprox(wr1, wr2)
+    end
 end
 
 @testset "GgesWs" begin
