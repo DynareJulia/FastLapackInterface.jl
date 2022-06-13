@@ -1,11 +1,6 @@
 # general Schur decomposition with reordering
-# adataped from ./base/linalg/lapack.jl
-# Implement selet
 using LinearAlgebra: checksquare
-
 include("exceptions.jl")
-
-
 
 # Select functions
 # gees
