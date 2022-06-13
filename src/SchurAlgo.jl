@@ -89,14 +89,7 @@ for (gees,  elty) in
             resize!(work, BlasInt(real(work[1])))
             return GeesWs{$elty}(work, info, wr, wi, vs, Ref{BlasInt}(), Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n)) 
         end
-        #     .. Scalar Arguments ..
-        #     CHARACTER          JOBVS, SORT
-        #     INTEGER            INFO, LDA, LDVS, LWORK, N, SDIM
-        #     ..
-        #     .. Array Arguments ..
-        #     LOGICAL            BWORK( * )
-        #     DOUBLE PRECISION   A( LDA, * ), VS( LDVS, * ), WI( * ), WORK( * ),
-        #    $                   WR( * )
+
         function gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::GeesWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
@@ -125,14 +118,6 @@ for (gees,  elty) in
             end
         end
         
-        #     .. Scalar Arguments ..
-        #     CHARACTER          JOBVS, SORT
-        #     INTEGER            INFO, LDA, LDVS, LWORK, N, SDIM
-        #     ..
-        #     .. Array Arguments ..
-        #     LOGICAL            BWORK( * )
-        #     DOUBLE PRECISION   A( LDA, * ), VS( LDVS, * ), WI( * ), WORK( * ),
-        #    $                   WR( * )
         function gees!(select_func::Function, jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::GeesWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
@@ -142,7 +127,7 @@ for (gees,  elty) in
             ldvs  = max(size(vs, 1), 1)
             lwork = length(work)
             sfunc(wr, wi) = schurselect(select_func, wr, wi)
-            sel_func = @cfunction($(Expr(:($), sfunc)), Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
+            sel_func = @cfunction($(Expr(:$, :sfunc)), Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
             ccall((@blasfunc($gees), liblapack), Cvoid,
                     (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
                         Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
