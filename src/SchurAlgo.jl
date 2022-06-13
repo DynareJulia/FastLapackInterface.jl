@@ -1,5 +1,6 @@
 # general Schur decomposition with reordering
 # adataped from ./base/linalg/lapack.jl
+# Implement selet
 using LinearAlgebra: checksquare
 
 include("exceptions.jl")
@@ -156,6 +157,9 @@ end
 #     chklapackerror(ws.info[])
 # end
 
+
+# Make this generic
+
 # function make_select_function(op, crit)::Function
 #     mycompare = function (wr_, wi_)
 #         wr = unsafe_load(wr_)
@@ -231,7 +235,7 @@ Base.iterate(ws::GgesWs, ::Val{:vsl})  = (ws.vsl, Val(:vsr))
 Base.iterate(ws::GgesWs, ::Val{:vsr})  = (ws.vsr, Val(:done))
 Base.iterate(::GgesWs, ::Val{:done})   = nothing
 
-
+# look into matlab function
 for (gges, elty) in ((:dgges_,:Float64), (:sgges_,:Float32))
     @eval begin
         function GgesWs(A::AbstractMatrix{$elty})
