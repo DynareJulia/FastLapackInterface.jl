@@ -1,7 +1,49 @@
 using Base: require_one_based_indexing
 using LinearAlgebra.LAPACK: chkstride1, chktrans, chkside
+
+# TODO: Rename workspaces to mirror the linearalgebra result struct naming
+# TODO: Make a show method for all factorizations -> FactorizationWorkspace abstract type
+# TODO: LinearAlgebra.qr! method that works with any workspace
+
 abstract type QR end
 
+"""
+    QRWs
+
+Workspace for standard QR factorization using the [`geqrf!`](@ref) LAPACK function.
+Upon initialization with a template, work buffers will be allocated and stored which
+will be (re)used during the factorization.
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> ws = FastLapackInterface.QRWs(A)
+FastLapackInterface.QRWs{Float64}
+work: 64-element Vector{Float64}
+τ: 2-element Vector{Float64}
+
+julia> t = QR(FastLapackInterface.geqrf!(A, ws)...)
+QR{Float64, Matrix{Float64}, Vector{Float64}}
+Q factor:
+2×2 QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
+ -0.190022  -0.98178
+ -0.98178    0.190022
+R factor:
+2×2 Matrix{Float64}:
+ -6.31506  -3.67692
+  0.0      -1.63102
+
+julia> Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+```
+"""
 struct QRWs{T<:Number} <: QR
     work::Vector{T}
     info::Ref{BlasInt}
@@ -9,6 +51,14 @@ struct QRWs{T<:Number} <: QR
 end
 
 Base.length(ws::QRWs) = length(ws.τ)
+
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRWs)
+    summary(io, ws); println(io)
+    print(io, "work: ")
+    summary(io, ws.work); println(io)
+    print(io, "τ: ")
+    summary(io, ws.τ)
+end
 
 for (geqrf, elty) in ((:dgeqrf_, :Float64),
                       (:sgeqrf_, :Float32),
@@ -102,10 +152,82 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
     end
 end
 
-struct QRWsWY{T<:Number} <: QR
+"""
+    geqrf!(A, ws)
+
+Compute the `QR` factorization of `A`, `A = QR`, using previously allocated [`QRWs`](@ref) workspace `ws`.
+`ws.τ` contains scalars which parameterize the elementary reflectors of the factorization.
+`ws.τ` must have length greater than or equal to the smallest dimension of `A`.
+
+Returns `A` and `ws.τ` modified in-place.
+"""
+geqrf!(A::AbstractMatrix, ws::QRWs)
+
+"""
+    ormqr!(side, trans, A, C, ws)
+
+Computes `Q * C` (`trans = N`), `transpose(Q) * C` (`trans = T`), `adjoint(Q) * C`
+(`trans = C`) for `side = L` or the equivalent right-sided multiplication
+for `side = R` using `Q` from a `QR` factorization of `A` computed using
+`geqrf!`.
+Uses preallocated workspace `ws` and the factors are assumed to be stored in `ws.τ`.
+`C` is overwritten.
+"""
+ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix, C::AbstractVecOrMat, ws::QRWs)
+
+"""
+    QRWYWs
+
+Workspace to be used with the [`LinearAlgebra.QRCompactWY`](@ref) representation
+of the blocked QR factorization which uses the [`geqrt!`](@ref) LAPACK function.
+Upon initialization with a template, work buffers will be allocated and stored which
+will be (re)used during the factorization.
+By default the blocksize is taken as `min(36, min(size(template)))`, this can be
+overridden by using the `blocksize` keyword of the constructor.
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> ws = FastLapackInterface.QRWYWs(A)
+FastLapackInterface.QRWYWs{Float64}
+work: 4-element Vector{Float64}
+T: 2×2 Matrix{Float64}
+
+julia> t = QRCompactWY(FastLapackInterface.geqrt!(A, ws)...)
+QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
+Q factor:
+2×2 QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}:
+ -0.190022  -0.98178
+ -0.98178    0.190022
+R factor:
+2×2 Matrix{Float64}:
+ -6.31506  -3.67692
+  0.0      -1.63102
+
+julia> Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+```
+"""
+struct QRWYWs{T<:Number} <: QR
     work::Vector{T}
     info::Ref{BlasInt}
     T::StridedMatrix{T}
+end
+
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRWYWs)
+    summary(io, ws); println(io)
+    println(io, "blocksize: $(size(ws.T, 1))")
+    print(io, "work: ")
+    summary(io, ws.work); println(io)
+    print(io, "T: ")
+    summary(io, ws.T)
 end
 
 for (geqrt, elty) in ((:dgeqrt_, :Float64),
@@ -113,7 +235,7 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
                       (:zgeqrt_, :ComplexF64),
                       (:cgeqrt_, :ComplexF32))
     @eval begin
-        function QRWsWY(A::StridedMatrix{$elty}; blocksize = 36)
+        function QRWYWs(A::StridedMatrix{$elty}; blocksize = 36)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = BlasInt.(size(A))
@@ -123,10 +245,10 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
             T = similar(A, nb, m1)
 
             work = Vector{$elty}(undef, nb * n)
-            return QRWsWY(work, Ref{BlasInt}(), T)
+            return QRWYWs(work, Ref{BlasInt}(), T)
         end
 
-        function geqrt!(A::StridedMatrix{$elty}, ws::QRWsWY)
+        function geqrt!(A::StridedMatrix{$elty}, ws::QRWYWs)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
@@ -151,11 +273,78 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
     end
 end
 
+
+"""
+    geqrt!(A, ws)
+
+Compute the blocked `QR` factorization of `A`, `A = QR`, using a preallocated workspace `ws`. `ws.T` contains upper
+triangular block reflectors which parameterize the elementary reflectors of
+the factorization. The first dimension of `ws.T` sets the block size and it must
+satisfy `1 <= size(ws.T, 1) <= min(size(A))`. The second dimension of `T` must equal the smallest
+dimension of `A`, i.e. `size(ws.T, 2) == size(A, 2)`.
+
+Returns `A` and `ws.T` modified in-place.
+"""
+geqrt!(A::AbstractMatrix, ws::QRWYWs)
+
+"""
+    QRpWs
+
+Workspace to be used with the [`LinearAlgebra.QRPivoted`](@ref) representation
+of the QR factorization which uses the [`geqp3!`](@ref) LAPACK function.
+Upon initialization with a template, work buffers will be allocated and stored which
+will be (re)used during the factorization.
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> ws = FastLapackInterface.QRpWs(A)
+FastLapackInterface.QRpWs{Float64}
+work: 100-element Vector{Float64}
+τ: 2-element Vector{Float64}
+jpvt: 2-element Vector{Int64}
+
+julia> t = QRPivoted(FastLapackInterface.geqp3!(A, ws)...)
+QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
+Q factor:
+2×2 QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
+ -0.190022  -0.98178
+ -0.98178    0.190022
+R factor:
+2×2 Matrix{Float64}:
+ -6.31506  -3.67692
+  0.0      -1.63102
+permutation:
+2-element Vector{Int64}:
+ 1
+ 2
+
+julia> Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+```
+"""
 struct QRpWs{T<:Number} <: QR
     work::Vector{T}
     info::Ref{BlasInt}
     τ::Vector{T}
     jpvt::Vector{BlasInt}
+end
+
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRpWs)
+    summary(io, ws); println(io)
+    print(io, "work: ")
+    summary(io, ws.work); println(io)
+    print(io, "τ: ")
+    summary(io, ws.τ); println(io)
+    print(io, "jpvt: ")
+    summary(io, ws.jpvt)
 end
 
 for (geqp3, elty) in ((:dgeqp3_, :Float64),
@@ -207,3 +396,18 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
         end
     end
 end
+
+"""
+    geqp3!(A, ws)
+
+Compute the pivoted `QR` factorization of `A`, `AP = QR` using BLAS level 3,
+using the preallocated workspace `ws`.
+`P` is a pivoting matrix, represented by `ws.jpvt`. `ws.τ` stores the elementary
+reflectors. `ws.jpvt` must have length greater
+than or equal to `n` if `A` is an `(m x n)` matrix and `ws.τ` must have length
+greater than or equal to the smallest dimension of `A`.
+
+`A`, `ws.jpvt`, and `ws.τ` are modified in-place.
+"""
+geqp3!(A::AbstractMatrix, ws::QRpWs)
+

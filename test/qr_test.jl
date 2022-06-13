@@ -41,14 +41,14 @@ using LinearAlgebra.LAPACK
     end
 end
 
-@testset "QRWsWY" begin
+@testset "QRWYWs" begin
     n = 3
     @testset "Real, square" begin
         A0 = randn(n, n)
 
         @testset "geqrt!" begin
             A = copy(A0)
-            ws = FastLapackInterface.QRWsWY(A)
+            ws = FastLapackInterface.QRWYWs(A)
             AT, taut = FastLapackInterface.geqrt!(A, ws)
 
             AT1, taut1 = LAPACK.geqrt!(copy(A0), zeros(size(ws.T)))
