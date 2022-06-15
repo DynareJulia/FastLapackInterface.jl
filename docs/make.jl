@@ -98,7 +98,7 @@ makedocs(; modules = [FastLapackInterface],
                   # "Usage" => Any["guide/jobs.md", "guide/calculations.md", "guide/servers.md",
                   #                "guide/structure.md",],
                   # "Examples" => EXAMPLES,
-                  # "api.md"
+                  "api.md"
                   # "publications.md",
                   ]
          # strict = !DEBUG,
