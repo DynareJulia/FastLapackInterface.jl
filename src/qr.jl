@@ -280,7 +280,7 @@ end
 Compute the blocked `QR` factorization of `A`, `A = QR`, using a preallocated workspace `ws`. `ws.T` contains upper
 triangular block reflectors which parameterize the elementary reflectors of
 the factorization. The first dimension of `ws.T` sets the block size and it must
-satisfy `1 <= size(ws.T, 1) <= min(size(A))`. The second dimension of `T` must equal the smallest
+satisfy `1 <= size(ws.T, 1) <= min(size(A)...)`. The second dimension of `T` must equal the smallest
 dimension of `A`, i.e. `size(ws.T, 2) == size(A, 2)`.
 
 Returns `A` and `ws.T` modified in-place.

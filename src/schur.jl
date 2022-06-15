@@ -29,6 +29,49 @@ function schurselect(f::Function, αr_::Ptr, αi_::Ptr, β_::Ptr)
     return convert(Cint, f(αr, αi, β) ? 1 : 0)
 end
 
+"""
+    GeesWs
+
+Workspace to be used with the [`LinearAlgebra.Schur`](@ref) representation
+of the Schur decomposition which uses the [`gees!`](@ref) LAPACK function.
+Upon initialization with a template, work buffers will be allocated and stored which
+will be (re)used during the factorization.
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> ws = FastLapackInterface.GeesWs(A)
+FastLapackInterface.GeesWs{Float64}
+work: 68-element Vector{Float64}
+vs: 2×2 Matrix{Float64}
+eigen_values: 2-element Vector{ComplexF64}
+
+julia> t = Schur(FastLapackInterface.gees!('V', A, ws)...)
+Schur{Float64, Matrix{Float64}, Vector{Float64}}
+T factor:
+2×2 Matrix{Float64}:
+ -1.6695  -3.9
+  0.0      6.1695
+Z factor:
+2×2 Matrix{Float64}:
+ -0.625424  -0.780285
+  0.780285  -0.625424
+eigenvalues:
+2-element Vector{Float64}:
+ -1.6695025194532018
+  6.169502519453203
+
+julia> Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+```
+"""
 mutable struct GeesWs{T<:AbstractFloat}
     work::Vector{T}
     info::Ref{BlasInt}
@@ -38,6 +81,16 @@ mutable struct GeesWs{T<:AbstractFloat}
     sdim::Ref{BlasInt}
     bwork::Vector{BlasInt}
     eigen_values::Vector{Complex{T}}
+end
+
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GeesWs)
+    summary(io, ws); println(io)
+    print(io, "work: ")
+    summary(io, ws.work); println(io)
+    print(io, "vs: ")
+    summary(io, ws.vs); println(io)
+    print(io, "eigen_values: ")
+    summary(io, ws.eigen_values)
 end
 
 Base.length(ws::GeesWs) = length(ws.wr)
@@ -147,6 +200,79 @@ for (gees, elty) in ((:dgees_, :Float64),
     end
 end
 
+"""
+    gees!([select], jobvs, A, ws) -> (A, vs, ws.eigen_values)
+
+Computes the eigenvalues (`jobvs = N`) or the eigenvalues and Schur
+vectors (`jobvs = V`) of matrix `A`, using the preallocated [`GeesWs`](@ref) worspace `ws`.
+`A` is overwritten by its Schur form, and `ws.eigen_values` is overwritten with the eigenvalues.
+
+It is possible to specify `select`, a function used to sort the eigenvalues during the decomponsition.
+The function should accept have the signature `f(wr::Float64, wi::Float64) -> Bool`, where
+`wr` and `wi` are the real and imaginary parts of the eigenvalue. 
+
+Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
+"""
+gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::GeesWs)
+
+
+"""
+    GgesWs
+
+Workspace to be used with the [`LinearAlgebra.GeneralizedSchur`](@ref) representation
+of the Generalized Schur decomposition which uses the [`gges!`](@ref) LAPACK function.
+Upon initialization with a template, work buffers will be allocated and stored which
+will be (re)used during the factorization.
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> B = [8.2 0.3
+            1.7 4.3]
+2×2 Matrix{Float64}:
+ 8.2  0.3
+ 1.7  4.3
+
+julia> ws = FastLapackInterface.GgesWs(A)
+FastLapackInterface.GgesWs{Float64}
+work: 90-element Vector{Float64}
+vsl: 2×2 Matrix{Float64}
+vsr: 2×2 Matrix{Float64}
+eigen_values: 2-element Vector{ComplexF64}
+
+julia> t = GeneralizedSchur(FastLapackInterface.gges!('V','V', A, B, ws)...)
+GeneralizedSchur{Float64, Matrix{Float64}, Vector{ComplexF64}, Vector{Float64}}
+S factor:
+2×2 Matrix{Float64}:
+ -1.43796  1.63843
+  0.0      7.16295
+T factor:
+2×2 Matrix{Float64}:
+ 5.06887  -4.00221
+ 0.0       6.85558
+Q factor:
+2×2 Matrix{Float64}:
+ -0.857329  0.514769
+  0.514769  0.857329
+Z factor:
+2×2 Matrix{Float64}:
+ -0.560266  0.828313
+  0.828313  0.560266
+α:
+2-element Vector{ComplexF64}:
+ -1.4379554610733563 + 0.0im
+   7.162947865097022 + 0.0im
+β:
+2-element Vector{Float64}:
+ 5.068865029631368
+ 6.855578082442485
+```
+"""
 mutable struct GgesWs{T}
     work::Vector{T}
     info::Ref{BlasInt}
@@ -158,6 +284,18 @@ mutable struct GgesWs{T}
     sdim::Ref{BlasInt}
     bwork::Vector{BlasInt}
     eigen_values::Vector{Complex{T}}
+end
+
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GgesWs)
+    summary(io, ws); println(io)
+    print(io, "work: ")
+    summary(io, ws.work); println(io)
+    print(io, "vsl: ")
+    summary(io, ws.vsl); println(io)
+    print(io, "vsr: ")
+    summary(io, ws.vsr); println(io)
+    print(io, "eigen_values: ")
+    summary(io, ws.eigen_values)
 end
 
 Base.length(ws::GgesWs) = length(ws.αr)
@@ -283,3 +421,20 @@ for (gges, elty) in ((:dgges_, :Float64),
         end
     end
 end
+
+"""
+    gges!([select], jobvsl, jobvsr, A, B, ws) -> (A, B, ws.eigen_values, ws.β, ws.vsl, ws.vsr)
+
+Computes the generalized eigenvalues, generalized Schur form, left Schur
+vectors (`jobsvl = V`), or right Schur vectors (`jobvsr = V`) of `A` and
+`B`, using preallocated [`GgesWs`](@ref) workspace `ws`.
+
+It is possible to specify `select`, a function used to sort the eigenvalues during the decomponsition.
+The function should accept have the signature `f(αr::Float64, αi::Float64, β::Float64) -> Bool`, where
+`αr` and `αi` are the real and imaginary parts of the eigenvalue, and `β` the factor. 
+
+The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The left Schur
+vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
+"""
+gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix, B::AbstractMatrix)
+

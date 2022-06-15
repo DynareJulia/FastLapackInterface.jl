@@ -14,7 +14,7 @@ else
 end
 
 include("lu.jl")
-export LinSolveWs, linsolve_core!, linsolve_core_no_lu!, lu!
+export LUWs, linsolve_core!, linsolve_core_no_lu!, lu!
 include("qr.jl")
 export QrWs, QrpWs, geqrf_core!, geqp3!, ormqr_core!
 include("schur.jl")
