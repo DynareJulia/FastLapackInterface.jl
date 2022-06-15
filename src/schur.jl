@@ -1,5 +1,4 @@
 # general Schur decomposition with reordering
-using LinearAlgebra: checksquare
 
 # SELECT functions
 # gees
@@ -45,13 +44,13 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = FastLapackInterface.GeesWs(A)
-FastLapackInterface.GeesWs{Float64}
+julia> ws = GeesWs(A)
+GeesWs{Float64}
 work: 68-element Vector{Float64}
 vs: 2×2 Matrix{Float64}
 eigen_values: 2-element Vector{ComplexF64}
 
-julia> t = Schur(FastLapackInterface.gees!('V', A, ws)...)
+julia> t = Schur(LAPACK.gees!('V', A, ws)...)
 Schur{Float64, Matrix{Float64}, Vector{Float64}}
 T factor:
 2×2 Matrix{Float64}:
@@ -135,7 +134,7 @@ for (gees, elty) in ((:dgees_, :Float64),
                                  Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
-        function gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::GeesWs{$elty})
+        function LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::GeesWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -165,7 +164,7 @@ for (gees, elty) in ((:dgees_, :Float64),
             end
         end
 
-        function gees!(select_func::Function, jobvs::AbstractChar, A::AbstractMatrix{$elty},
+        function LAPACK.gees!(select_func::Function, jobvs::AbstractChar, A::AbstractMatrix{$elty},
                        ws::GeesWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
@@ -213,7 +212,7 @@ The function should accept have the signature `f(wr::Float64, wi::Float64) -> Bo
 
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 """
-gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::GeesWs)
+LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::GeesWs)
 
 
 """
@@ -238,14 +237,14 @@ julia> B = [8.2 0.3
  8.2  0.3
  1.7  4.3
 
-julia> ws = FastLapackInterface.GgesWs(A)
-FastLapackInterface.GgesWs{Float64}
+julia> ws = GgesWs(A)
+GgesWs{Float64}
 work: 90-element Vector{Float64}
 vsl: 2×2 Matrix{Float64}
 vsr: 2×2 Matrix{Float64}
 eigen_values: 2-element Vector{ComplexF64}
 
-julia> t = GeneralizedSchur(FastLapackInterface.gges!('V','V', A, B, ws)...)
+julia> t = GeneralizedSchur(LAPACK.gges!('V','V', A, B, ws)...)
 GeneralizedSchur{Float64, Matrix{Float64}, Vector{ComplexF64}, Vector{Float64}}
 S factor:
 2×2 Matrix{Float64}:
@@ -346,7 +345,7 @@ for (gges, elty) in ((:dgges_, :Float64),
                           Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
-        function gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix{$elty},
+        function LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix{$elty},
                        B::AbstractMatrix{$elty}, ws::GgesWs{$elty})
             chkstride1(A, B)
             n, m = checksquare(A, B)
@@ -381,7 +380,7 @@ for (gges, elty) in ((:dgges_, :Float64),
                    view(vsr, 1:(jobvsr == 'V' ? n : 0), :)
         end
 
-        function gges!(select_func::Function, jobvsl::AbstractChar, jobvsr::AbstractChar,
+        function LAPACK.gges!(select_func::Function, jobvsl::AbstractChar, jobvsr::AbstractChar,
                        A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
                        ws::GgesWs{$elty})
             chkstride1(A, B)
@@ -436,5 +435,4 @@ The function should accept have the signature `f(αr::Float64, αi::Float64, β:
 The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The left Schur
 vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
 """
-gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix, B::AbstractMatrix)
-
+LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix, B::AbstractMatrix)

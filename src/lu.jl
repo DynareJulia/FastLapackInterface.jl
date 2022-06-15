@@ -1,5 +1,3 @@
-using LinearAlgebra.LAPACK: chkargsok
-
 """
     LUWs
 
@@ -16,11 +14,11 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = FastLapackInterface.LUWs(A)
+julia> ws = LUWs(A)
 LUWs
 ipiv: 2-element Vector{Int64}
 
-julia> t = LU(FastLapackInterface.getrf!(A, ws)...)
+julia> t = LU(LAPACK.getrf!(A, ws)...)
 LU{Float64, Matrix{Float64}, Vector{Int64}}
 L factor:
 2×2 Matrix{Float64}:
@@ -43,14 +41,14 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::LUWs)
 end
 
 LUWs(n::Int) = LUWs(Ref{BlasInt}(), zeros(BlasInt, n))
-LUWs(a::AbstractMatrix) = LUWs(Ref{BlasInt}(),  min(size(a)...))
+LUWs(a::AbstractMatrix) = LUWs(min(size(a)...))
 
 for (getrf, elty) in ((:dgetrf_, :Float64),
                       (:sgetrf_, :Float32),
                       (:zgetrf_, :ComplexF64),
                       (:cgetrf_, :ComplexF32))
     @eval begin
-        function getrf!(A::AbstractMatrix{$elty}, ws::LUWs)
+        function LAPACK.getrf!(A::AbstractMatrix{$elty}, ws::LUWs)
             @assert min(size(A)...) <= length(ws.ipiv) "Allocated Workspace is too small."
             require_one_based_indexing(A)
             chkstride1(A)
@@ -77,4 +75,4 @@ Returns `A`, modified in-place, `ws.ipiv`, the pivoting information, and the `ws
 code which indicates success (`info = 0`), a singular value in `U`
 (`info = i`, in which case `U[i,i]` is singular), or an error code (`info < 0`).
 """
-getrf!(A::AbstractMatrix, tau::AbstractVector, ws::LUWs)
+LAPACK.getrf!(A::AbstractMatrix, ws::LUWs)

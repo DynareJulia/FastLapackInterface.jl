@@ -1,7 +1,3 @@
-using Base: require_one_based_indexing
-using LinearAlgebra.LAPACK: chkstride1, chktrans, chkside
-
-# TODO: Rename workspaces to mirror the linearalgebra result struct naming
 # TODO: Make a show method for all factorizations -> FactorizationWorkspace abstract type
 # TODO: LinearAlgebra.qr! method that works with any workspace
 
@@ -22,12 +18,12 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = FastLapackInterface.QRWs(A)
-FastLapackInterface.QRWs{Float64}
+julia> ws = QRWs(A)
+QRWs{Float64}
 work: 64-element Vector{Float64}
 τ: 2-element Vector{Float64}
 
-julia> t = QR(FastLapackInterface.geqrf!(A, ws)...)
+julia> t = QR(LAPACK.geqrf!(A, ws)...)
 QR{Float64, Matrix{Float64}, Vector{Float64}}
 Q factor:
 2×2 QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
@@ -81,7 +77,7 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
             return QRWs(work, info, τ)
         end
 
-        function geqrf!(A::AbstractMatrix{$elty}, ws::QRWs)
+        function LAPACK.geqrf!(A::AbstractMatrix{$elty}, ws::QRWs)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
@@ -103,7 +99,7 @@ end
 for (ormqr, elty) in ((:dormqr_, :Float64),
                       (:sormqr_, :Float32))
     @eval begin
-        function ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix{$elty},
+        function LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix{$elty},
                         C::AbstractVecOrMat{$elty}, ws::QRWs{$elty})
             require_one_based_indexing(A, C)
             chktrans(trans)
@@ -141,12 +137,12 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
     for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),
                   eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
         @eval begin
-            function ormqr!(side::AbstractChar, trans::AbstractChar, A::$elty2,
+            function LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::$elty2,
                             C::StridedMatrix{$elty}, ws::QRWs{$elty})
                 chktrans(trans)
                 chkside(side)
                 trans = trans == 'T' ? 'N' : 'T'
-                return ormqr!(side, trans, A.parent, C, ws)
+                return LAPACK.ormqr!(side, trans, A.parent, C, ws)
             end
         end
     end
@@ -161,7 +157,7 @@ Compute the `QR` factorization of `A`, `A = QR`, using previously allocated [`QR
 
 Returns `A` and `ws.τ` modified in-place.
 """
-geqrf!(A::AbstractMatrix, ws::QRWs)
+LAPACK.geqrf!(A::AbstractMatrix, ws::QRWs)
 
 """
     ormqr!(side, trans, A, C, ws)
@@ -173,7 +169,7 @@ for `side = R` using `Q` from a `QR` factorization of `A` computed using
 Uses preallocated workspace `ws` and the factors are assumed to be stored in `ws.τ`.
 `C` is overwritten.
 """
-ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix, C::AbstractVecOrMat, ws::QRWs)
+LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix, C::AbstractVecOrMat, ws::QRWs)
 
 """
     QRWYWs
@@ -193,12 +189,13 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = FastLapackInterface.QRWYWs(A)
-FastLapackInterface.QRWYWs{Float64}
+julia> ws = QRWYWs(A)
+QRWYWs{Float64}
+blocksize: 2
 work: 4-element Vector{Float64}
 T: 2×2 Matrix{Float64}
 
-julia> t = QRCompactWY(FastLapackInterface.geqrt!(A, ws)...)
+julia> t = QRCompactWY(LAPACK.geqrt!(A, ws)...)
 QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
 Q factor:
 2×2 QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}:
@@ -248,7 +245,7 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
             return QRWYWs(work, Ref{BlasInt}(), T)
         end
 
-        function geqrt!(A::StridedMatrix{$elty}, ws::QRWYWs)
+        function LAPACK.geqrt!(A::StridedMatrix{$elty}, ws::QRWYWs)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
@@ -285,7 +282,7 @@ dimension of `A`, i.e. `size(ws.T, 2) == size(A, 2)`.
 
 Returns `A` and `ws.T` modified in-place.
 """
-geqrt!(A::AbstractMatrix, ws::QRWYWs)
+LAPACK.geqrt!(A::AbstractMatrix, ws::QRWYWs)
 
 """
     QRpWs
@@ -303,13 +300,13 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = FastLapackInterface.QRpWs(A)
-FastLapackInterface.QRpWs{Float64}
+julia> ws = QRpWs(A)
+QRpWs{Float64}
 work: 100-element Vector{Float64}
 τ: 2-element Vector{Float64}
 jpvt: 2-element Vector{Int64}
 
-julia> t = QRPivoted(FastLapackInterface.geqp3!(A, ws)...)
+julia> t = QRPivoted(LAPACK.geqp3!(A, ws)...)
 QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
 Q factor:
 2×2 QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
@@ -371,7 +368,7 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
             return QRpWs(work, info, τ, jpvt)
         end
 
-        function geqp3!(A::AbstractMatrix{$elty}, ws::QRpWs{$elty})
+        function LAPACK.geqp3!(A::AbstractMatrix{$elty}, ws::QRpWs{$elty})
             m, n = size(A)
             if length(ws.τ) != min(m, n)
                 throw(DimensionMismatch("τ  has length $(length(ws.τ)), but needs length $(min(m,n))"))
@@ -409,5 +406,4 @@ greater than or equal to the smallest dimension of `A`.
 
 `A`, `ws.jpvt`, and `ws.τ` are modified in-place.
 """
-geqp3!(A::AbstractMatrix, ws::QRpWs)
-
+LAPACK.geqp3!(A::AbstractMatrix, ws::QRpWs)
