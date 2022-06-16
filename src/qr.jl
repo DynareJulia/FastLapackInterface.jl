@@ -42,7 +42,6 @@ julia> Matrix(t)
 """
 struct QRWs{T<:Number} <: QR
     work::Vector{T}
-    info::Ref{BlasInt}
     τ::Vector{T}
 end
 
@@ -70,11 +69,11 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
             info = Ref{BlasInt}()
             ccall((@blasfunc($geqrf), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
+                   Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
                   m, n, A, lda, τ, work, lwork, info)
             chklapackerror(info[])
             resize!(work, BlasInt(real(work[1])))
-            return QRWs(work, info, τ)
+            return QRWs(work, τ)
         end
 
         function LAPACK.geqrf!(A::AbstractMatrix{$elty}, ws::QRWs)
@@ -86,11 +85,12 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
             end
             lda = max(1, stride(A, 2))
             lwork = length(ws.work)
+            info = Ref{BlasInt}() # This actually doesn't cause allocations
             ccall((@blasfunc($geqrf), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
-                  m, n, A, lda, ws.τ, ws.work, lwork, ws.info)
-            chklapackerror(ws.info[])
+                   Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                  m, n, A, lda, ws.τ, ws.work, lwork, info)
+            chklapackerror(info[])
             return A, ws.τ
         end
     end
@@ -120,16 +120,17 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
             if side == 'R' && k > n
                 throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
             end
+            info = Ref{BlasInt}()
             ccall((@blasfunc($ormqr), liblapack), Cvoid,
                   (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
                    Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
                    Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                   Ptr{BlasInt}, Clong, Clong),
+                   Ref{BlasInt}, Clong, Clong),
                   side, trans, m, n,
                   k, A, max(1, stride(A, 2)), ws.τ,
                   C, max(1, stride(C, 2)), ws.work, length(ws.work),
-                  ws.info, 1, 1)
-            chklapackerror(ws.info[])
+                  info, 1, 1)
+            chklapackerror(info[])
             return C
         end
     end
@@ -212,10 +213,9 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRWYWs{T<:Number} <: QR
-    work::Vector{T}
-    info::Ref{BlasInt}
-    T::StridedMatrix{T}
+struct QRWYWs{R<:Number, MT<:StridedMatrix{R}} <: QR
+    work::Vector{R}
+    T::MT
 end
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRWYWs)
@@ -242,10 +242,10 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
             T = similar(A, nb, m1)
 
             work = Vector{$elty}(undef, nb * n)
-            return QRWYWs(work, Ref{BlasInt}(), T)
+            return QRWYWs(work, T)
         end
 
-        function LAPACK.geqrt!(A::StridedMatrix{$elty}, ws::QRWYWs)
+        function LAPACK.geqrt!(A::AbstractMatrix{$elty}, ws::QRWYWs)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
@@ -256,15 +256,15 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
             end
             lda = max(1, stride(A, 2))
             work = ws.work
-
+            info = Ref{BlasInt}()
             ccall((@blasfunc($geqrt), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
                    Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
                    Ptr{BlasInt}),
                   m, n, nb, A,
                   lda, ws.T, max(1, stride(ws.T, 2)), ws.work,
-                  ws.info)
-            chklapackerror(ws.info[])
+                  info)
+            chklapackerror(info[])
             return A, ws.T
         end
     end
@@ -329,7 +329,6 @@ julia> Matrix(t)
 """
 struct QRpWs{T<:Number} <: QR
     work::Vector{T}
-    info::Ref{BlasInt}
     τ::Vector{T}
     jpvt::Vector{BlasInt}
 end
@@ -357,7 +356,7 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
             jpvt = zeros(BlasInt, n)
             τ = Vector{$elty}(undef, min(m, n))
             work = Vector{$elty}(undef, 1)
-            lwork = BlasInt(-1)
+            lwork = -1
             info = Ref{BlasInt}()
             ccall((@blasfunc($geqp3), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
@@ -365,7 +364,7 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
                   m, n, A, RldA, jpvt, τ, work, lwork, info)
             chklapackerror(info[])
             work = resize!(work, BlasInt(real(work[1])))
-            return QRpWs(work, info, τ, jpvt)
+            return QRpWs(work, τ, jpvt)
         end
 
         function LAPACK.geqp3!(A::AbstractMatrix{$elty}, ws::QRpWs{$elty})
@@ -380,15 +379,15 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
             if lda == 0 # Early exit
                 return A, ws.τ, ws.jpvt
             end
-            lwork = BlasInt(-1)
+            info = Ref{BlasInt}()
             ccall((@blasfunc($geqp3), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
                    Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
                    Ptr{BlasInt}),
                   m, n, A, lda,
                   ws.jpvt, ws.τ, ws.work,
-                  length(ws.work), ws.info)
-            chklapackerror(ws.info[])
+                  length(ws.work), info)
+            chklapackerror(info[])
             return A, ws.τ, ws.jpvt
         end
     end

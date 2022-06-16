@@ -31,7 +31,6 @@ U factor:
 ```
 """
 struct LUWs
-    info::Ref{BlasInt}
     ipiv::Vector{BlasInt}
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::LUWs)
@@ -40,7 +39,7 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::LUWs)
     summary(io, ws.ipiv)
 end
 
-LUWs(n::Int) = LUWs(Ref{BlasInt}(), zeros(BlasInt, n))
+LUWs(n::Int) = LUWs(zeros(BlasInt, n))
 LUWs(a::AbstractMatrix) = LUWs(min(size(a)...))
 
 for (getrf, elty) in ((:dgetrf_, :Float64),
@@ -54,13 +53,13 @@ for (getrf, elty) in ((:dgetrf_, :Float64),
             chkstride1(A)
             m, n = size(A)
             lda  = max(1, stride(A, 2))
-            
+            info = Ref{BlasInt}() 
             ccall((@blasfunc($getrf), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
                    Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
-                  m, n, A, lda, ws.ipiv, ws.info)
-            chkargsok(ws.info[])
-            return A, ws.ipiv, ws.info[] #Error code is stored in LU factorization type
+                  m, n, A, lda, ws.ipiv, info)
+            chkargsok(info[])
+            return A, ws.ipiv, info[] #Error code is stored in LU factorization type
         end
     end
 end

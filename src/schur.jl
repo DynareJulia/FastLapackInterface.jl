@@ -73,7 +73,6 @@ julia> Matrix(t)
 """
 mutable struct GeesWs{T<:AbstractFloat}
     work::Vector{T}
-    info::Ref{BlasInt}
     wr::Vector{T}
     wi::Vector{T}
     vs::Matrix{T}
@@ -94,8 +93,7 @@ end
 
 Base.length(ws::GeesWs) = length(ws.wr)
 
-Base.iterate(ws::GeesWs)                = (ws.work, Val(:info))
-Base.iterate(ws::GeesWs, ::Val{:info})  = (ws.info, Val(:wr))
+Base.iterate(ws::GeesWs)                = (ws.work, Val(:wr))
 Base.iterate(ws::GeesWs, ::Val{:wr})    = (ws.wr, Val(:wi))
 Base.iterate(ws::GeesWs, ::Val{:wi})    = (ws.wi, Val(:vs))
 Base.iterate(ws::GeesWs, ::Val{:vs})    = (ws.vs, Val(:sdim))
@@ -130,7 +128,7 @@ for (gees, elty) in ((:dgees_, :Float64),
             chklapackerror(info[])
 
             resize!(work, BlasInt(real(work[1])))
-            return GeesWs{$elty}(work, info, wr, wi, vs, Ref{BlasInt}(),
+            return GeesWs{$elty}(work, wr, wi, vs, Ref{BlasInt}(),
                                  Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
@@ -141,18 +139,21 @@ for (gees, elty) in ((:dgees_, :Float64),
             if n > length(ws)
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
-            work, info, wr, wi, vs = ws
+            work, wr, wi, vs = ws
             ldvs = max(size(vs, 1), 1)
             lwork = length(work)
+            info = Ref{BlasInt}()
             ccall((@blasfunc($gees), liblapack), Cvoid,
                   (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
                    Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
                    Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}, Clong, Clong),
+                   Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}),
                   jobvs, 'N', C_NULL, n,
                   A, max(1, stride(A, 2)), Ref{BlasInt}(), wr,
                   wi, vs, ldvs, work,
-                  lwork, C_NULL, info, 1, 1)
+                  lwork, C_NULL, info)
+                  
+            chklapackerror(info[])
 
             if iszero(wi)
                 return A, vs, wr
@@ -172,7 +173,8 @@ for (gees, elty) in ((:dgees_, :Float64),
             if n > length(ws)
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
-            work, info, wr, wi, vs, sdim, bwork = ws
+            work, wr, wi, vs, sdim, bwork = ws
+            info = Ref{BlasInt}()
             ldvs = max(size(vs, 1), 1)
             lwork = length(work)
             sfunc(wr, wi) = schurselect(select_func, wr, wi)
@@ -181,12 +183,14 @@ for (gees, elty) in ((:dgees_, :Float64),
                   (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
                    Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
                    Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}, Clong, Clong),
+                   Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
                   jobvs, 'S', sel_func, n,
                   A, max(1, stride(A, 2)), sdim, wr,
                   wi, vs, ldvs, work,
-                  lwork, bwork, info, 1, 1)
+                  lwork, bwork, info)
 
+            chklapackerror(info[])
+            
             if iszero(wi)
                 return A, vs, wr
             else
@@ -274,7 +278,6 @@ Z factor:
 """
 mutable struct GgesWs{T}
     work::Vector{T}
-    info::Ref{BlasInt}
     αr::Vector{T}
     αi::Vector{T}
     β::Vector{T}
@@ -299,8 +302,7 @@ end
 
 Base.length(ws::GgesWs) = length(ws.αr)
 
-Base.iterate(ws::GgesWs)                = (ws.work, Val(:info))
-Base.iterate(ws::GgesWs, ::Val{:info})  = (ws.info, Val(:αr))
+Base.iterate(ws::GgesWs)                = (ws.work, Val(:αr))
 Base.iterate(ws::GgesWs, ::Val{:αr})    = (ws.αr, Val(:αi))
 Base.iterate(ws::GgesWs, ::Val{:αi})    = (ws.αi, Val(:β))
 Base.iterate(ws::GgesWs, ::Val{:β})     = (ws.β, Val(:vsl))
@@ -341,7 +343,7 @@ for (gges, elty) in ((:dgges_, :Float64),
 
             chklapackerror(info[])
             resize!(work, BlasInt(real(work[1])))
-            return GgesWs(work, info, αr, αi, β, vsl, vsr, Ref{BlasInt}(),
+            return GgesWs(work, αr, αi, β, vsl, vsr, Ref{BlasInt}(),
                           Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
@@ -356,7 +358,8 @@ for (gges, elty) in ((:dgges_, :Float64),
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
 
-            work, info, αr, αi, β, vsl, vsr = ws
+            work, αr, αi, β, vsl, vsr = ws
+            info = Ref{BlasInt}()
             ldvsl = size(vsl, 1)
             ldvsr = size(vsr, 1)
             ccall((@blasfunc($gges), liblapack), Cvoid,
@@ -392,7 +395,8 @@ for (gges, elty) in ((:dgges_, :Float64),
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
 
-            work, info, αr, αi, β, vsl, vsr, sdim, bwork = ws
+            work, αr, αi, β, vsl, vsr, sdim, bwork = ws
+            info = Ref{BlasInt}()
             ldvsl = size(vsl, 1)
             ldvsr = size(vsr, 1)
             sfunc(αr, αi, β) = schurselect(select_func, αr, αi, β)
