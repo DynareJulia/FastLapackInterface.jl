@@ -17,8 +17,9 @@ for n in sizes
     A = rand(n, n)
     suite["LUWs"]["creation"]["$n"] = @benchmarkable LUWs($A)
 end
-suite["LUWs"]["getrf!_workspace"] = BenchmarkGroup()
-suite["LUWs"]["getrf!_LAPACK"] = BenchmarkGroup()
+suite["LUWs"]["getrf!"]              = BenchmarkGroup()
+suite["LUWs"]["getrf!"]["workspace"] = BenchmarkGroup()
+suite["LUWs"]["getrf!"]["LAPACK"]    = BenchmarkGroup()
 
 function bench_getrf!(As, ws)
     for A in As
@@ -34,8 +35,8 @@ end
 for n in sizes
     As = [rand(n, n) for i=1:vector_length]
     ws = LUWs(As[1])
-    suite["LUWs"]["getrf!_workspace"]["$n"] = @benchmarkable bench_getrf!($As, $ws)
-    suite["LUWs"]["getrf!_LAPACK"]["$n"] = @benchmarkable bench_getrf!($As)
+    suite["LUWs"]["getrf!"]["workspace"]["$n"] = @benchmarkable bench_getrf!($As, $ws)
+    suite["LUWs"]["getrf!"]["LAPACK"]["$n"] = @benchmarkable bench_getrf!($As)
 end
 
 end
