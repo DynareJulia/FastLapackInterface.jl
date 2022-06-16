@@ -1,5 +1,7 @@
 # general Schur decomposition with reordering
 
+# TODO: See if SELECT functions can be optimized.
+
 # SELECT functions
 # gees
 # Original default
