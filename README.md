@@ -1,4 +1,6 @@
 WORK IN PROGRESS
+[![codecov](https://codecov.io/gh/louisponet/FastLapackInterface.jl/branch/main/graph/badge.svg?token=3VH7VTUQNR)](https://codecov.io/gh/louisponet/FastLapackInterface.jl)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://louisponet.github.io/FastLapackInterface.jl/dev)
 
 ``FastLapackInterface`` separates workspace allocation and actual
 running for some Lapack algorithms:

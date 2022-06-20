@@ -38,9 +38,9 @@ using LinearAlgebra.LAPACK
             Cout2 = LAPACK.ormqr!('L', 'T', copy(A0)', copy(C), ws)
             @test isapprox(Cout, Cout2)
         end
-        redirect_stdout(devnull) do
-            show(ws)
-        end
+        # redirect_stdout(devnull) do
+        show(ws)
+        # end
     end
 end
 
@@ -57,9 +57,9 @@ end
             AT1, taut1 = LAPACK.geqrt!(copy(A0), zeros(size(ws.T)))
             @test AT1 == AT
             @test isapprox(taut1, taut)
-            redirect_stdout(devnull) do
-                show(ws)
-            end
+            # redirect_stdout(devnull) do
+            show(ws)
+            # end
         end
     end
 end
@@ -79,9 +79,9 @@ end
             @test isapprox(AT1, AT)
             @test isapprox(jpvt1, jpvt)
             @test isapprox(taut1, taut)
-            redirect_stdout(devnull) do
-                show(ws)
-            end
+            # redirect_stdout(devnull) do
+            show(ws)
+            # end
         end
     end
 end

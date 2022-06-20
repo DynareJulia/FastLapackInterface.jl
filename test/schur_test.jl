@@ -13,9 +13,9 @@ using LinearAlgebra.LAPACK
         @test isapprox(A1, A2)
         @test isapprox(vs1, vs2)
         @test isapprox(wr1, wr2)
-        redirect_stdout(devnull) do
-            show(ws)
-        end
+        # redirect_stdout(devnull) do
+        show(ws)
+        # end
     end
 
     @testset "Real, square, select" begin
@@ -51,9 +51,9 @@ end
         @test isapprox(β1, β2)
         @test isapprox(vsl1, vsl2)
         @test isapprox(vsr1, vsr2)
-        redirect_stdout(devnull) do
-            show(ws)
-        end
+        # redirect_stdout(devnull) do
+        show(ws)
+        # end
     end
 
     #TODO: This should be tested with something realistic
@@ -74,8 +74,8 @@ end
         @test ws.sdim[] == 1
         @test sign(real(eig[1])) == -1
         @test sign(real(eig[2])) == 1
-        redirect_stdout(devnull) do
-            show(ws)
-        end
+        # redirect_stdout(devnull) do
+        show(ws)
+        # end
     end
 end

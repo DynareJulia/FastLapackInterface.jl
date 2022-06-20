@@ -20,9 +20,9 @@ m = 2
             @test F.U ≈ res.U
             @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
 
-            redirect_stdout(devnull) do
-                show(linws)
-            end
+            # redirect_stdout(devnull) do
+            show(linws)
+            # end
             # res = LU(LAPACK.getrf!(collect(copy(A)'), linws)...)
             # @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
 
