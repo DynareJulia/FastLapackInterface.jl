@@ -1,4 +1,3 @@
-# TODO: Make a show method for all factorizations -> FactorizationWorkspace abstract type
 # TODO: LinearAlgebra.qr! method that works with any workspace
 
 abstract type QR end
@@ -6,7 +5,8 @@ abstract type QR end
 """
     QRWs
 
-Workspace for standard QR factorization using the [`geqrf!`](@ref) LAPACK function.
+Workspace for standard [`LinearAlgebra.QR`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QR)
+factorization using the [`LAPACK.geqrf!`](@ref) function.
 Upon initialization with a template, work buffers will be allocated and stored which
 will be (re)used during the factorization.
 
@@ -175,8 +175,8 @@ LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix, C::Abs
 """
     QRWYWs
 
-Workspace to be used with the [`LinearAlgebra.QRCompactWY`](@ref) representation
-of the blocked QR factorization which uses the [`geqrt!`](@ref) LAPACK function.
+Workspace to be used with the [`LinearAlgebra.QRCompactWY`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QRCompactWY)
+representation of the blocked QR factorization which uses the [`LAPACK.geqrt!`](@ref) function.
 Upon initialization with a template, work buffers will be allocated and stored which
 will be (re)used during the factorization.
 By default the blocksize is taken as `min(36, min(size(template)))`, this can be
@@ -191,7 +191,7 @@ julia> A = [1.2 2.3
  6.2  3.3
 
 julia> ws = QRWYWs(A)
-QRWYWs{Float64}
+QRWYWs{Float64, Matrix{Float64}}
 blocksize: 2
 work: 4-element Vector{Float64}
 T: 2×2 Matrix{Float64}
@@ -287,8 +287,8 @@ LAPACK.geqrt!(A::AbstractMatrix, ws::QRWYWs)
 """
     QRpWs
 
-Workspace to be used with the [`LinearAlgebra.QRPivoted`](@ref) representation
-of the QR factorization which uses the [`geqp3!`](@ref) LAPACK function.
+Workspace to be used with the [`LinearAlgebra.QRPivoted`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QRPivoted)
+representation of the QR factorization which uses the [`LAPACK.geqp3!`](@ref) function.
 Upon initialization with a template, work buffers will be allocated and stored which
 will be (re)used during the factorization.
 

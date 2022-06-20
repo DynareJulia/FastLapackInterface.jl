@@ -31,10 +31,10 @@ function schurselect(f::Function, αr_::Ptr, αi_::Ptr, β_::Ptr)
 end
 
 """
-    GeesWs
+    SchurWs
 
-Workspace to be used with the [`LinearAlgebra.Schur`](@ref) representation
-of the Schur decomposition which uses the [`gees!`](@ref) LAPACK function.
+Workspace to be used with the [`LinearAlgebra.Schur`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSchur) representation
+of the Schur decomposition which uses the [`LAPACK.gees!`](@ref) function.
 Upon initialization with a template, work buffers will be allocated and stored which
 will be (re)used during the factorization.
 
@@ -46,8 +46,8 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = GeesWs(A)
-GeesWs{Float64}
+julia> ws = SchurWs(A)
+SchurWs{Float64}
 work: 68-element Vector{Float64}
 vs: 2×2 Matrix{Float64}
 eigen_values: 2-element Vector{ComplexF64}
@@ -73,7 +73,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-mutable struct GeesWs{T<:AbstractFloat}
+mutable struct SchurWs{T<:AbstractFloat}
     work::Vector{T}
     wr::Vector{T}
     wi::Vector{T}
@@ -83,7 +83,7 @@ mutable struct GeesWs{T<:AbstractFloat}
     eigen_values::Vector{Complex{T}}
 end
 
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GeesWs)
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::SchurWs)
     summary(io, ws); println(io)
     print(io, "work: ")
     summary(io, ws.work); println(io)
@@ -93,20 +93,20 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GeesWs)
     summary(io, ws.eigen_values)
 end
 
-Base.length(ws::GeesWs) = length(ws.wr)
+Base.length(ws::SchurWs) = length(ws.wr)
 
-Base.iterate(ws::GeesWs)                = (ws.work, Val(:wr))
-Base.iterate(ws::GeesWs, ::Val{:wr})    = (ws.wr, Val(:wi))
-Base.iterate(ws::GeesWs, ::Val{:wi})    = (ws.wi, Val(:vs))
-Base.iterate(ws::GeesWs, ::Val{:vs})    = (ws.vs, Val(:sdim))
-Base.iterate(ws::GeesWs, ::Val{:sdim})  = (ws.sdim, Val(:bwork))
-Base.iterate(ws::GeesWs, ::Val{:bwork}) = (ws.bwork, Val(:done))
-Base.iterate(::GeesWs, ::Val{:done})    = nothing
+Base.iterate(ws::SchurWs)                = (ws.work, Val(:wr))
+Base.iterate(ws::SchurWs, ::Val{:wr})    = (ws.wr, Val(:wi))
+Base.iterate(ws::SchurWs, ::Val{:wi})    = (ws.wi, Val(:vs))
+Base.iterate(ws::SchurWs, ::Val{:vs})    = (ws.vs, Val(:sdim))
+Base.iterate(ws::SchurWs, ::Val{:sdim})  = (ws.sdim, Val(:bwork))
+Base.iterate(ws::SchurWs, ::Val{:bwork}) = (ws.bwork, Val(:done))
+Base.iterate(::SchurWs, ::Val{:done})    = nothing
 
 for (gees, elty) in ((:dgees_, :Float64),
                      (:sgees_, :Float32))
     @eval begin
-        function GeesWs(A::AbstractMatrix{$elty})
+        function SchurWs(A::AbstractMatrix{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n     = checksquare(A)
@@ -130,11 +130,11 @@ for (gees, elty) in ((:dgees_, :Float64),
             chklapackerror(info[])
 
             resize!(work, BlasInt(real(work[1])))
-            return GeesWs{$elty}(work, wr, wi, vs, Ref{BlasInt}(),
+            return SchurWs{$elty}(work, wr, wi, vs, Ref{BlasInt}(),
                                  Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
-        function LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::GeesWs{$elty})
+        function LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::SchurWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -168,7 +168,7 @@ for (gees, elty) in ((:dgees_, :Float64),
         end
 
         function LAPACK.gees!(select_func::Function, jobvs::AbstractChar, A::AbstractMatrix{$elty},
-                       ws::GeesWs{$elty})
+                       ws::SchurWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -209,7 +209,7 @@ end
     gees!([select], jobvs, A, ws) -> (A, vs, ws.eigen_values)
 
 Computes the eigenvalues (`jobvs = N`) or the eigenvalues and Schur
-vectors (`jobvs = V`) of matrix `A`, using the preallocated [`GeesWs`](@ref) worspace `ws`.
+vectors (`jobvs = V`) of matrix `A`, using the preallocated [`SchurWs`](@ref) worspace `ws`.
 `A` is overwritten by its Schur form, and `ws.eigen_values` is overwritten with the eigenvalues.
 
 It is possible to specify `select`, a function used to sort the eigenvalues during the decomponsition.
@@ -218,14 +218,14 @@ The function should accept have the signature `f(wr::Float64, wi::Float64) -> Bo
 
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 """
-LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::GeesWs)
+LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::SchurWs)
 
 
 """
-    GgesWs
+    GeneralizedSchurWs
 
-Workspace to be used with the [`LinearAlgebra.GeneralizedSchur`](@ref) representation
-of the Generalized Schur decomposition which uses the [`gges!`](@ref) LAPACK function.
+Workspace to be used with the [`LinearAlgebra.GeneralizedSchur`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSchur)
+representation of the Generalized Schur decomposition which uses the [`LAPACK.gges!`](@ref) function.
 Upon initialization with a template, work buffers will be allocated and stored which
 will be (re)used during the factorization.
 
@@ -243,8 +243,8 @@ julia> B = [8.2 0.3
  8.2  0.3
  1.7  4.3
 
-julia> ws = GgesWs(A)
-GgesWs{Float64}
+julia> ws = GeneralizedSchurWs(A)
+GeneralizedSchurWs{Float64}
 work: 90-element Vector{Float64}
 vsl: 2×2 Matrix{Float64}
 vsr: 2×2 Matrix{Float64}
@@ -278,7 +278,7 @@ Z factor:
  6.855578082442485
 ```
 """
-mutable struct GgesWs{T}
+mutable struct GeneralizedSchurWs{T}
     work::Vector{T}
     αr::Vector{T}
     αi::Vector{T}
@@ -290,7 +290,7 @@ mutable struct GgesWs{T}
     eigen_values::Vector{Complex{T}}
 end
 
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GgesWs)
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GeneralizedSchurWs)
     summary(io, ws); println(io)
     print(io, "work: ")
     summary(io, ws.work); println(io)
@@ -302,23 +302,23 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GgesWs)
     summary(io, ws.eigen_values)
 end
 
-Base.length(ws::GgesWs) = length(ws.αr)
+Base.length(ws::GeneralizedSchurWs) = length(ws.αr)
 
-Base.iterate(ws::GgesWs)                = (ws.work, Val(:αr))
-Base.iterate(ws::GgesWs, ::Val{:αr})    = (ws.αr, Val(:αi))
-Base.iterate(ws::GgesWs, ::Val{:αi})    = (ws.αi, Val(:β))
-Base.iterate(ws::GgesWs, ::Val{:β})     = (ws.β, Val(:vsl))
-Base.iterate(ws::GgesWs, ::Val{:vsl})   = (ws.vsl, Val(:vsr))
-Base.iterate(ws::GgesWs, ::Val{:vsr})   = (ws.vsr, Val(:sdim))
-Base.iterate(ws::GgesWs, ::Val{:sdim})  = (ws.sdim, Val(:bwork))
-Base.iterate(ws::GgesWs, ::Val{:bwork}) = (ws.bwork, Val(:done))
-Base.iterate(::GgesWs, ::Val{:done})    = nothing
+Base.iterate(ws::GeneralizedSchurWs)                = (ws.work, Val(:αr))
+Base.iterate(ws::GeneralizedSchurWs, ::Val{:αr})    = (ws.αr, Val(:αi))
+Base.iterate(ws::GeneralizedSchurWs, ::Val{:αi})    = (ws.αi, Val(:β))
+Base.iterate(ws::GeneralizedSchurWs, ::Val{:β})     = (ws.β, Val(:vsl))
+Base.iterate(ws::GeneralizedSchurWs, ::Val{:vsl})   = (ws.vsl, Val(:vsr))
+Base.iterate(ws::GeneralizedSchurWs, ::Val{:vsr})   = (ws.vsr, Val(:sdim))
+Base.iterate(ws::GeneralizedSchurWs, ::Val{:sdim})  = (ws.sdim, Val(:bwork))
+Base.iterate(ws::GeneralizedSchurWs, ::Val{:bwork}) = (ws.bwork, Val(:done))
+Base.iterate(::GeneralizedSchurWs, ::Val{:done})    = nothing
 
 # look into matlab function
 for (gges, elty) in ((:dgges_, :Float64),
                      (:sgges_, :Float32))
     @eval begin
-        function GgesWs(A::AbstractMatrix{$elty})
+        function GeneralizedSchurWs(A::AbstractMatrix{$elty})
             chkstride1(A)
             n     = checksquare(A)
             αr    = similar(A, $elty, n)
@@ -345,12 +345,12 @@ for (gges, elty) in ((:dgges_, :Float64),
 
             chklapackerror(info[])
             resize!(work, BlasInt(real(work[1])))
-            return GgesWs(work, αr, αi, β, vsl, vsr, Ref{BlasInt}(),
+            return GeneralizedSchurWs(work, αr, αi, β, vsl, vsr, Ref{BlasInt}(),
                           Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
         function LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix{$elty},
-                       B::AbstractMatrix{$elty}, ws::GgesWs{$elty})
+                       B::AbstractMatrix{$elty}, ws::GeneralizedSchurWs{$elty})
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m
@@ -387,7 +387,7 @@ for (gges, elty) in ((:dgges_, :Float64),
 
         function LAPACK.gges!(select_func::Function, jobvsl::AbstractChar, jobvsr::AbstractChar,
                        A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
-                       ws::GgesWs{$elty})
+                       ws::GeneralizedSchurWs{$elty})
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m
@@ -432,7 +432,7 @@ end
 
 Computes the generalized eigenvalues, generalized Schur form, left Schur
 vectors (`jobsvl = V`), or right Schur vectors (`jobvsr = V`) of `A` and
-`B`, using preallocated [`GgesWs`](@ref) workspace `ws`.
+`B`, using preallocated [`GeneralizedSchurWs`](@ref) workspace `ws`.
 
 It is possible to specify `select`, a function used to sort the eigenvalues during the decomponsition.
 The function should accept have the signature `f(αr::Float64, αi::Float64, β::Float64) -> Bool`, where
@@ -441,4 +441,4 @@ The function should accept have the signature `f(αr::Float64, αi::Float64, β:
 The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The left Schur
 vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
 """
-LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix, B::AbstractMatrix)
+LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix, B::AbstractMatrix, ws::GeneralizedSchurWs)

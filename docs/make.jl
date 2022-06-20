@@ -36,10 +36,15 @@ ENV["PLOTS_TEST"] = "true"
 
 # Import packages for docs generation
 using FastLapackInterface
+using LinearAlgebra
+using LinearAlgebra: LAPACK
 using Documenter
 using Literate
 
-DocMeta.setdocmeta!(FastLapackInterface, :DocTestSetup, :(using FastLapackInterface, LinearAlgebra, LinearAlgebra.LAPACK))
+DocMeta.setdocmeta!(FastLapackInterface, :DocTestSetup, quote
+    using FastLapackInterface, LinearAlgebra
+end
+)
 
 # Collect examples from the example index (src/index.md)
 # The chosen examples are taken from the examples/ folder to be processed by Literate
@@ -91,6 +96,8 @@ makedocs(; modules = [FastLapackInterface],
                              # login screen and cause a warning:
                              r"https://github.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/edit(.*)"],
          pages = ["Home" => "index.md",
+                  "Work Spaces" => "workspaces.md",
+                  "LAPACK" => "LAPACK.md",
                   # "Getting started" => Any["guide/installation.md",
                   #                          "guide/configuration.md",
                   #                          "Basic Tutorial"=>"guide/basic_tutorial.md",
@@ -98,7 +105,7 @@ makedocs(; modules = [FastLapackInterface],
                   # "Usage" => Any["guide/jobs.md", "guide/calculations.md", "guide/servers.md",
                   #                "guide/structure.md",],
                   # "Examples" => EXAMPLES,
-                  "api.md"
+                  # "api.md"
                   # "publications.md",
                   ]
          # strict = !DEBUG,

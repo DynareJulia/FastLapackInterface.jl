@@ -20,6 +20,6 @@ export LUWs
 include("qr.jl")
 export QRWs, QRWYWs, QRpWs
 include("schur.jl")
-export GeesWs, GgesWs
+export SchurWs, GeneralizedSchurWs
 end #module
 #import LinearAlgebra: USE_BLAS64, LAPACKException

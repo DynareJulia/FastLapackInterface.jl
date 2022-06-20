@@ -1,8 +1,8 @@
 """
     LUWs
 
-Workspace to be used with the [`LinearAlgebra.LU`](@ref) representation
-of the LU factorization which uses the [`getrf!`](@ref) LAPACK function.
+Workspace to be used with the [`LinearAlgebra.LU`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LU)
+representation of the LU factorization which uses the [`LAPACK.getrf!`](@ref) function.
 Upon initialization with a template, work buffers will be allocated and stored which
 will be (re)used during the factorization.
 
