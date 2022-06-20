@@ -18,7 +18,7 @@ CONTINUOUS_INTEGRATION = get(ENV, "CI", nothing) == "true"
 
 # Python and Julia dependencies needed for running the notebooks
 # PYDEPS = ["ase", "pymatgen"]
-JLDEPS = [Pkg.PackageSpec(; url = "https://github.com/louisponet/DFControl.jl.git",
+JLDEPS = [Pkg.PackageSpec(; url = "https://github.com/louisponet/FastLapackInterface.jl.git",
                           rev = LibGit2.head(ROOTPATH))]
 
 # Setup julia dependencies for docs generation if not yet done
