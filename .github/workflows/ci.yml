@@ -20,7 +20,7 @@ jobs:
           - ubuntu-latest
           - macOS-latest
         arch:
-          - x86
+          # - x86
           - x64
         exclude:
           # Remove some configurations from the build matrix to reduce CI time.
