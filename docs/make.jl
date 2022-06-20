@@ -130,7 +130,7 @@ if CONTINUOUS_INTEGRATION
 end
 
 # Deploy docs to gh-pages branch
-deploydocs(; repo = "github.com/louisponet/FastLapackInterface.jl.git")
+deploydocs(; repo = "github.com/louisponet/FastLapackInterface.jl.git",devbranch = "main")
 
 # Remove generated example files
 if !DEBUG
