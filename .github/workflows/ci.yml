@@ -13,9 +13,10 @@ jobs:
     strategy:
       matrix:
         version:
-          - '1.4'
-          - '1.8'
-          - 'nightly'
+          - stable
+          - lts
+          - beta
+          - nightly
         os:
           - ubuntu-latest
           - macOS-latest
@@ -49,7 +50,7 @@ jobs:
       - uses: actions/checkout@v1
       - uses: julia-actions/setup-julia@latest
         with:
-          version: '1.8'
+          version: beta
       - uses: julia-actions/julia-buildpkg@latest
       - run: julia --project=docs -e '
           using Pkg;
