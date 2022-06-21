@@ -35,8 +35,6 @@ end
 
 Workspace to be used with the [`LinearAlgebra.Schur`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSchur) representation
 of the Schur decomposition which uses the [`LAPACK.gees!`](@ref) function.
-Upon initialization with a template, work buffers will be allocated and stored which
-will be (re)used during the factorization.
 
 # Examples
 ```jldoctest
@@ -226,8 +224,6 @@ LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::SchurWs)
 
 Workspace to be used with the [`LinearAlgebra.GeneralizedSchur`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSchur)
 representation of the Generalized Schur decomposition which uses the [`LAPACK.gges!`](@ref) function.
-Upon initialization with a template, work buffers will be allocated and stored which
-will be (re)used during the factorization.
 
 # Examples
 ```jldoctest

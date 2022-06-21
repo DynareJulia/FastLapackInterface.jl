@@ -7,8 +7,6 @@ abstract type QR end
 
 Workspace for standard [`LinearAlgebra.QR`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QR)
 factorization using the [`LAPACK.geqrf!`](@ref) function.
-Upon initialization with a template, work buffers will be allocated and stored which
-will be (re)used during the factorization.
 
 # Examples
 ```jldoctest
@@ -177,9 +175,7 @@ LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix, C::Abs
 
 Workspace to be used with the [`LinearAlgebra.QRCompactWY`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QRCompactWY)
 representation of the blocked QR factorization which uses the [`LAPACK.geqrt!`](@ref) function.
-Upon initialization with a template, work buffers will be allocated and stored which
-will be (re)used during the factorization.
-By default the blocksize is taken as `min(36, min(size(template)))`, this can be
+By default the blocksize for the algorithm is taken as `min(36, min(size(template)))`, this can be
 overridden by using the `blocksize` keyword of the constructor.
 
 # Examples
@@ -289,8 +285,6 @@ LAPACK.geqrt!(A::AbstractMatrix, ws::QRWYWs)
 
 Workspace to be used with the [`LinearAlgebra.QRPivoted`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QRPivoted)
 representation of the QR factorization which uses the [`LAPACK.geqp3!`](@ref) function.
-Upon initialization with a template, work buffers will be allocated and stored which
-will be (re)used during the factorization.
 
 # Examples
 ```jldoctest
