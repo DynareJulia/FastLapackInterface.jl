@@ -64,7 +64,7 @@ end
 # No need to reimplement the solve because can just reuse LU from base Julia
 
 """
-    getrf!(A, ws) -> (A, ws.ipiv, ws.info)
+    getrf!(A, ws) -> (A, ws.ipiv, info)
 
 Compute the pivoted `LU` factorization of `A`, `A = LU`, using the preallocated [`LUWs`](@ref) workspace `ws`.
 

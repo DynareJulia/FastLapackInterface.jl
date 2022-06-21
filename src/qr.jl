@@ -148,18 +148,18 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
 end
 
 """
-    geqrf!(A, ws)
+    geqrf!(A, ws) -> (A, ws.τ)
 
 Compute the `QR` factorization of `A`, `A = QR`, using previously allocated [`QRWs`](@ref) workspace `ws`.
 `ws.τ` contains scalars which parameterize the elementary reflectors of the factorization.
 `ws.τ` must have length greater than or equal to the smallest dimension of `A`.
 
-Returns `A` and `ws.τ` modified in-place.
+`A` and `ws.τ` modified in-place.
 """
 LAPACK.geqrf!(A::AbstractMatrix, ws::QRWs)
 
 """
-    ormqr!(side, trans, A, C, ws)
+    ormqr!(side, trans, A, C, ws) -> C
 
 Computes `Q * C` (`trans = N`), `transpose(Q) * C` (`trans = T`), `adjoint(Q) * C`
 (`trans = C`) for `side = L` or the equivalent right-sided multiplication
@@ -268,7 +268,7 @@ end
 
 
 """
-    geqrt!(A, ws)
+    geqrt!(A, ws) -> (A, ws.T)
 
 Compute the blocked `QR` factorization of `A`, `A = QR`, using a preallocated workspace `ws`. `ws.T` contains upper
 triangular block reflectors which parameterize the elementary reflectors of
@@ -276,7 +276,7 @@ the factorization. The first dimension of `ws.T` sets the block size and it must
 satisfy `1 <= size(ws.T, 1) <= min(size(A)...)`. The second dimension of `T` must equal the smallest
 dimension of `A`, i.e. `size(ws.T, 2) == size(A, 2)`.
 
-Returns `A` and `ws.T` modified in-place.
+`A` and `ws.T` are modified in-place.
 """
 LAPACK.geqrt!(A::AbstractMatrix, ws::QRWYWs)
 
@@ -388,7 +388,7 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
 end
 
 """
-    geqp3!(A, ws)
+    geqp3!(A, ws) -> (A, ws.τ, ws.jpvt)
 
 Compute the pivoted `QR` factorization of `A`, `AP = QR` using BLAS level 3,
 using the preallocated workspace `ws`.
