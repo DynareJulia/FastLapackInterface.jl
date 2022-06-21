@@ -270,7 +270,7 @@ end
 """
     geqrt!(A, ws) -> (A, ws.T)
 
-Compute the blocked `QR` factorization of `A`, `A = QR`, using a preallocated workspace `ws`. `ws.T` contains upper
+Compute the blocked `QR` factorization of `A`, `A = QR`, using a preallocated [`QRWYWs`](@ref) workspace `ws`. `ws.T` contains upper
 triangular block reflectors which parameterize the elementary reflectors of
 the factorization. The first dimension of `ws.T` sets the block size and it must
 satisfy `1 <= size(ws.T, 1) <= min(size(A)...)`. The second dimension of `T` must equal the smallest
@@ -391,7 +391,7 @@ end
     geqp3!(A, ws) -> (A, ws.τ, ws.jpvt)
 
 Compute the pivoted `QR` factorization of `A`, `AP = QR` using BLAS level 3,
-using the preallocated workspace `ws`.
+using the preallocated [`QRpWs`](@ref) workspace `ws`.
 `P` is a pivoting matrix, represented by `ws.jpvt`. `ws.τ` stores the elementary
 reflectors. `ws.jpvt` must have length greater
 than or equal to `n` if `A` is an `(m x n)` matrix and `ws.τ` must have length
