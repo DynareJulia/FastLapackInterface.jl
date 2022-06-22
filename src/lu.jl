@@ -32,9 +32,10 @@ struct LUWs
     ipiv::Vector{BlasInt}
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::LUWs)
-    summary(io, ws); println(io)
+    summary(io, ws)
+    println(io)
     print(io, "ipiv: ")
-    summary(io, ws.ipiv)
+    return summary(io, ws.ipiv)
 end
 
 LUWs(n::Int) = LUWs(zeros(BlasInt, n))
@@ -51,7 +52,7 @@ for (getrf, elty) in ((:dgetrf_, :Float64),
             chkstride1(A)
             m, n = size(A)
             lda  = max(1, stride(A, 2))
-            info = Ref{BlasInt}() 
+            info = Ref{BlasInt}()
             ccall((@blasfunc($getrf), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
                    Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),

@@ -30,7 +30,7 @@ function bench_geqrf!(As)
 end
 
 for n in sizes
-    As = [rand(n, n) for i=1:vector_length]
+    As = [rand(n, n) for i in 1:vector_length]
     ws = QRWs(As[1])
     suite["QRWs"]["geqrf!"]["workspace"]["$n"] = @benchmarkable bench_geqrf!($As, $ws)
     suite["QRWs"]["geqrf!"]["LAPACK"]["$n"] = @benchmarkable bench_geqrf!($As)
@@ -50,8 +50,8 @@ function bench_ormqr!(As, τ::Vector)
 end
 
 for n in sizes
-    As = [rand(n, n) for i=1:vector_length]
-    τ  = zeros(n) 
+    As = [rand(n, n) for i in 1:vector_length]
+    τ  = zeros(n)
     ws = QRWs(As[1])
     suite["QRWs"]["ormqr!"]["workspace"]["$n"] = @benchmarkable bench_ormqr!($As, $ws)
     suite["QRWs"]["ormqr!"]["LAPACK"]["$n"] = @benchmarkable bench_ormqr!($As, $τ)
@@ -62,7 +62,7 @@ end
 suite["QRWYWs"] = BenchmarkGroup()
 suite["QRWYWs"]["creation"] = BenchmarkGroup()
 for n in sizes
-    suite["QRWYWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup=(A = rand($n, $n))
+    suite["QRWYWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup = (A = rand($n, $n))
 end
 
 suite["QRWYWs"]["geqrt!"]              = BenchmarkGroup()
@@ -81,8 +81,8 @@ function bench_geqrt!(As, T::Matrix)
 end
 
 for n in sizes
-    As = [rand(n, n) for i=1:vector_length]
-    T = rand(n, n)
+    As = [rand(n, n) for i in 1:vector_length]
+    T  = rand(n, n)
     ws = QRWYWs(As[1])
     suite["QRWYWs"]["geqrt!"]["workspace"]["$n"] = @benchmarkable bench_geqrt!($As, $ws)
     suite["QRWYWs"]["geqrt!"]["LAPACK"]["$n"]    = @benchmarkable bench_geqrt!($As, $T)
@@ -93,11 +93,11 @@ end
 suite["QRpWs"] = BenchmarkGroup()
 suite["QRpWs"]["creation"] = BenchmarkGroup()
 for n in sizes
-    suite["QRpWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup=(A = rand($n, $n))
+    suite["QRpWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup = (A = rand($n, $n))
 end
 
 for n in sizes
-    suite["QRpWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup=(A = rand($n, $n))
+    suite["QRpWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup = (A = rand($n, $n))
 end
 
 suite["QRpWs"]["geqp3!"]              = BenchmarkGroup()
@@ -116,10 +116,10 @@ function bench_geqp3!(As, lpvt, τ)
 end
 
 for n in sizes
-    As = [rand(n, n) for i=1:vector_length]
-    τ  = zeros(n)
+    As   = [rand(n, n) for i in 1:vector_length]
+    τ    = zeros(n)
     lpvt = zeros(Int,n)
-    ws = QRpWs(As[1])
+    ws   = QRpWs(As[1])
     suite["QRpWs"]["geqp3!"]["workspace"]["$n"] = @benchmarkable bench_geqp3!($As, $ws)
     suite["QRpWs"]["geqp3!"]["LAPACK"]["$n"]    = @benchmarkable bench_geqp3!($As, $lpvt, $τ )
 end

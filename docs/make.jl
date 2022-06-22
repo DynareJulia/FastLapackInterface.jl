@@ -18,15 +18,16 @@ CONTINUOUS_INTEGRATION = get(ENV, "CI", nothing) == "true"
 
 # Python and Julia dependencies needed for running the notebooks
 # PYDEPS = ["ase", "pymatgen"]
-JLDEPS = [Pkg.PackageSpec(; url = "https://github.com/louisponet/FastLapackInterface.jl.git",
+JLDEPS = [Pkg.PackageSpec(;
+                          url = "https://github.com/louisponet/FastLapackInterface.jl.git",
                           rev = LibGit2.head(ROOTPATH))]
 
 # Setup julia dependencies for docs generation if not yet done
 Pkg.activate(@__DIR__)
 # if !isfile(joinpath(@__DIR__, "Manifest.toml"))
-    Pkg.develop(Pkg.PackageSpec(; path = ROOTPATH))
-    Pkg.instantiate()
-    Pkg.add(; url = "https://github.com/kimikage/Documenter.jl", rev = "ansicolor")
+Pkg.develop(Pkg.PackageSpec(; path = ROOTPATH))
+Pkg.instantiate()
+Pkg.add(; url = "https://github.com/kimikage/Documenter.jl", rev = "ansicolor")
 # end
 
 # Setup environment for making plots
@@ -41,10 +42,10 @@ using LinearAlgebra: LAPACK
 using Documenter
 using Literate
 
-DocMeta.setdocmeta!(FastLapackInterface, :DocTestSetup, quote
-    using FastLapackInterface, LinearAlgebra
-end
-)
+DocMeta.setdocmeta!(FastLapackInterface, :DocTestSetup,
+                    quote
+                        using FastLapackInterface, LinearAlgebra
+                    end)
 
 # Collect examples from the example index (src/index.md)
 # The chosen examples are taken from the examples/ folder to be processed by Literate
@@ -90,14 +91,15 @@ makedocs(; modules = [FastLapackInterface],
                                   ; prettyurls = CONTINUOUS_INTEGRATION,
                                   canonical = "https://louisponet.github.io/FastLapackInterface.jl/stable/",
                                   assets = ["assets/favicon.ico"]),
-         sitename = "FastLapackInterface.jl", authors = "Louis Ponet, Michel Juillard", linkcheck = false,  # TODO
+         sitename = "FastLapackInterface.jl", authors = "Louis Ponet, Michel Juillard",
+         linkcheck = false,  # TODO
          linkcheck_ignore = [
                              # Ignore links that point to GitHub's edit pages, as they redirect to the
                              # login screen and cause a warning:
                              r"https://github.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/edit(.*)"],
          pages = ["Home" => "index.md",
                   "Work Spaces" => "workspaces.md",
-                  "LAPACK" => "LAPACK.md",
+                  "LAPACK" => "LAPACK.md"
                   # "Getting started" => Any["guide/installation.md",
                   #                          "guide/configuration.md",
                   #                          "Basic Tutorial"=>"guide/basic_tutorial.md",
@@ -130,7 +132,7 @@ if CONTINUOUS_INTEGRATION
 end
 
 # Deploy docs to gh-pages branch
-deploydocs(; repo = "github.com/louisponet/FastLapackInterface.jl.git",devbranch = "main")
+deploydocs(; repo = "github.com/louisponet/FastLapackInterface.jl.git", devbranch = "main")
 
 # Remove generated example files
 if !DEBUG

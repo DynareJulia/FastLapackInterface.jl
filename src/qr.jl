@@ -46,11 +46,13 @@ end
 Base.length(ws::QRWs) = length(ws.τ)
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRWs)
-    summary(io, ws); println(io)
+    summary(io, ws)
+    println(io)
     print(io, "work: ")
-    summary(io, ws.work); println(io)
+    summary(io, ws.work)
+    println(io)
     print(io, "τ: ")
-    summary(io, ws.τ)
+    return summary(io, ws.τ)
 end
 
 for (geqrf, elty) in ((:dgeqrf_, :Float64),
@@ -97,8 +99,9 @@ end
 for (ormqr, elty) in ((:dormqr_, :Float64),
                       (:sormqr_, :Float32))
     @eval begin
-        function LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix{$elty},
-                        C::AbstractVecOrMat{$elty}, ws::QRWs{$elty})
+        function LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar,
+                               A::AbstractMatrix{$elty},
+                               C::AbstractVecOrMat{$elty}, ws::QRWs{$elty})
             require_one_based_indexing(A, C)
             chktrans(trans)
             chkside(side)
@@ -137,7 +140,7 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
                   eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
         @eval begin
             function LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::$elty2,
-                            C::StridedMatrix{$elty}, ws::QRWs{$elty})
+                                   C::StridedMatrix{$elty}, ws::QRWs{$elty})
                 chktrans(trans)
                 chkside(side)
                 trans = trans == 'T' ? 'N' : 'T'
@@ -168,7 +171,8 @@ for `side = R` using `Q` from a `QR` factorization of `A` computed using
 Uses preallocated workspace `ws` and the factors are assumed to be stored in `ws.τ`.
 `C` is overwritten.
 """
-LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix, C::AbstractVecOrMat, ws::QRWs)
+LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
+              C::AbstractVecOrMat, ws::QRWs)
 
 """
     QRWYWs
@@ -209,18 +213,20 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRWYWs{R<:Number, MT<:StridedMatrix{R}} <: QR
+struct QRWYWs{R<:Number,MT<:StridedMatrix{R}} <: QR
     work::Vector{R}
     T::MT
 end
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRWYWs)
-    summary(io, ws); println(io)
+    summary(io, ws)
+    println(io)
     println(io, "blocksize: $(size(ws.T, 1))")
     print(io, "work: ")
-    summary(io, ws.work); println(io)
+    summary(io, ws.work)
+    println(io)
     print(io, "T: ")
-    summary(io, ws.T)
+    return summary(io, ws.T)
 end
 
 for (geqrt, elty) in ((:dgeqrt_, :Float64),
@@ -265,7 +271,6 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
         end
     end
 end
-
 
 """
     geqrt!(A, ws) -> (A, ws.T)
@@ -328,13 +333,16 @@ struct QRpWs{T<:Number} <: QR
 end
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRpWs)
-    summary(io, ws); println(io)
+    summary(io, ws)
+    println(io)
     print(io, "work: ")
-    summary(io, ws.work); println(io)
+    summary(io, ws.work)
+    println(io)
     print(io, "τ: ")
-    summary(io, ws.τ); println(io)
+    summary(io, ws.τ)
+    println(io)
     print(io, "jpvt: ")
-    summary(io, ws.jpvt)
+    return summary(io, ws.jpvt)
 end
 
 for (geqp3, elty) in ((:dgeqp3_, :Float64),

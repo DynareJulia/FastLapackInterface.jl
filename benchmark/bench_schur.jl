@@ -40,11 +40,13 @@ function bench_gees!(As)
 end
 
 for n in sizes
-    As = [rand(n, n) for i=1:vector_length]
+    As = [rand(n, n) for i in 1:vector_length]
     ws = SchurWs(As[1])
     suite["SchurWs"]["gees!"]["workspace"]["$n"] = @benchmarkable bench_gees!($As, $ws)
     sel_func = FastLapackInterface.gees_default_select()
-    suite["SchurWs"]["gees!"]["workspace_select"]["$n"] = @benchmarkable bench_gees!($sel_func, $As, $ws)
+    suite["SchurWs"]["gees!"]["workspace_select"]["$n"] = @benchmarkable bench_gees!($sel_func,
+                                                                                     $As,
+                                                                                     $ws)
     suite["SchurWs"]["gees!"]["LAPACK"]["$n"] = @benchmarkable bench_gees!($As)
 end
 
@@ -75,16 +77,19 @@ function bench_gges!(sel_func, As, ws)
 end
 function bench_gges!(As)
     for A in As
-        LAPACK.gges!('V','V', A, A)
+        LAPACK.gges!('V', 'V', A, A)
     end
 end
 
 for n in sizes
-    As = [rand(n, n) for i=1:vector_length]
+    As = [rand(n, n) for i in 1:vector_length]
     ws = GeneralizedSchurWs(As[1])
-    suite["GeneralizedSchurWs"]["gges!"]["workspace"]["$n"] = @benchmarkable bench_gges!($As, $ws)
+    suite["GeneralizedSchurWs"]["gges!"]["workspace"]["$n"] = @benchmarkable bench_gges!($As,
+                                                                                         $ws)
     sel_func = FastLapackInterface.gges_default_select()
-    suite["GeneralizedSchurWs"]["gges!"]["workspace_select"]["$n"] = @benchmarkable bench_gges!($sel_func, $As, $ws)
+    suite["GeneralizedSchurWs"]["gges!"]["workspace_select"]["$n"] = @benchmarkable bench_gges!($sel_func,
+                                                                                                $As,
+                                                                                                $ws)
     suite["GeneralizedSchurWs"]["gges!"]["LAPACK"]["$n"] = @benchmarkable bench_gges!($As)
 end
 

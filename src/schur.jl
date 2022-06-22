@@ -82,13 +82,16 @@ mutable struct SchurWs{T<:AbstractFloat}
 end
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::SchurWs)
-    summary(io, ws); println(io)
+    summary(io, ws)
+    println(io)
     print(io, "work: ")
-    summary(io, ws.work); println(io)
+    summary(io, ws.work)
+    println(io)
     print(io, "vs: ")
-    summary(io, ws.vs); println(io)
+    summary(io, ws.vs)
+    println(io)
     print(io, "eigen_values: ")
-    summary(io, ws.eigen_values)
+    return summary(io, ws.eigen_values)
 end
 
 Base.length(ws::SchurWs) = length(ws.wr)
@@ -129,10 +132,11 @@ for (gees, elty) in ((:dgees_, :Float64),
 
             resize!(work, BlasInt(real(work[1])))
             return SchurWs{$elty}(work, wr, wi, vs, Ref{BlasInt}(),
-                                 Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
+                                  Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
-        function LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty}, ws::SchurWs{$elty})
+        function LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty},
+                              ws::SchurWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -152,7 +156,7 @@ for (gees, elty) in ((:dgees_, :Float64),
                   A, max(1, stride(A, 2)), Ref{BlasInt}(), wr,
                   wi, vs, ldvs, work,
                   lwork, C_NULL, info)
-                  
+
             chklapackerror(info[])
 
             if iszero(wi)
@@ -165,8 +169,9 @@ for (gees, elty) in ((:dgees_, :Float64),
             end
         end
 
-        function LAPACK.gees!(select_func::Function, jobvs::AbstractChar, A::AbstractMatrix{$elty},
-                       ws::SchurWs{$elty})
+        function LAPACK.gees!(select_func::Function, jobvs::AbstractChar,
+                              A::AbstractMatrix{$elty},
+                              ws::SchurWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -190,7 +195,7 @@ for (gees, elty) in ((:dgees_, :Float64),
                   lwork, bwork, info)
 
             chklapackerror(info[])
-            
+
             if iszero(wi)
                 return A, vs, wr
             else
@@ -217,7 +222,6 @@ The function should have the signature `f(wr::Float64, wi::Float64) -> Bool`, wh
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 """
 LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::SchurWs)
-
 
 """
     GeneralizedSchurWs
@@ -287,15 +291,19 @@ mutable struct GeneralizedSchurWs{T}
 end
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GeneralizedSchurWs)
-    summary(io, ws); println(io)
+    summary(io, ws)
+    println(io)
     print(io, "work: ")
-    summary(io, ws.work); println(io)
+    summary(io, ws.work)
+    println(io)
     print(io, "vsl: ")
-    summary(io, ws.vsl); println(io)
+    summary(io, ws.vsl)
+    println(io)
     print(io, "vsr: ")
-    summary(io, ws.vsr); println(io)
+    summary(io, ws.vsr)
+    println(io)
     print(io, "eigen_values: ")
-    summary(io, ws.eigen_values)
+    return summary(io, ws.eigen_values)
 end
 
 Base.length(ws::GeneralizedSchurWs) = length(ws.αr)
@@ -342,11 +350,13 @@ for (gges, elty) in ((:dgges_, :Float64),
             chklapackerror(info[])
             resize!(work, BlasInt(real(work[1])))
             return GeneralizedSchurWs(work, αr, αi, β, vsl, vsr, Ref{BlasInt}(),
-                          Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
+                                      Vector{BlasInt}(undef, n),
+                                      similar(A, Complex{$elty}, n))
         end
 
-        function LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix{$elty},
-                       B::AbstractMatrix{$elty}, ws::GeneralizedSchurWs{$elty})
+        function LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar,
+                              A::AbstractMatrix{$elty},
+                              B::AbstractMatrix{$elty}, ws::GeneralizedSchurWs{$elty})
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m
@@ -381,9 +391,10 @@ for (gges, elty) in ((:dgges_, :Float64),
                    view(vsr, 1:(jobvsr == 'V' ? n : 0), :)
         end
 
-        function LAPACK.gges!(select_func::Function, jobvsl::AbstractChar, jobvsr::AbstractChar,
-                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
-                       ws::GeneralizedSchurWs{$elty})
+        function LAPACK.gges!(select_func::Function, jobvsl::AbstractChar,
+                              jobvsr::AbstractChar,
+                              A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
+                              ws::GeneralizedSchurWs{$elty})
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m
@@ -437,4 +448,5 @@ The function should have the signature `f(αr::Float64, αi::Float64, β::Float6
 The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The left Schur
 vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
 """
-LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix, B::AbstractMatrix, ws::GeneralizedSchurWs)
+LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix,
+             B::AbstractMatrix, ws::GeneralizedSchurWs)

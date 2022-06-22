@@ -33,7 +33,7 @@ function bench_getrf!(As)
 end
 
 for n in sizes
-    As = [rand(n, n) for i=1:vector_length]
+    As = [rand(n, n) for i in 1:vector_length]
     ws = LUWs(As[1])
     suite["LUWs"]["getrf!"]["workspace"]["$n"] = @benchmarkable bench_getrf!($As, $ws)
     suite["LUWs"]["getrf!"]["LAPACK"]["$n"] = @benchmarkable bench_getrf!($As)
