@@ -2,16 +2,6 @@ using Test
 using FastLapackInterface
 using LinearAlgebra.LAPACK
 
-#for elty in (Float32, Float64, ComplexF32, ComplexF64)
-
-#    A0 = randn(elty, n, n)
-
-# @static if VERSION < v"1.7"
-#     target = qr(A0, Val(true))
-# else
-#     target = qr(A0, ColumnNorm())
-# end
-
 @testset "QRWs" begin
     n = 3
     @testset "Real, square" begin

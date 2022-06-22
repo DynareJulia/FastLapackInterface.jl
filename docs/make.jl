@@ -89,7 +89,7 @@ makedocs(; modules = [FastLapackInterface],
          format = Documenter.HTML(
                                   # Use clean URLs, unless built as a "local" build
                                   ; prettyurls = CONTINUOUS_INTEGRATION,
-                                  canonical = "https://louisponet.github.io/FastLapackInterface.jl/stable/",
+                                  canonical = "https://dynarejulia.github.io/FastLapackInterface.jl/stable/",
                                   assets = ["assets/favicon.ico"]),
          sitename = "FastLapackInterface.jl", authors = "Louis Ponet, Michel Juillard",
          linkcheck = false,  # TODO
@@ -132,7 +132,7 @@ if CONTINUOUS_INTEGRATION
 end
 
 # Deploy docs to gh-pages branch
-deploydocs(; repo = "github.com/louisponet/FastLapackInterface.jl.git", devbranch = "main")
+deploydocs(; repo = "github.com/DynareJulia/FastLapackInterface.jl.git", devbranch = "main")
 
 # Remove generated example files
 if !DEBUG
