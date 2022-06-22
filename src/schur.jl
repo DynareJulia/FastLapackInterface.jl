@@ -216,8 +216,8 @@ vectors (`jobvs = V`) of matrix `A`, using the preallocated [`SchurWs`](@ref) wo
 `A` is overwritten by its Schur form, and `ws.eigen_values` is overwritten with the eigenvalues.
 
 It is possible to specify `select`, a function used to sort the eigenvalues during the decomponsition.
-The function should have the signature `f(wr::Float64, wi::Float64) -> Bool`, where
-`wr` and `wi` are the real and imaginary parts of the eigenvalue. 
+The function should have the signature `f(wr::T, wi::T) -> Bool`, where
+`wr` and `wi` are the real and imaginary parts of the eigenvalue, and `T == eltype(A)`. 
 
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 """
@@ -442,8 +442,8 @@ vectors (`jobsvl = V`), or right Schur vectors (`jobvsr = V`) of `A` and
 `B`, using preallocated [`GeneralizedSchurWs`](@ref) workspace `ws`.
 
 It is possible to specify `select`, a function used to sort the eigenvalues during the decomponsition.
-The function should have the signature `f(αr::Float64, αi::Float64, β::Float64) -> Bool`, where
-`αr` and `αi` are the real and imaginary parts of the eigenvalue, and `β` the factor. 
+The function should have the signature `f(αr::T, αi::T, β::T) -> Bool`, where
+`αr` and `αi` are the real and imaginary parts of the eigenvalue, `β` the factor, and `T == eltype(A). 
 
 The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The left Schur
 vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.

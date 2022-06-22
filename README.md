@@ -46,7 +46,7 @@ LinearAlgebra.QR(LAPACK.geqrf!(A, ws)...)
   a matrix similar to `A`.
 - `gees!(A, ws)` computes the Schur decomposition and returns the arguments to
    the constructor of `LinearAlgebra.Schur`.
-- A Workspace for the generalized schur decomposition also exists.
+- A workspace for the generalized Schur decomposition also exists.
 - It is possible to use select functions with `gees!` or `gges!` to order the eigenvalues.
 ```julia
 A = [1.2 2.3

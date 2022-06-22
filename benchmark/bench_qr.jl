@@ -51,8 +51,9 @@ end
 
 for n in sizes
     As = [rand(n, n) for i in 1:vector_length]
-    τ  = zeros(n)
     ws = QRWs(As[1])
+    LAPACK.geqrf!(As[1], ws)
+    τ = copy(ws.τ)
     suite["QRWs"]["ormqr!"]["workspace"]["$n"] = @benchmarkable bench_ormqr!($As, $ws)
     suite["QRWs"]["ormqr!"]["LAPACK"]["$n"] = @benchmarkable bench_ormqr!($As, $τ)
 end
