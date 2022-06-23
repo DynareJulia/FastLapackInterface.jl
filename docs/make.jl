@@ -18,7 +18,7 @@ makedocs(
         edit_link = "main"
     ),
     pages = Any[
-        "Introduction" => "src/index.md",
+        "Introduction" => "src/index.md"
     ],
     strict = true
 )
