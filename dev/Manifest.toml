@@ -1,0 +1,38 @@
+# This file is machine-generated - editing it directly is not advised
+
+julia_version = "1.8.0-rc1"
+manifest_format = "2.0"
+project_hash = "4d6cd8beb66015203ad0b8ccfd67a993dfcebdb0"
+
+[[deps.Artifacts]]
+uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+
+[[deps.CompilerSupportLibraries_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version = "0.5.2+0"
+
+[[deps.FastLapackInterface]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "94f1faa288c9c9aab182f4deec437454f766df4b"
+repo-rev = "df66a83f61a7df457a8654e6d5a420a1e49cca49"
+repo-url = "https://github.com/DynareJulia/FastLapackInterface.jl.git"
+uuid = "29a986be-02c6-4525-aec4-84b980013641"
+version = "1.0.0"
+
+[[deps.Libdl]]
+uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+
+[[deps.LinearAlgebra]]
+deps = ["Libdl", "libblastrampoline_jll"]
+uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[[deps.OpenBLAS_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
+version = "0.3.20+0"
+
+[[deps.libblastrampoline_jll]]
+deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version = "5.1.0+0"
