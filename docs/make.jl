@@ -9,14 +9,10 @@ DocMeta.setdocmeta!(FastLapackInterface, :DocTestSetup, :(using FastLapackInterf
 makedocs(
     # options
     modules = [FastLapackInterface],
-    doctest = true,
+    # doctest = true,
     clean = false,
     sitename = "FastLapackInterface.jl",
-    format = Documenter.HTML(
-        canonical = "",
-        assets = [],
-        edit_link = "main"
-    ),
+    format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"),
     pages = Any[
         "Introduction" => "src/index.md"
     ],

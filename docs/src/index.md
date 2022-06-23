@@ -1,4 +1,4 @@
-WORK IN PROGRESS
+# FastLapackInterface
 
 ``FastLapackInterface`` separates workspace allocation and actual
 running for some Lapack algorithms:
