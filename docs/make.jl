@@ -14,7 +14,7 @@ makedocs(
     sitename = "FastLapackInterface.jl",
     format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"),
     pages = Any[
-        "Introduction" => "src/index.md"
+        "Introduction" => "index.md"
     ],
     strict = true
 )
