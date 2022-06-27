@@ -1,3 +1,4 @@
+import LinearAlgebra.LAPACK: gees!, gges!
 # general Schur decomposition with reordering
 
 # TODO: See if SELECT functions can be optimized.
@@ -135,7 +136,7 @@ for (gees, elty) in ((:dgees_, :Float64),
                                   Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
-        function LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty},
+        function gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty},
                               ws::SchurWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
@@ -169,7 +170,7 @@ for (gees, elty) in ((:dgees_, :Float64),
             end
         end
 
-        function LAPACK.gees!(select_func::Function, jobvs::AbstractChar,
+        function gees!(select_func::Function, jobvs::AbstractChar,
                               A::AbstractMatrix{$elty},
                               ws::SchurWs{$elty})
             require_one_based_indexing(A)
@@ -221,7 +222,7 @@ The function should have the signature `f(wr::T, wi::T) -> Bool`, where
 
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 """
-LAPACK.gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::SchurWs)
+gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::SchurWs)
 
 """
     GeneralizedSchurWs
@@ -354,7 +355,7 @@ for (gges, elty) in ((:dgges_, :Float64),
                                       similar(A, Complex{$elty}, n))
         end
 
-        function LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar,
+        function gges!(jobvsl::AbstractChar, jobvsr::AbstractChar,
                               A::AbstractMatrix{$elty},
                               B::AbstractMatrix{$elty}, ws::GeneralizedSchurWs{$elty})
             chkstride1(A, B)
@@ -391,7 +392,7 @@ for (gges, elty) in ((:dgges_, :Float64),
                    view(vsr, 1:(jobvsr == 'V' ? n : 0), :)
         end
 
-        function LAPACK.gges!(select_func::Function, jobvsl::AbstractChar,
+        function gges!(select_func::Function, jobvsl::AbstractChar,
                               jobvsr::AbstractChar,
                               A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
                               ws::GeneralizedSchurWs{$elty})
@@ -448,5 +449,5 @@ The function should have the signature `f(αr::T, αi::T, β::T) -> Bool`, where
 The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The left Schur
 vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
 """
-LAPACK.gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix,
+gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix,
              B::AbstractMatrix, ws::GeneralizedSchurWs)

@@ -2,19 +2,19 @@
 
 ## QR
 ```@docs
-LAPACK.geqrf!(::AbstractMatrix, ::QRWs)
-LAPACK.ormqr!(::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractVecOrMat, ::QRWs)
-LAPACK.geqrt!(::AbstractMatrix, ::QRWYWs)
-LAPACK.geqp3!(::AbstractMatrix, ::QRpWs)
+LinearAlgebra.LAPACK.geqrf!(::AbstractMatrix, ::QRWs)
+LinearAlgebra.LAPACK.ormqr!(::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractVecOrMat, ::QRWs)
+LinearAlgebra.LAPACK.geqrt!(::AbstractMatrix, ::QRWYWs)
+LinearAlgebra.LAPACK.geqp3!(::AbstractMatrix, ::QRpWs)
 ```
 
 ## Schur
 ```@docs
-LAPACK.gees!(::AbstractChar, ::AbstractMatrix, ::SchurWs)
-LAPACK.gges!(::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractMatrix, ::GeneralizedSchurWs)
+LinearAlgebra.LAPACK.gees!(::AbstractChar, ::AbstractMatrix, ::SchurWs)
+LinearAlgebra.LAPACK.gges!(::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractMatrix, ::GeneralizedSchurWs)
 ```
 
 ## LU
 ```@docs
-LAPACK.getrf!(::AbstractMatrix, ::LUWs)
+LinearAlgebra.LAPACK.getrf!(::AbstractMatrix, ::LUWs)
 ```
