@@ -27,7 +27,7 @@ Pkg.activate(@__DIR__)
 # if !isfile(joinpath(@__DIR__, "Manifest.toml"))
 Pkg.develop(Pkg.PackageSpec(; path = ROOTPATH))
 Pkg.instantiate()
-Pkg.add(; url = "https://github.com/JuliaDocs/Documenter.jl")
+Pkg.add("Documenter")
 # end
 
 # Setup environment for making plots
