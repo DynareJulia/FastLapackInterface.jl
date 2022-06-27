@@ -1,3 +1,4 @@
+import LinearAlgebra.LAPACK: getrf!
 """
     LUWs
 
@@ -46,7 +47,7 @@ for (getrf, elty) in ((:dgetrf_, :Float64),
                       (:zgetrf_, :ComplexF64),
                       (:cgetrf_, :ComplexF32))
     @eval begin
-        function LAPACK.getrf!(A::AbstractMatrix{$elty}, ws::LUWs)
+        function getrf!(A::AbstractMatrix{$elty}, ws::LUWs)
             @assert min(size(A)...) <= length(ws.ipiv) "Allocated Workspace is too small."
             require_one_based_indexing(A)
             chkstride1(A)
@@ -73,4 +74,4 @@ Returns `A`, modified in-place, `ws.ipiv`, the pivoting information, and the `ws
 code which indicates success (`info = 0`), a singular value in `U`
 (`info = i`, in which case `U[i,i]` is singular), or an error code (`info < 0`).
 """
-LAPACK.getrf!(A::AbstractMatrix, ws::LUWs)
+getrf!(A::AbstractMatrix, ws::LUWs)

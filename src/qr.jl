@@ -1,6 +1,5 @@
 # TODO: LinearAlgebra.qr! method that works with any workspace
-
-abstract type QR end
+import LinearAlgebra.LAPACK: geqrf!, ormqr!, geqrt!, geqp3!
 
 """
     QRWs
@@ -38,7 +37,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRWs{T<:Number} <: QR
+struct QRWs{T<:Number}
     work::Vector{T}
     τ::Vector{T}
 end
@@ -76,7 +75,7 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
             return QRWs(work, τ)
         end
 
-        function LAPACK.geqrf!(A::AbstractMatrix{$elty}, ws::QRWs)
+        function geqrf!(A::AbstractMatrix{$elty}, ws::QRWs)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
@@ -99,7 +98,7 @@ end
 for (ormqr, elty) in ((:dormqr_, :Float64),
                       (:sormqr_, :Float32))
     @eval begin
-        function LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar,
+        function ormqr!(side::AbstractChar, trans::AbstractChar,
                                A::AbstractMatrix{$elty},
                                C::AbstractVecOrMat{$elty}, ws::QRWs{$elty})
             require_one_based_indexing(A, C)
@@ -139,7 +138,7 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
     for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),
                   eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
         @eval begin
-            function LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::$elty2,
+            function ormqr!(side::AbstractChar, trans::AbstractChar, A::$elty2,
                                    C::StridedMatrix{$elty}, ws::QRWs{$elty})
                 chktrans(trans)
                 chkside(side)
@@ -159,7 +158,7 @@ Compute the `QR` factorization of `A`, `A = QR`, using previously allocated [`QR
 
 `A` and `ws.τ` modified in-place.
 """
-LAPACK.geqrf!(A::AbstractMatrix, ws::QRWs)
+geqrf!(A::AbstractMatrix, ws::QRWs)
 
 """
     ormqr!(side, trans, A, C, ws) -> C
@@ -171,7 +170,7 @@ for `side = R` using `Q` from a `QR` factorization of `A` computed using
 Uses preallocated workspace `ws` and the factors are assumed to be stored in `ws.τ`.
 `C` is overwritten.
 """
-LAPACK.ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
+ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
               C::AbstractVecOrMat, ws::QRWs)
 
 """
@@ -213,7 +212,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRWYWs{R<:Number,MT<:StridedMatrix{R}} <: QR
+struct QRWYWs{R<:Number,MT<:StridedMatrix{R}}
     work::Vector{R}
     T::MT
 end
@@ -247,7 +246,7 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
             return QRWYWs(work, T)
         end
 
-        function LAPACK.geqrt!(A::AbstractMatrix{$elty}, ws::QRWYWs)
+        function geqrt!(A::AbstractMatrix{$elty}, ws::QRWYWs)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
@@ -283,7 +282,7 @@ dimension of `A`, i.e. `size(ws.T, 2) == size(A, 2)`.
 
 `A` and `ws.T` are modified in-place.
 """
-LAPACK.geqrt!(A::AbstractMatrix, ws::QRWYWs)
+geqrt!(A::AbstractMatrix, ws::QRWYWs)
 
 """
     QRpWs
@@ -326,7 +325,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRpWs{T<:Number} <: QR
+struct QRpWs{T<:Number}
     work::Vector{T}
     τ::Vector{T}
     jpvt::Vector{BlasInt}
@@ -369,7 +368,7 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
             return QRpWs(work, τ, jpvt)
         end
 
-        function LAPACK.geqp3!(A::AbstractMatrix{$elty}, ws::QRpWs{$elty})
+        function geqp3!(A::AbstractMatrix{$elty}, ws::QRpWs{$elty})
             m, n = size(A)
             if length(ws.τ) != min(m, n)
                 throw(DimensionMismatch("τ  has length $(length(ws.τ)), but needs length $(min(m,n))"))
@@ -407,4 +406,4 @@ greater than or equal to the smallest dimension of `A`.
 
 `A`, `ws.jpvt`, and `ws.τ` are modified in-place.
 """
-LAPACK.geqp3!(A::AbstractMatrix, ws::QRpWs)
+geqp3!(A::AbstractMatrix, ws::QRpWs)
