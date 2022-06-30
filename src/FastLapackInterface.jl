@@ -21,5 +21,7 @@ include("qr.jl")
 export QRWs, QRWYWs, QRpWs
 include("schur.jl")
 export SchurWs, GeneralizedSchurWs
+include("eigen.jl")
+export EigenWs
 end #module
 #import LinearAlgebra: USE_BLAS64, LAPACKException
