@@ -85,6 +85,7 @@ for n in sizes
     As = [rand(n, n) for i in 1:vector_length]
     T  = rand(n, n)
     ws = QRWYWs(As[1])
+    
     suite["QRWYWs"]["geqrt!"]["workspace"]["$n"] = @benchmarkable bench_geqrt!($As, $ws)
     suite["QRWYWs"]["geqrt!"]["LAPACK"]["$n"]    = @benchmarkable bench_geqrt!($As, $T)
 end
@@ -119,10 +120,11 @@ end
 for n in sizes
     As   = [rand(n, n) for i in 1:vector_length]
     τ    = zeros(n)
-    lpvt = zeros(Int,n)
+    lpvt = zeros(Int, n)
     ws   = QRpWs(As[1])
+    
     suite["QRpWs"]["geqp3!"]["workspace"]["$n"] = @benchmarkable bench_geqp3!($As, $ws)
-    suite["QRpWs"]["geqp3!"]["LAPACK"]["$n"]    = @benchmarkable bench_geqp3!($As, $lpvt, $τ )
+    suite["QRpWs"]["geqp3!"]["LAPACK"]["$n"]    = @benchmarkable bench_geqp3!($As, $lpvt, $τ)
 end
 
 end

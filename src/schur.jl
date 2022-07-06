@@ -137,7 +137,7 @@ for (gees, elty) in ((:dgees_, :Float64),
         end
 
         function gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty},
-                              ws::SchurWs{$elty})
+                       ws::SchurWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -171,8 +171,8 @@ for (gees, elty) in ((:dgees_, :Float64),
         end
 
         function gees!(select_func::Function, jobvs::AbstractChar,
-                              A::AbstractMatrix{$elty},
-                              ws::SchurWs{$elty})
+                       A::AbstractMatrix{$elty},
+                       ws::SchurWs{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -356,8 +356,8 @@ for (gges, elty) in ((:dgges_, :Float64),
         end
 
         function gges!(jobvsl::AbstractChar, jobvsr::AbstractChar,
-                              A::AbstractMatrix{$elty},
-                              B::AbstractMatrix{$elty}, ws::GeneralizedSchurWs{$elty})
+                       A::AbstractMatrix{$elty},
+                       B::AbstractMatrix{$elty}, ws::GeneralizedSchurWs{$elty})
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m
@@ -393,9 +393,9 @@ for (gges, elty) in ((:dgges_, :Float64),
         end
 
         function gges!(select_func::Function, jobvsl::AbstractChar,
-                              jobvsr::AbstractChar,
-                              A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
-                              ws::GeneralizedSchurWs{$elty})
+                       jobvsr::AbstractChar,
+                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
+                       ws::GeneralizedSchurWs{$elty})
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m
@@ -450,4 +450,4 @@ The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The l
 vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
 """
 gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix,
-             B::AbstractMatrix, ws::GeneralizedSchurWs)
+      B::AbstractMatrix, ws::GeneralizedSchurWs)

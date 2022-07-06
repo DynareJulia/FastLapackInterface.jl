@@ -22,6 +22,6 @@ export QRWs, QRWYWs, QRpWs
 include("schur.jl")
 export SchurWs, GeneralizedSchurWs
 include("eigen.jl")
-export EigenWs
+export EigenWs, HermitianEigenWs
 end #module
 #import LinearAlgebra: USE_BLAS64, LAPACKException

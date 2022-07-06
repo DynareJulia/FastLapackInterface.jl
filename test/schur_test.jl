@@ -64,8 +64,8 @@ end
         ws = GeneralizedSchurWs(copy(A0))
 
         A0, B0, eig, β, vsl, vsr = LAPACK.gges!((ar, ai, b) -> ar^2 + ai^2 <
-                                                FastLapackInterface.SCHUR_CRITERIUM *
-                                                b^2, 'V', 'V',
+                                                               FastLapackInterface.SCHUR_CRITERIUM *
+                                                               b^2, 'V', 'V',
                                                 copy(A0), copy(B0), ws)
         @test ws.sdim[] == 1
         @test sign(real(eig[1])) == -1

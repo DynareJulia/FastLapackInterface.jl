@@ -62,7 +62,7 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
         function QRWs(A::StridedMatrix{$elty})
             m, n = size(A)
             lda = max(1, stride(A, 2))
-            τ = Vector{$elty}(undef, min(m, n))
+            τ = zeros($elty, min(m, n))
             work = Vector{$elty}(undef, 1)
             lwork = -1
             info = Ref{BlasInt}()
@@ -99,8 +99,8 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
                       (:sormqr_, :Float32))
     @eval begin
         function ormqr!(side::AbstractChar, trans::AbstractChar,
-                               A::AbstractMatrix{$elty},
-                               C::AbstractVecOrMat{$elty}, ws::QRWs{$elty})
+                        A::AbstractMatrix{$elty},
+                        C::AbstractVecOrMat{$elty}, ws::QRWs{$elty})
             require_one_based_indexing(A, C)
             chktrans(trans)
             chkside(side)
@@ -139,7 +139,7 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
                   eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
         @eval begin
             function ormqr!(side::AbstractChar, trans::AbstractChar, A::$elty2,
-                                   C::StridedMatrix{$elty}, ws::QRWs{$elty})
+                            C::StridedMatrix{$elty}, ws::QRWs{$elty})
                 chktrans(trans)
                 chkside(side)
                 trans = trans == 'T' ? 'N' : 'T'
@@ -171,7 +171,7 @@ Uses preallocated workspace `ws` and the factors are assumed to be stored in `ws
 `C` is overwritten.
 """
 ormqr!(side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
-              C::AbstractVecOrMat, ws::QRWs)
+       C::AbstractVecOrMat, ws::QRWs)
 
 """
     QRWYWs
@@ -240,9 +240,9 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
             @assert n > 0 ArgumentError("Not a Matrix")
             m1 = min(m, n)
             nb = min(m1, blocksize)
-            T = similar(A, nb, m1)
+            T = zeros($elty, nb, m1)
 
-            work = Vector{$elty}(undef, nb * n)
+            work = zeros($elty, nb * n)
             return QRWYWs(work, T)
         end
 
@@ -355,7 +355,7 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
             m, n = size(A)
             RldA = max(1, stride(A, 2))
             jpvt = zeros(BlasInt, n)
-            τ = Vector{$elty}(undef, min(m, n))
+            τ = zeros($elty, min(m, n))
             work = Vector{$elty}(undef, 1)
             lwork = -1
             info = Ref{BlasInt}()
