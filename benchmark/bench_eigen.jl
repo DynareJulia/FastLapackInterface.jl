@@ -21,7 +21,7 @@ module BenchEigen
 
     function bench_geevx!(As, ws)
         for A in As
-            LAPACK.geevx!('N', 'V', 'V', 'V', A, ws)
+            LAPACK.geevx!(ws, 'N', 'V', 'V', 'V', A)
         end
     end
     function bench_geevx!(As)
@@ -49,7 +49,7 @@ module BenchEigen
 
     function bench_syevr!(As, ws)
         for A in As
-            LAPACK.syevr!('V', 'A', 'U', A, 0.0, 0.0, 0, 0, 1e-6, ws)
+            LAPACK.syevr!(ws, 'V', 'A', 'U', A, 0.0, 0.0, 0, 0, 1e-6)
         end
     end
     function bench_syevr!(As)

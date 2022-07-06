@@ -11,7 +11,7 @@ using LinearAlgebra.LAPACK
         A1, WR1, WI1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 =
             LAPACK.geevx!('P', 'V', 'V', 'V', copy(A0))
         A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            LAPACK.geevx!('P', 'V', 'V', 'V', copy(A0), ws)
+            LAPACK.geevx!(ws, 'P', 'V', 'V', 'V', copy(A0))
             
         @test isapprox(A1, A2)
         @test isapprox(WR1, WR2)
@@ -34,7 +34,7 @@ using LinearAlgebra.LAPACK
         A1, W1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 =
             LAPACK.geevx!('N', 'V', 'V', 'V', copy(A0))
         A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            LAPACK.geevx!('N', 'V', 'V', 'V', copy(A0), ws)
+            LAPACK.geevx!(ws, 'N', 'V', 'V', 'V', copy(A0))
             
         @test isapprox(A1, A2)
         @test isapprox(W1, W2)
@@ -57,7 +57,7 @@ end
         ws = HermitianEigenWs(copy(A0); vecs = true)
 
         w1, Z1 = LAPACK.syevr!('V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
-        w2, Z2 = LAPACK.syevr!('V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6, ws)
+        w2, Z2 = LAPACK.syevr!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
         @test isapprox(w1, w2)
         @test isapprox(Z2, Z2)
         show(devnull, "text/plain", ws)
@@ -69,7 +69,7 @@ end
         ws = HermitianEigenWs(copy(A0); vecs = true)
 
         w1, Z1 = LAPACK.syevr!('V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
-        w2, Z2 = LAPACK.syevr!('V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6, ws)
+        w2, Z2 = LAPACK.syevr!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
         @test isapprox(w1, w2)
         @test isapprox(Z2, Z2)
     end

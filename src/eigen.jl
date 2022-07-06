@@ -22,7 +22,7 @@ QRWs{Float64}
 work: 64-element Vector{Float64}
 τ: 2-element Vector{Float64}
 
-julia> t = QR(LAPACK.geqrf!(A, ws)...)
+julia> t = QR(LAPACK.geqrf!(ws, A)...)
 QR{Float64, Matrix{Float64}, Vector{Float64}}
 Q factor:
 2×2 QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
@@ -83,15 +83,15 @@ for (geevx, elty, relty) in
             jobvl = lvecs ? 'V' : 'N'
             jobvr = rvecs ? 'V' : 'N'
             
-            VL    = similar(A, $elty, (lvecs ? n : 0, n))
-            VR    = similar(A, $elty, (rvecs ? n : 0, n))
+            VL    = zeros($elty, (lvecs ? n : 0, n))
+            VR    = zeros($elty, (rvecs ? n : 0, n))
             cmplx = eltype(A) <: Complex
             if cmplx
-                W     = similar(A, $elty, n)
-                rwork = similar(A, $relty, 2n)
+                W     = zeros($elty, n)
+                rwork = zeros($relty, 2n)
             else
-                W     = similar(A, $elty, n)
-                rwork = similar(A, $elty, n)
+                W     = zeros($elty, n)
+                rwork = zeros($elty, n)
             end
             work  = Vector{$elty}(undef, 1)
             lwork = BlasInt(-1)
@@ -145,7 +145,7 @@ for (geevx, elty, relty) in
             return EigenWs(work, rwork, VL, VR, W, scale, iwork, rconde, rcondv)
         end
         
-        function geevx!(balanc::AbstractChar, jobvl::AbstractChar, jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix{$elty}, ws::EigenWs)
+        function geevx!(ws::EigenWs, balanc::AbstractChar, jobvl::AbstractChar, jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix{$elty})
             n = checksquare(A)
             chkfinite(A) # balancing routines don't support NaNs and Infs
             if balanc ∉ ('N', 'P', 'S', 'B')
@@ -239,15 +239,15 @@ for (syevr, elty, relty) in ((:zheevr_,:ComplexF64,:Float64),
         function HermitianEigenWs(A::AbstractMatrix{$elty}; vecs = true)
             chkstride1(A)
             n = checksquare(A)
-            w = similar(A, $relty, n)
+            w = zeros($relty, n)
             if vecs
                 ldz = n
-                Z = similar(A, $elty, ldz, n)
+                Z = zeros($elty, ldz, n)
             else
                 ldz = 1
-                Z = similar(A, $elty, ldz, 0)
+                Z = zeros($elty, ldz, 0)
             end
-            isuppz = similar(A, BlasInt, 2*n)
+            isuppz = zeros(BlasInt, 2*n)
 
             work   = Vector{$elty}(undef, 1)
             lwork  = BlasInt(-1)
@@ -299,8 +299,8 @@ for (syevr, elty, relty) in ((:zheevr_,:ComplexF64,:Float64),
             HermitianEigenWs(work, rwork, iwork, w, Z, isuppz)
         end
 
-        function syevr!(jobz::AbstractChar, range::AbstractChar, uplo::AbstractChar, A::AbstractMatrix{$elty},
-                        vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer, abstol::AbstractFloat, ws::HermitianEigenWs)
+        function syevr!(ws::HermitianEigenWs, jobz::AbstractChar, range::AbstractChar, uplo::AbstractChar, A::AbstractMatrix{$elty},
+                        vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer, abstol::AbstractFloat)
             chkstride1(A)
             n = checksquare(A)
             if range == 'I' && !(1 <= il <= iu <= n)

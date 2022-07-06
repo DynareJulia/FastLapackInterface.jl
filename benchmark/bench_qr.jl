@@ -20,7 +20,7 @@ suite["QRWs"]["geqrf!"]["LAPACK"]    = BenchmarkGroup()
 
 function bench_geqrf!(As, ws)
     for A in As
-        LAPACK.geqrf!(A, ws)
+        LAPACK.geqrf!(ws, A)
     end
 end
 function bench_geqrf!(As)
@@ -40,7 +40,7 @@ suite["QRWs"]["ormqr!"]["workspace"] = BenchmarkGroup()
 suite["QRWs"]["ormqr!"]["LAPACK"]    = BenchmarkGroup()
 function bench_ormqr!(As, ws::QRWs)
     for A in As
-        LAPACK.ormqr!('L', 'N', A, A, ws)
+        LAPACK.ormqr!(ws, 'L', 'N', A, A)
     end
 end
 function bench_ormqr!(As, τ::Vector)
@@ -52,7 +52,7 @@ end
 for n in sizes
     As = [rand(n, n) for i in 1:vector_length]
     ws = QRWs(As[1])
-    LAPACK.geqrf!(As[1], ws)
+    LAPACK.geqrf!(ws, As[1])
     τ = copy(ws.τ)
     suite["QRWs"]["ormqr!"]["workspace"]["$n"] = @benchmarkable bench_ormqr!($As, $ws)
     suite["QRWs"]["ormqr!"]["LAPACK"]["$n"] = @benchmarkable bench_ormqr!($As, $τ)
@@ -72,7 +72,7 @@ suite["QRWYWs"]["geqrt!"]["LAPACK"]    = BenchmarkGroup()
 
 function bench_geqrt!(As, ws)
     for A in As
-        LAPACK.geqrt!(A, ws)
+        LAPACK.geqrt!(ws, A)
     end
 end
 function bench_geqrt!(As, T::Matrix)
@@ -108,7 +108,7 @@ suite["QRpWs"]["geqp3!"]["LAPACK"]    = BenchmarkGroup()
 
 function bench_geqp3!(As, ws)
     for A in As
-        LAPACK.geqp3!(A, ws)
+        LAPACK.geqp3!(ws, A)
     end
 end
 function bench_geqp3!(As, lpvt, τ)

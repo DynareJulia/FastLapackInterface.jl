@@ -15,7 +15,7 @@ m = 2
             # Full matrix
             linws = LUWs(n)
 
-            res = LU(LAPACK.getrf!(copy(A), linws)...)
+            res = LU(LAPACK.getrf!(linws, copy(A))...)
             F = lu(A0)
             @test F.U ≈ res.U
             @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U

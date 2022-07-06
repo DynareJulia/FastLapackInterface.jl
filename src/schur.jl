@@ -51,7 +51,7 @@ work: 68-element Vector{Float64}
 vs: 2×2 Matrix{Float64}
 eigen_values: 2-element Vector{ComplexF64}
 
-julia> t = Schur(LAPACK.gees!('V', A, ws)...)
+julia> t = Schur(LAPACK.gees!(ws, 'V', A)...)
 Schur{Float64, Matrix{Float64}, Vector{Float64}}
 T factor:
 2×2 Matrix{Float64}:
@@ -128,62 +128,40 @@ for (gees, elty) in ((:dgees_, :Float64),
                                   Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
         end
 
-        function gees!(jobvs::AbstractChar, A::AbstractMatrix{$elty},
-                       ws::SchurWs{$elty})
+        function gees!(ws::SchurWs{$elty}, jobvs::AbstractChar,
+                       A::AbstractMatrix{$elty}; select::Union{Nothing, Function}=nothing)
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
             if n > length(ws)
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
+            info = Ref{BlasInt}()
             ldvs = max(size(ws.vs, 1), 1)
             lwork = length(ws.work)
-            info = Ref{BlasInt}()
-            ccall((@blasfunc($gees), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
-                   Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}),
-                  jobvs, 'N', C_NULL, n,
-                  A, max(1, stride(A, 2)), Ref{BlasInt}(), ws.wr,
-                  ws.wi, ws.vs, ldvs, ws.work,
-                  lwork, C_NULL, info)
-
-            chklapackerror(info[])
-
-            if iszero(ws.wi)
-                return A, ws.vs, ws.wr
+            if select!==nothing
+                sfunc(wr, wi) = schurselect(select, wr, wi)
+                sel_func = @cfunction($(Expr(:$, :sfunc)), Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
+                ccall((@blasfunc($gees), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
+                      jobvs, 'S', sel_func, n,
+                      A, max(1, stride(A, 2)), ws.sdim, ws.wr,
+                      ws.wi, ws.vs, ldvs, ws.work,
+                      lwork, ws.bwork, info)
             else
-                @inbounds for i in axes(A, 1)
-                    ws.eigen_values[i] = complex(ws.wr[i], ws.wi[i])
-                end
-                return A, ws.vs, iszero(ws.wi) ? ws.wr : ws.eigen_values
+                ccall((@blasfunc($gees), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}),
+                      jobvs, 'N', C_NULL, n,
+                      A, max(1, stride(A, 2)), Ref{BlasInt}(), ws.wr,
+                      ws.wi, ws.vs, ldvs, ws.work,
+                      lwork, C_NULL, info)
             end
-        end
-
-        function gees!(select_func::Function, jobvs::AbstractChar,
-                       A::AbstractMatrix{$elty},
-                       ws::SchurWs{$elty})
-            require_one_based_indexing(A)
-            chkstride1(A)
-            n = checksquare(A)
-            if n > length(ws)
-                throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
-            end
-            info = Ref{BlasInt}()
-            ldvs = max(size(ws.vs, 1), 1)
-            lwork = length(ws.work)
-            sfunc(wr, wi) = schurselect(select_func, wr, wi)
-            sel_func = @cfunction($(Expr(:$, :sfunc)), Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
-            ccall((@blasfunc($gees), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
-                   Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
-                  jobvs, 'S', sel_func, n,
-                  A, max(1, stride(A, 2)), ws.sdim, ws.wr,
-                  ws.wi, ws.vs, ldvs, ws.work,
-                  lwork, ws.bwork, info)
 
             chklapackerror(info[])
 
@@ -200,7 +178,7 @@ for (gees, elty) in ((:dgees_, :Float64),
 end
 
 """
-    gees!([select], jobvs, A, ws) -> (A, vs, ws.eigen_values)
+    gees!(ws, jobvs, A; select=nothing) -> (A, vs, ws.eigen_values)
 
 Computes the eigenvalues (`jobvs = N`) or the eigenvalues and Schur
 vectors (`jobvs = V`) of matrix `A`, using the preallocated [`SchurWs`](@ref) worspace `ws`.
@@ -212,7 +190,7 @@ The function should have the signature `f(wr::T, wi::T) -> Bool`, where
 
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 """
-gees!(jobvs::AbstractChar, A::AbstractMatrix, ws::SchurWs)
+gees!(ws::SchurWs, jobvs::AbstractChar, A::AbstractMatrix)
 
 """
     GeneralizedSchurWs
@@ -241,7 +219,7 @@ vsl: 2×2 Matrix{Float64}
 vsr: 2×2 Matrix{Float64}
 eigen_values: 2-element Vector{ComplexF64}
 
-julia> t = GeneralizedSchur(LAPACK.gges!('V','V', A, B, ws)...)
+julia> t = GeneralizedSchur(LAPACK.gges!(ws, 'V','V', A, B)...)
 GeneralizedSchur{Float64, Matrix{Float64}, Vector{ComplexF64}, Vector{Float64}}
 S factor:
 2×2 Matrix{Float64}:
@@ -334,47 +312,10 @@ for (gges, elty) in ((:dgges_, :Float64),
                                       Vector{BlasInt}(undef, n),
                                       similar(A, Complex{$elty}, n))
         end
-
-        function gges!(jobvsl::AbstractChar, jobvsr::AbstractChar,
-                       A::AbstractMatrix{$elty},
-                       B::AbstractMatrix{$elty}, ws::GeneralizedSchurWs{$elty})
-            chkstride1(A, B)
-            n, m = checksquare(A, B)
-            if n != m
-                throw(DimensionMismatch("dimensions of A, ($n,$n), and B, ($m,$m), must match"))
-            end
-            if n > length(ws)
-                throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
-            end
-
-            info = Ref{BlasInt}()
-            ldvsl = size(ws.vsl, 1)
-            ldvsr = size(ws.vsr, 1)
-            ccall((@blasfunc($gges), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
-                   Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
-                   Ref{BlasInt}, Clong, Clong, Clong),
-                  jobvsl, jobvsr, 'N', C_NULL,
-                  n, A, max(1, stride(A, 2)), B,
-                  max(1, stride(B, 2)), Ref{BlasInt}(), ws.αr, ws.αi,
-                  ws.β, ws.vsl, ldvsl, ws.vsr,
-                  ldvsr, ws.work, length(ws.work), C_NULL,
-                  info, 1, 1, 1)
-            chklapackerror(info[])
-            @inbounds for i in axes(A, 1)
-                ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i])
-            end
-            return A, B, ws.eigen_values, ws.β, view(ws.vsl, 1:(jobvsl == 'V' ? n : 0), :),
-                   view(ws.vsr, 1:(jobvsr == 'V' ? n : 0), :)
-        end
-
-        function gges!(select_func::Function, jobvsl::AbstractChar,
+        
+        function gges!(ws::GeneralizedSchurWs,jobvsl::AbstractChar,
                        jobvsr::AbstractChar,
-                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
-                       ws::GeneralizedSchurWs{$elty})
+                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}; select::Union{Nothing, Function}=nothing) 
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m
@@ -387,22 +328,38 @@ for (gges, elty) in ((:dgges_, :Float64),
             info = Ref{BlasInt}()
             ldvsl = size(ws.vsl, 1)
             ldvsr = size(ws.vsr, 1)
-            sfunc(αr, αi, β) = schurselect(select_func, αr, αi, β)
-            sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
-                                  (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
-            ccall((@blasfunc($gges), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
-                   Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
-                   Ref{BlasInt}, Clong, Clong, Clong),
-                  jobvsl, jobvsr, 'S', sel_func,
-                  n, A, max(1, stride(A, 2)), B,
-                  max(1, stride(B, 2)), ws.sdim, ws.αr, ws.αi,
-                  ws.β, ws.vsl, ldvsl, ws.vsr,
-                  ldvsr, ws.work, length(ws.work), ws.bwork,
-                  info, 1, 1, 1)
+            if select !== nothing
+                sfunc(αr, αi, β) = schurselect(select, αr, αi, β)
+                sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
+                                      (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+                ccall((@blasfunc($gges), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
+                       Ref{BlasInt}, Clong, Clong, Clong),
+                      jobvsl, jobvsr, 'S', sel_func,
+                      n, A, max(1, stride(A, 2)), B,
+                      max(1, stride(B, 2)), ws.sdim, ws.αr, ws.αi,
+                      ws.β, ws.vsl, ldvsl, ws.vsr,
+                      ldvsr, ws.work, length(ws.work), ws.bwork,
+                      info, 1, 1, 1)
+            else
+                ccall((@blasfunc($gges), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
+                       Ref{BlasInt}, Clong, Clong, Clong),
+                      jobvsl, jobvsr, 'N', C_NULL,
+                      n, A, max(1, stride(A, 2)), B,
+                      max(1, stride(B, 2)), Ref{BlasInt}(), ws.αr, ws.αi,
+                      ws.β, ws.vsl, ldvsl, ws.vsr,
+                      ldvsr, ws.work, length(ws.work), C_NULL,
+                      info, 1, 1, 1)
+            end
             chklapackerror(info[])
             @inbounds for i in axes(A, 1)
                 ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i])
@@ -414,18 +371,18 @@ for (gges, elty) in ((:dgges_, :Float64),
 end
 
 """
-    gges!([select], jobvsl, jobvsr, A, B, ws) -> (A, B, ws.eigen_values, ws.β, ws.vsl, ws.vsr)
+    gges!(ws, jobvsl, jobvsr, A, B; select=nothing) -> (A, B, ws.eigen_values, ws.β, ws.vsl, ws.vsr)
 
 Computes the generalized eigenvalues, generalized Schur form, left Schur
 vectors (`jobsvl = V`), or right Schur vectors (`jobvsr = V`) of `A` and
 `B`, using preallocated [`GeneralizedSchurWs`](@ref) workspace `ws`.
 
-It is possible to specify `select`, a function used to sort the eigenvalues during the decomponsition.
+It is possible to specify `select`, a function used to sort the eigenvalues during the decomposition.
 The function should have the signature `f(αr::T, αi::T, β::T) -> Bool`, where
 `αr` and `αi` are the real and imaginary parts of the eigenvalue, `β` the factor, and `T == eltype(A). 
 
 The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The left Schur
 vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
 """
-gges!(jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix,
-      B::AbstractMatrix, ws::GeneralizedSchurWs)
+gges!(ws::GeneralizedSchurWs, jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix,
+      B::AbstractMatrix)

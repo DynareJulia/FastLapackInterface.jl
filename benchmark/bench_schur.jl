@@ -25,12 +25,12 @@ suite["SchurWs"]["gees!"]["LAPACK"]           = BenchmarkGroup()
 
 function bench_gees!(As, ws)
     for A in As
-        LAPACK.gees!('V', A, ws)
+        LAPACK.gees!(ws, 'V', A)
     end
 end
 function bench_gees!(sel_func, As, ws)
     for A in As
-        LAPACK.gees!(sel_func, 'V', A, ws)
+        LAPACK.gees!('V', A, ws; select=sel_func)
     end
 end
 function bench_gees!(As)
@@ -67,12 +67,12 @@ suite["GeneralizedSchurWs"]["gges!"]["LAPACK"]           = BenchmarkGroup()
 
 function bench_gges!(As, ws)
     for A in As
-        LAPACK.gges!('V', 'V', A, A, ws)
+        LAPACK.gges!(ws, 'V', 'V', A, A)
     end
 end
 function bench_gges!(sel_func, As, ws)
     for A in As
-        LAPACK.gges!(sel_func, 'V', 'V', A, A, ws)
+        LAPACK.gges!(ws, 'V', 'V', A, A; select=sel_func)
     end
 end
 function bench_gges!(As)
