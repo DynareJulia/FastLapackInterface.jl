@@ -60,25 +60,6 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::EigenWs)
     end
 end
 
-# fns = fieldnames(EigenWs)
-# @eval Base.iterate(ws::EigenWs) = (getfield(ws, $(fns[1])), Val(fns[2]))
-# for i in 2:length(fns) - 1
-#     f = fns[i]
-#     @eval Base.iterate(ws::EigenWs, ::Val{$f}) = (getfield(ws, $f), Val(:($(fns[i+1]))))
-# end
-# @eval Base.iterate(ws::EigenWs, ::Val{$(fns[end])}) = (getfield(ws, $(fns[end])), Val(:done))
-# Base.iterate(::EigenWs, ::Val{:done})    = nothing
-Base.iterate(ws::EigenWs)                = (ws.work, Val(:rwork))
-Base.iterate(ws::EigenWs, ::Val{:rwork}) = (ws.rwork, Val(:VL))
-Base.iterate(ws::EigenWs, ::Val{:VL})    = (ws.VL, Val(:VR))
-Base.iterate(ws::EigenWs, ::Val{:VR})    = (ws.VR, Val(:W))
-Base.iterate(ws::EigenWs, ::Val{:W})     = (ws.W, Val(:scale))
-Base.iterate(ws::EigenWs, ::Val{:scale}) = (ws.scale, Val(:iwork))
-Base.iterate(ws::EigenWs, ::Val{:iwork}) = (ws.iwork, Val(:rconde))
-Base.iterate(ws::EigenWs, ::Val{:rconde}) = (ws.rconde, Val(:rcondv))
-Base.iterate(ws::EigenWs, ::Val{:rcondv}) = (ws.rcondv, Val(:done))
-Base.iterate(::EigenWs, ::Val{:done})    = nothing
-
 for (geevx, elty, relty) in
     ((:dgeevx_,:Float64,:Float64),
      (:sgeevx_,:Float32,:Float32),

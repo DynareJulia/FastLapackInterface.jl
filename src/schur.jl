@@ -97,14 +97,6 @@ end
 
 Base.length(ws::SchurWs) = length(ws.wr)
 
-Base.iterate(ws::SchurWs)                = (ws.work, Val(:wr))
-Base.iterate(ws::SchurWs, ::Val{:wr})    = (ws.wr, Val(:wi))
-Base.iterate(ws::SchurWs, ::Val{:wi})    = (ws.wi, Val(:vs))
-Base.iterate(ws::SchurWs, ::Val{:vs})    = (ws.vs, Val(:sdim))
-Base.iterate(ws::SchurWs, ::Val{:sdim})  = (ws.sdim, Val(:bwork))
-Base.iterate(ws::SchurWs, ::Val{:bwork}) = (ws.bwork, Val(:done))
-Base.iterate(::SchurWs, ::Val{:done})    = nothing
-
 for (gees, elty) in ((:dgees_, :Float64),
                      (:sgees_, :Float32))
     @eval begin
@@ -112,9 +104,9 @@ for (gees, elty) in ((:dgees_, :Float64),
             require_one_based_indexing(A)
             chkstride1(A)
             n     = checksquare(A)
-            wr    = similar(A, $elty, n)
-            wi    = similar(A, $elty, n)
-            vs    = similar(A, $elty, n, n)
+            wr    = zeros($elty, n)
+            wi    = zeros($elty, n)
+            vs    = zeros($elty, n, n)
             ldvs  = max(size(vs, 1), 1)
             work  = Vector{$elty}(undef, 1)
             lwork = BlasInt(-1)
@@ -144,9 +136,8 @@ for (gees, elty) in ((:dgees_, :Float64),
             if n > length(ws)
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
-            work, wr, wi, vs = ws
-            ldvs = max(size(vs, 1), 1)
-            lwork = length(work)
+            ldvs = max(size(ws.vs, 1), 1)
+            lwork = length(ws.work)
             info = Ref{BlasInt}()
             ccall((@blasfunc($gees), liblapack), Cvoid,
                   (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
@@ -154,19 +145,19 @@ for (gees, elty) in ((:dgees_, :Float64),
                    Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
                    Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}),
                   jobvs, 'N', C_NULL, n,
-                  A, max(1, stride(A, 2)), Ref{BlasInt}(), wr,
-                  wi, vs, ldvs, work,
+                  A, max(1, stride(A, 2)), Ref{BlasInt}(), ws.wr,
+                  ws.wi, ws.vs, ldvs, ws.work,
                   lwork, C_NULL, info)
 
             chklapackerror(info[])
 
-            if iszero(wi)
-                return A, vs, wr
+            if iszero(ws.wi)
+                return A, ws.vs, ws.wr
             else
                 @inbounds for i in axes(A, 1)
-                    ws.eigen_values[i] = complex(wr[i], wi[i])
+                    ws.eigen_values[i] = complex(ws.wr[i], ws.wi[i])
                 end
-                return A, vs, iszero(wi) ? wr : ws.eigen_values
+                return A, ws.vs, iszero(ws.wi) ? ws.wr : ws.eigen_values
             end
         end
 
@@ -179,10 +170,9 @@ for (gees, elty) in ((:dgees_, :Float64),
             if n > length(ws)
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
-            work, wr, wi, vs, sdim, bwork = ws
             info = Ref{BlasInt}()
-            ldvs = max(size(vs, 1), 1)
-            lwork = length(work)
+            ldvs = max(size(ws.vs, 1), 1)
+            lwork = length(ws.work)
             sfunc(wr, wi) = schurselect(select_func, wr, wi)
             sel_func = @cfunction($(Expr(:$, :sfunc)), Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
             ccall((@blasfunc($gees), liblapack), Cvoid,
@@ -191,19 +181,19 @@ for (gees, elty) in ((:dgees_, :Float64),
                    Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
                    Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
                   jobvs, 'S', sel_func, n,
-                  A, max(1, stride(A, 2)), sdim, wr,
-                  wi, vs, ldvs, work,
-                  lwork, bwork, info)
+                  A, max(1, stride(A, 2)), ws.sdim, ws.wr,
+                  ws.wi, ws.vs, ldvs, ws.work,
+                  lwork, ws.bwork, info)
 
             chklapackerror(info[])
 
-            if iszero(wi)
-                return A, vs, wr
+            if iszero(ws.wi)
+                return A, ws.vs, ws.wr
             else
                 @inbounds for i in axes(A, 1)
-                    ws.eigen_values[i] = complex(wr[i], wi[i])
+                    ws.eigen_values[i] = complex(ws.wr[i], ws.wi[i])
                 end
-                return A, vs, iszero(wi) ? wr : ws.eigen_values
+                return A, ws.vs, iszero(ws.wi) ? ws.wr : ws.eigen_values
             end
         end
     end
@@ -309,16 +299,6 @@ end
 
 Base.length(ws::GeneralizedSchurWs) = length(ws.αr)
 
-Base.iterate(ws::GeneralizedSchurWs)                = (ws.work, Val(:αr))
-Base.iterate(ws::GeneralizedSchurWs, ::Val{:αr})    = (ws.αr, Val(:αi))
-Base.iterate(ws::GeneralizedSchurWs, ::Val{:αi})    = (ws.αi, Val(:β))
-Base.iterate(ws::GeneralizedSchurWs, ::Val{:β})     = (ws.β, Val(:vsl))
-Base.iterate(ws::GeneralizedSchurWs, ::Val{:vsl})   = (ws.vsl, Val(:vsr))
-Base.iterate(ws::GeneralizedSchurWs, ::Val{:vsr})   = (ws.vsr, Val(:sdim))
-Base.iterate(ws::GeneralizedSchurWs, ::Val{:sdim})  = (ws.sdim, Val(:bwork))
-Base.iterate(ws::GeneralizedSchurWs, ::Val{:bwork}) = (ws.bwork, Val(:done))
-Base.iterate(::GeneralizedSchurWs, ::Val{:done})    = nothing
-
 # look into matlab function
 for (gges, elty) in ((:dgges_, :Float64),
                      (:sgges_, :Float32))
@@ -326,11 +306,11 @@ for (gges, elty) in ((:dgges_, :Float64),
         function GeneralizedSchurWs(A::AbstractMatrix{$elty})
             chkstride1(A)
             n     = checksquare(A)
-            αr    = similar(A, $elty, n)
-            αi    = similar(A, $elty, n)
-            β     = similar(A, $elty, n)
-            vsl   = similar(A, $elty, n, n)
-            vsr   = similar(A, $elty, n, n)
+            αr    = zeros($elty, n)
+            αi    = zeros($elty, n)
+            β     = zeros($elty, n)
+            vsl   = zeros($elty, n, n)
+            vsr   = zeros($elty, n, n)
             work  = Vector{$elty}(undef, 1)
             lwork = BlasInt(-1)
             info  = Ref{BlasInt}()
@@ -367,10 +347,9 @@ for (gges, elty) in ((:dgges_, :Float64),
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
 
-            work, αr, αi, β, vsl, vsr = ws
             info = Ref{BlasInt}()
-            ldvsl = size(vsl, 1)
-            ldvsr = size(vsr, 1)
+            ldvsl = size(ws.vsl, 1)
+            ldvsr = size(ws.vsr, 1)
             ccall((@blasfunc($gges), liblapack), Cvoid,
                   (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
                    Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
@@ -380,16 +359,16 @@ for (gges, elty) in ((:dgges_, :Float64),
                    Ref{BlasInt}, Clong, Clong, Clong),
                   jobvsl, jobvsr, 'N', C_NULL,
                   n, A, max(1, stride(A, 2)), B,
-                  max(1, stride(B, 2)), Ref{BlasInt}(), αr, αi,
-                  β, vsl, ldvsl, vsr,
-                  ldvsr, work, length(work), C_NULL,
+                  max(1, stride(B, 2)), Ref{BlasInt}(), ws.αr, ws.αi,
+                  ws.β, ws.vsl, ldvsl, ws.vsr,
+                  ldvsr, ws.work, length(ws.work), C_NULL,
                   info, 1, 1, 1)
             chklapackerror(info[])
             @inbounds for i in axes(A, 1)
                 ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i])
             end
-            return A, B, ws.eigen_values, ws.β, view(vsl, 1:(jobvsl == 'V' ? n : 0), :),
-                   view(vsr, 1:(jobvsr == 'V' ? n : 0), :)
+            return A, B, ws.eigen_values, ws.β, view(ws.vsl, 1:(jobvsl == 'V' ? n : 0), :),
+                   view(ws.vsr, 1:(jobvsr == 'V' ? n : 0), :)
         end
 
         function gges!(select_func::Function, jobvsl::AbstractChar,
@@ -405,10 +384,9 @@ for (gges, elty) in ((:dgges_, :Float64),
                 throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
             end
 
-            work, αr, αi, β, vsl, vsr, sdim, bwork = ws
             info = Ref{BlasInt}()
-            ldvsl = size(vsl, 1)
-            ldvsr = size(vsr, 1)
+            ldvsl = size(ws.vsl, 1)
+            ldvsr = size(ws.vsr, 1)
             sfunc(αr, αi, β) = schurselect(select_func, αr, αi, β)
             sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
                                   (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
@@ -421,16 +399,16 @@ for (gges, elty) in ((:dgges_, :Float64),
                    Ref{BlasInt}, Clong, Clong, Clong),
                   jobvsl, jobvsr, 'S', sel_func,
                   n, A, max(1, stride(A, 2)), B,
-                  max(1, stride(B, 2)), sdim, αr, αi,
-                  β, vsl, ldvsl, vsr,
-                  ldvsr, work, length(work), bwork,
+                  max(1, stride(B, 2)), ws.sdim, ws.αr, ws.αi,
+                  ws.β, ws.vsl, ldvsl, ws.vsr,
+                  ldvsr, ws.work, length(ws.work), ws.bwork,
                   info, 1, 1, 1)
             chklapackerror(info[])
             @inbounds for i in axes(A, 1)
                 ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i])
             end
-            return A, B, ws.eigen_values, ws.β, view(vsl, 1:(jobvsl == 'V' ? n : 0), :),
-                   view(vsr, 1:(jobvsr == 'V' ? n : 0), :)
+            return A, B, ws.eigen_values, ws.β, view(ws.vsl, 1:(jobvsl == 'V' ? n : 0), :),
+                   view(ws.vsr, 1:(jobvsr == 'V' ? n : 0), :)
         end
     end
 end
