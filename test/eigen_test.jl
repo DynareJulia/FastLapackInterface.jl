@@ -24,6 +24,23 @@ using LinearAlgebra.LAPACK
         @test isapprox(abnrm1, abnrm2)
         @test isapprox(rconde1, rconde2; atol = 1e-16)
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
+        
+        # using Workspace, factorize!
+        ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
+        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
+            factorize!(ws, 'P', 'V', 'V', 'V', copy(A0))
+        @test isapprox(A1, A2)
+        @test isapprox(WR1, WR2)
+        @test isapprox(WI1, WI2)
+        @test isapprox(VL1, VL2)
+        @test isapprox(VR1, VR2)
+        @test isapprox(ilo1, ilo2)
+        @test isapprox(ihi1, ihi2)
+        @test isapprox(scale1, scale2)
+        @test isapprox(abnrm1, abnrm2)
+        @test isapprox(rconde1, rconde2; atol = 1e-16)
+        @test isapprox(rcondv1, rcondv2; atol = 1e-16)
+        
         show(devnull, "text/plain", ws)
     end
 
@@ -36,6 +53,20 @@ using LinearAlgebra.LAPACK
         A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
             LAPACK.geevx!(ws, 'N', 'V', 'V', 'V', copy(A0))
             
+        @test isapprox(A1, A2)
+        @test isapprox(W1, W2)
+        @test isapprox(VL1, VL2)
+        @test isapprox(VR1, VR2)
+        @test isapprox(ilo1, ilo2)
+        @test isapprox(ihi1, ihi2)
+        @test isapprox(scale1, scale2)
+        @test isapprox(abnrm1, abnrm2)
+        @test isapprox(rconde1, rconde2; atol = 1e-16)
+        @test isapprox(rcondv1, rcondv2; atol = 1e-16)
+        # using Workspace, factorize!
+        ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
+        A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
+            factorize!(ws, 'N', 'V', 'V', 'V', copy(A0))
         @test isapprox(A1, A2)
         @test isapprox(W1, W2)
         @test isapprox(VL1, VL2)
@@ -60,6 +91,11 @@ end
         w2, Z2 = LAPACK.syevr!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
         @test isapprox(w1, w2)
         @test isapprox(Z2, Z2)
+        # using Workspace, factorize!
+        ws = Workspace(LAPACK.syevr!, copy(A0); vecs = true)
+        w2, Z2 = factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
+        @test isapprox(w1, w2)
+        @test isapprox(Z2, Z2)
         show(devnull, "text/plain", ws)
     end
 
@@ -70,6 +106,11 @@ end
 
         w1, Z1 = LAPACK.syevr!('V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
         w2, Z2 = LAPACK.syevr!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
+        @test isapprox(w1, w2)
+        @test isapprox(Z2, Z2)
+        # using Workspace, factorize!
+        ws = Workspace(LAPACK.syevr!, copy(A0); vecs = true)
+        w2, Z2 = factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
         @test isapprox(w1, w2)
         @test isapprox(Z2, Z2)
     end

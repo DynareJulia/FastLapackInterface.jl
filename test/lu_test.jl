@@ -19,6 +19,13 @@ m = 2
             F = lu(A0)
             @test F.U ≈ res.U
             @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
+            # Using Workspace, factorize!
+            linws = Workspace(LAPACK.getrf!, copy(A))
+
+            res = LU(factorize!(linws, copy(A))...)
+            F = lu(A0)
+            @test F.U ≈ res.U
+            @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
 
             show(devnull, "text/plain", linws)
             # res = LU(LAPACK.getrf!(collect(copy(A)'), linws)...)

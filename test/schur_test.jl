@@ -13,6 +13,12 @@ using LinearAlgebra.LAPACK
         @test isapprox(A1, A2)
         @test isapprox(vs1, vs2)
         @test isapprox(wr1, wr2)
+        # using Workspace, factorize!
+        ws = Workspace(LAPACK.gees!, copy(A0))
+        A2, vs2, wr2 = factorize!(ws, 'V', copy(A0))
+        @test isapprox(A1, A2)
+        @test isapprox(vs1, vs2)
+        @test isapprox(wr1, wr2)
         show(devnull, "text/plain", ws)
     end
 
@@ -42,6 +48,16 @@ end
 
         A1, B1, eig1, β1, vsl1, vsr1 = LAPACK.gges!('V', 'V', copy(A0), copy(B0))
         A2, B2, eig2, β2, vsl2, vsr2 = LAPACK.gges!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test isapprox(A1, A2)
+        @test isapprox(B1, B2)
+        @test isapprox(eig1, eig2)
+        @test isapprox(β1, β2)
+        @test isapprox(vsl1, vsl2)
+        @test isapprox(vsr1, vsr2)
+
+        # Using Workspace, factorize!
+        ws = Workspace(LAPACK.gges!, copy(A0))
+        A2, B2, eig2, β2, vsl2, vsr2 = factorize!(ws, 'V', 'V', copy(A0), copy(B0))
         @test isapprox(A1, A2)
         @test isapprox(B1, B2)
         @test isapprox(eig1, eig2)
