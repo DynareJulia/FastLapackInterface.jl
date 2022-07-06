@@ -82,7 +82,7 @@ end
             @test isapprox(AT1, AT)
             @test isapprox(jpvt1, jpvt)
             @test isapprox(taut1, taut)
-            
+
             show(devnull, "text/plain", ws)
         end
     end

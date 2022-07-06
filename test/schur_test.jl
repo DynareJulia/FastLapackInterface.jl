@@ -28,7 +28,8 @@ using LinearAlgebra.LAPACK
               -0.239769 1.57603 0.330085]
 
         ws1 = SchurWs(copy(A0))
-        A1, vs1, wr1 = LAPACK.gees!(ws1, 'V', copy(A0);select = (wr, wi) -> wi^2 + wr^2 >= 1)
+        A1, vs1, wr1 = LAPACK.gees!(ws1, 'V', copy(A0);
+                                    select = (wr, wi) -> wi^2 + wr^2 >= 1)
         @test ws1.sdim[] == 2
 
         ws2 = SchurWs(copy(A0))
@@ -80,7 +81,9 @@ end
 
         A0, B0, eig, β, vsl, vsr = LAPACK.gges!(ws, 'V', 'V', copy(A0),
                                                 copy(B0);
-                                                select=(ar, ai, b) -> ar^2 + ai^2 < FastLapackInterface.SCHUR_CRITERIUM * b^2)
+                                                select = (ar, ai, b) -> ar^2 + ai^2 <
+                                                                        FastLapackInterface.SCHUR_CRITERIUM *
+                                                                        b^2)
         @test ws.sdim[] == 1
         @test sign(real(eig[1])) == -1
         @test sign(real(eig[2])) == 1

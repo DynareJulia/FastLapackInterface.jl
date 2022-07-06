@@ -129,7 +129,7 @@ for (gees, elty) in ((:dgees_, :Float64),
         end
 
         function gees!(ws::SchurWs{$elty}, jobvs::AbstractChar,
-                       A::AbstractMatrix{$elty}; select::Union{Nothing, Function}=nothing)
+                       A::AbstractMatrix{$elty}; select::Union{Nothing,Function} = nothing)
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -139,9 +139,10 @@ for (gees, elty) in ((:dgees_, :Float64),
             info = Ref{BlasInt}()
             ldvs = max(size(ws.vs, 1), 1)
             lwork = length(ws.work)
-            if select!==nothing
+            if select !== nothing
                 sfunc(wr, wi) = schurselect(select, wr, wi)
-                sel_func = @cfunction($(Expr(:$, :sfunc)), Cint, (Ptr{Cdouble}, Ptr{Cdouble}))
+                sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
+                                      (Ptr{Cdouble}, Ptr{Cdouble}))
                 ccall((@blasfunc($gees), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
@@ -312,10 +313,11 @@ for (gges, elty) in ((:dgges_, :Float64),
                                       Vector{BlasInt}(undef, n),
                                       similar(A, Complex{$elty}, n))
         end
-        
-        function gges!(ws::GeneralizedSchurWs,jobvsl::AbstractChar,
+
+        function gges!(ws::GeneralizedSchurWs, jobvsl::AbstractChar,
                        jobvsr::AbstractChar,
-                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}; select::Union{Nothing, Function}=nothing) 
+                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty};
+                       select::Union{Nothing,Function} = nothing)
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m

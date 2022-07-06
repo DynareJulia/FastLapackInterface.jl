@@ -40,7 +40,9 @@ Workspace(::typeof(LAPACK.gees!), A::AbstractMatrix) = SchurWs(A)
 Workspace(::typeof(LAPACK.gges!), A::AbstractMatrix) = GeneralizedSchurWs(A)
 
 Workspace(::typeof(LAPACK.geevx!), A::AbstractMatrix; kwargs...) = EigenWs(A; kwargs...)
-Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...) = HermitianEigenWs(A; kwargs...)
+function Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...)
+    return HermitianEigenWs(A; kwargs...)
+end
 
 export Workspace
 
@@ -69,7 +71,6 @@ Alias for [`decompose!`](@ref).
 const factorize! = decompose!
 
 export decompose!, factorize!
-
 
 end #module
 #import LinearAlgebra: USE_BLAS64, LAPACKException

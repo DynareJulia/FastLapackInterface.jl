@@ -30,7 +30,7 @@ function bench_gees!(As, ws)
 end
 function bench_gees!(sel_func, As, ws)
     for A in As
-        LAPACK.gees!('V', A, ws; select=sel_func)
+        LAPACK.gees!('V', A, ws; select = sel_func)
     end
 end
 function bench_gees!(As)
@@ -72,7 +72,7 @@ function bench_gges!(As, ws)
 end
 function bench_gges!(sel_func, As, ws)
     for A in As
-        LAPACK.gges!(ws, 'V', 'V', A, A; select=sel_func)
+        LAPACK.gges!(ws, 'V', 'V', A, A; select = sel_func)
     end
 end
 function bench_gges!(As)

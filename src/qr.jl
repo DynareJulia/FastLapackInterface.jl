@@ -138,7 +138,8 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
     for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),
                   eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
         @eval begin
-            function ormqr!(ws::QRWs{$elty}, side::AbstractChar, trans::AbstractChar, A::$elty2,
+            function ormqr!(ws::QRWs{$elty}, side::AbstractChar, trans::AbstractChar,
+                            A::$elty2,
                             C::StridedMatrix{$elty})
                 chktrans(trans)
                 chkside(side)

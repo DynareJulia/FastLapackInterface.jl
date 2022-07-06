@@ -8,11 +8,18 @@ using LinearAlgebra.LAPACK
         A0 = randn(n, n)
         ws = EigenWs(copy(A0); lvecs = true, sense = true)
 
-        A1, WR1, WI1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 =
-            LAPACK.geevx!('P', 'V', 'V', 'V', copy(A0))
-        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            LAPACK.geevx!(ws, 'P', 'V', 'V', 'V', copy(A0))
-            
+        A1, WR1, WI1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 = LAPACK.geevx!('P',
+                                                                                             'V',
+                                                                                             'V',
+                                                                                             'V',
+                                                                                             copy(A0))
+        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = LAPACK.geevx!(ws,
+                                                                                             'P',
+                                                                                             'V',
+                                                                                             'V',
+                                                                                             'V',
+                                                                                             copy(A0))
+
         @test isapprox(A1, A2)
         @test isapprox(WR1, WR2)
         @test isapprox(WI1, WI2)
@@ -24,11 +31,15 @@ using LinearAlgebra.LAPACK
         @test isapprox(abnrm1, abnrm2)
         @test isapprox(rconde1, rconde2; atol = 1e-16)
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
-        
+
         # using Workspace, factorize!
         ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
-        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            factorize!(ws, 'P', 'V', 'V', 'V', copy(A0))
+        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = factorize!(ws,
+                                                                                          'P',
+                                                                                          'V',
+                                                                                          'V',
+                                                                                          'V',
+                                                                                          copy(A0))
         @test isapprox(A1, A2)
         @test isapprox(WR1, WR2)
         @test isapprox(WI1, WI2)
@@ -40,7 +51,7 @@ using LinearAlgebra.LAPACK
         @test isapprox(abnrm1, abnrm2)
         @test isapprox(rconde1, rconde2; atol = 1e-16)
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
-        
+
         show(devnull, "text/plain", ws)
     end
 
@@ -48,11 +59,18 @@ using LinearAlgebra.LAPACK
         A0 = randn(ComplexF64, n, n)
         ws = EigenWs(copy(A0); lvecs = true, sense = true)
 
-        A1, W1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 =
-            LAPACK.geevx!('N', 'V', 'V', 'V', copy(A0))
-        A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            LAPACK.geevx!(ws, 'N', 'V', 'V', 'V', copy(A0))
-            
+        A1, W1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 = LAPACK.geevx!('N',
+                                                                                       'V',
+                                                                                       'V',
+                                                                                       'V',
+                                                                                       copy(A0))
+        A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = LAPACK.geevx!(ws,
+                                                                                       'N',
+                                                                                       'V',
+                                                                                       'V',
+                                                                                       'V',
+                                                                                       copy(A0))
+
         @test isapprox(A1, A2)
         @test isapprox(W1, W2)
         @test isapprox(VL1, VL2)
@@ -65,8 +83,11 @@ using LinearAlgebra.LAPACK
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
         # using Workspace, factorize!
         ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
-        A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            factorize!(ws, 'N', 'V', 'V', 'V', copy(A0))
+        A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = factorize!(ws, 'N',
+                                                                                    'V',
+                                                                                    'V',
+                                                                                    'V',
+                                                                                    copy(A0))
         @test isapprox(A1, A2)
         @test isapprox(W1, W2)
         @test isapprox(VL1, VL2)
