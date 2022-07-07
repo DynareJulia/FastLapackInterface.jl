@@ -22,7 +22,7 @@ export QRWs, QRWYWs, QRpWs
 include("schur.jl")
 export SchurWs, GeneralizedSchurWs
 include("eigen.jl")
-export EigenWs, HermitianEigenWs
+export EigenWs, HermitianEigenWs, GeneralizedEigenWs
 
 """
     Workspace(lapack_function, A)
@@ -40,9 +40,8 @@ Workspace(::typeof(LAPACK.gees!), A::AbstractMatrix) = SchurWs(A)
 Workspace(::typeof(LAPACK.gges!), A::AbstractMatrix) = GeneralizedSchurWs(A)
 
 Workspace(::typeof(LAPACK.geevx!), A::AbstractMatrix; kwargs...) = EigenWs(A; kwargs...)
-function Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...)
-    return HermitianEigenWs(A; kwargs...)
-end
+Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...) = HermitianEigenWs(A; kwargs...)
+Workspace(::typeof(LAPACK.ggev!), A::AbstractMatrix; kwargs...) = GeneralizedEigenWs(A; kwargs...)
 
 export Workspace
 
@@ -62,6 +61,7 @@ decompose!(ws::GeneralizedSchurWs, args...) = LAPACK.gges!(ws, args...)
 
 decompose!(ws::EigenWs, args...)          = LAPACK.geevx!(ws, args...)
 decompose!(ws::HermitianEigenWs, args...) = LAPACK.syevr!(ws, args...)
+decompose!(ws::GeneralizedEigenWs, args...) = LAPACK.ggev!(ws, args...)
 
 """
     factorize!(ws, args...)

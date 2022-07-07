@@ -136,3 +136,49 @@ end
         @test isapprox(Z2, Z2)
     end
 end
+@testset "GeneralizedEigenWs" begin
+    n = 3
+    @testset "Real, square" begin
+        A0 = randn(n, n)
+        B0 = randn(n, n)
+        ws = GeneralizedEigenWs(copy(A0); lvecs = true, rvecs=true)
+
+        αr1, αi1, β1, vl1, vr1 = LAPACK.ggev!('V', 'V', copy(A0), copy(B0))
+        αr2, αi2, β2, vl2, vr2 = LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test isapprox(αr1, αr2)
+        @test isapprox(αi1, αi2)
+        @test isapprox(β1, β2)
+        @test isapprox(vl1, vl2)
+        @test isapprox(vr1, vr2)
+        # using Workspace, factorize!
+        ws = Workspace(LAPACK.ggev!, copy(A0); lvecs = true, rvecs=true)
+        αr2, αi2, β2, vl2, vr2 = LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test isapprox(αr1, αr2)
+        @test isapprox(αi1, αi2)
+        @test isapprox(β1, β2)
+        @test isapprox(vl1, vl2)
+        @test isapprox(vr1, vr2)
+        show(devnull, "text/plain", ws)
+    end
+
+    @testset "Complex, square" begin
+        A0 = randn(ComplexF64, n, n)
+        B0 = randn(ComplexF64, n, n)
+        ws = GeneralizedEigenWs(copy(A0); lvecs = true, rvecs=true)
+
+        αr1, β1, vl1, vr1 = LAPACK.ggev!('V', 'V', copy(A0), copy(B0))
+        αr2, β2, vl2, vr2 = LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test isapprox(αr1, αr2)
+        @test isapprox(β1, β2)
+        @test isapprox(vl1, vl2)
+        @test isapprox(vr1, vr2)
+        # using Workspace, factorize!
+        ws = Workspace(LAPACK.ggev!, copy(A0); lvecs = true, rvecs=true)
+        αr2, β2, vl2, vr2 = LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test isapprox(αr1, αr2)
+        @test isapprox(β1, β2)
+        @test isapprox(vl1, vl2)
+        @test isapprox(vr1, vr2)
+        show(devnull, "text/plain", ws)
+    end
+end
