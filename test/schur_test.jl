@@ -9,7 +9,13 @@ using LinearAlgebra.LAPACK
         ws = SchurWs(copy(A0))
 
         A1, vs1, wr1 = LAPACK.gees!('V', copy(A0))
-        A2, vs2, wr2 = LAPACK.gees!('V', copy(A0), ws)
+        A2, vs2, wr2 = LAPACK.gees!(ws, 'V', copy(A0))
+        @test isapprox(A1, A2)
+        @test isapprox(vs1, vs2)
+        @test isapprox(wr1, wr2)
+        # using Workspace, factorize!
+        ws = Workspace(LAPACK.gees!, copy(A0))
+        A2, vs2, wr2 = factorize!(ws, 'V', copy(A0))
         @test isapprox(A1, A2)
         @test isapprox(vs1, vs2)
         @test isapprox(wr1, wr2)
@@ -22,12 +28,12 @@ using LinearAlgebra.LAPACK
               -0.239769 1.57603 0.330085]
 
         ws1 = SchurWs(copy(A0))
-        A1, vs1, wr1 = LAPACK.gees!((wr, wi) -> wi^2 + wr^2 >= 1, 'V',
-                                    copy(A0), ws1)
+        A1, vs1, wr1 = LAPACK.gees!(ws1, 'V', copy(A0);
+                                    select = (wr, wi) -> wi^2 + wr^2 >= 1)
         @test ws1.sdim[] == 2
 
         ws2 = SchurWs(copy(A0))
-        A2, vs2, wr2 = LAPACK.gees!('V', copy(A0), ws2)
+        A2, vs2, wr2 = LAPACK.gees!(ws2, 'V', copy(A0))
         @test wr1[1] == wr2[1]
         @test wr1[2] == wr2[3]
         @test wr1[3] == wr2[2]
@@ -42,7 +48,17 @@ end
         ws = GeneralizedSchurWs(copy(A0))
 
         A1, B1, eig1, β1, vsl1, vsr1 = LAPACK.gges!('V', 'V', copy(A0), copy(B0))
-        A2, B2, eig2, β2, vsl2, vsr2 = LAPACK.gges!('V', 'V', copy(A0), copy(B0), ws)
+        A2, B2, eig2, β2, vsl2, vsr2 = LAPACK.gges!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test isapprox(A1, A2)
+        @test isapprox(B1, B2)
+        @test isapprox(eig1, eig2)
+        @test isapprox(β1, β2)
+        @test isapprox(vsl1, vsl2)
+        @test isapprox(vsr1, vsr2)
+
+        # Using Workspace, factorize!
+        ws = Workspace(LAPACK.gges!, copy(A0))
+        A2, B2, eig2, β2, vsl2, vsr2 = factorize!(ws, 'V', 'V', copy(A0), copy(B0))
         @test isapprox(A1, A2)
         @test isapprox(B1, B2)
         @test isapprox(eig1, eig2)
@@ -63,10 +79,11 @@ end
               0.86268 -0.212549 -0.211994]
         ws = GeneralizedSchurWs(copy(A0))
 
-        A0, B0, eig, β, vsl, vsr = LAPACK.gges!((ar, ai, b) -> ar^2 + ai^2 <
-                                                FastLapackInterface.SCHUR_CRITERIUM *
-                                                b^2, 'V', 'V',
-                                                copy(A0), copy(B0), ws)
+        A0, B0, eig, β, vsl, vsr = LAPACK.gges!(ws, 'V', 'V', copy(A0),
+                                                copy(B0);
+                                                select = (ar, ai, b) -> ar^2 + ai^2 <
+                                                                        FastLapackInterface.SCHUR_CRITERIUM *
+                                                                        b^2)
         @test ws.sdim[] == 1
         @test sign(real(eig[1])) == -1
         @test sign(real(eig[2])) == 1

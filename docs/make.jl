@@ -48,9 +48,7 @@ makedocs(; modules = [FastLapackInterface],
                              r"https://github.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/edit(.*)"],
          pages = ["Home" => "index.md",
                   "Work Spaces" => "workspaces.md",
-                  "LAPACK" => "LAPACK.md"
-                  ]
-         )
+                  "LAPACK" => "LAPACK.md"])
 
 # Deploy docs to gh-pages branch
 deploydocs(; repo = "github.com/DynareJulia/FastLapackInterface.jl.git", devbranch = "main")
