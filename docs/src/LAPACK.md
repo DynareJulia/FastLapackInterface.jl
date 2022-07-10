@@ -27,3 +27,13 @@ LinearAlgebra.LAPACK.gges!(::GeneralizedSchurWs, ::AbstractChar, ::AbstractChar,
 ```@docs
 LinearAlgebra.LAPACK.getrf!(::LUWs, ::AbstractMatrix)
 ```
+
+## Eigen
+```@docs
+LinearAlgebra.LAPACK.geevx!(::EigenWs, ::AbstractChar, ::AbstractChar, ::AbstractChar, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.syevr!(::HermitianEigenWs, ::AbstractChar, ::AbstractChar,
+       ::AbstractChar, ::AbstractMatrix, ::AbstractFloat, ::AbstractFloat, ::Integer, ::Integer,
+       ::AbstractFloat)
+LinearAlgebra.LAPACK.ggev!(::GeneralizedEigenWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix,
+      ::AbstractMatrix)
+```

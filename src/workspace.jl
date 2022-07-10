@@ -21,7 +21,7 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::T) where {T<:Wo
     summary(io, ws)
     println(io)
     for f in fieldnames(T)
-        print(io, "\t$f: ")
+        print(io, "  $f: ")
         summary(io, getfield(ws, f))
         println(io)
     end

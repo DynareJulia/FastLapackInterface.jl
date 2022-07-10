@@ -18,15 +18,15 @@ julia> A = [1.2 2.3
 
 julia> ws = EigenWs(A, rvecs=true)
 EigenWs{Float64, Matrix{Float64}, Float64}
-        work: 260-element Vector{Float64}
-        rwork: 2-element Vector{Float64}
-        VL: 0×2 Matrix{Float64}
-        VR: 2×2 Matrix{Float64}
-        W: 2-element Vector{Float64}
-        scale: 2-element Vector{Float64}
-        iwork: 0-element Vector{Int64}
-        rconde: 0-element Vector{Float64}
-        rcondv: 0-element Vector{Float64}
+  work: 260-element Vector{Float64}
+  rwork: 2-element Vector{Float64}
+  VL: 0×2 Matrix{Float64}
+  VR: 2×2 Matrix{Float64}
+  W: 2-element Vector{Float64}
+  scale: 2-element Vector{Float64}
+  iwork: 0-element Vector{Int64}
+  rconde: 0-element Vector{Float64}
+  rcondv: 0-element Vector{Float64}
 
 
 julia> t = LAPACK.geevx!(ws, 'N', 'N', 'V', 'N', A);
@@ -231,7 +231,7 @@ geevx!(ws::EigenWs, balanc::AbstractChar, jobvl::AbstractChar,
 """
     HermitianEigenWs
 
-Workspace to be used with Hermitian diagonalzation using the [`LAPACK.syever!`](@ref) function.
+Workspace to be used with Hermitian diagonalzation using the [`LAPACK.syevr!`](@ref) function.
 Supports both `Real` and `Complex` Hermitian matrices.
 # Examples
 ```jldoctest
@@ -243,12 +243,12 @@ julia> A = [1.2 2.3
 
 julia> ws = HermitianEigenWs(A, vecs=true)
 HermitianEigenWs{Float64, Matrix{Float64}, Float64}
-        work: 66-element Vector{Float64}
-        rwork: 0-element Vector{Float64}
-        iwork: 20-element Vector{Int64}
-        w: 2-element Vector{Float64}
-        Z: 2×2 Matrix{Float64}
-        isuppz: 4-element Vector{Int64}
+  work: 66-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+  iwork: 20-element Vector{Int64}
+  w: 2-element Vector{Float64}
+  Z: 2×2 Matrix{Float64}
+  isuppz: 4-element Vector{Int64}
 
 
 julia> LinearAlgebra.Eigen(LAPACK.syevr!(ws, 'V', 'A', 'U', A, 0.0, 0.0, 0, 0, 1e-6)...)
@@ -418,7 +418,7 @@ found. `abstol` can be set as a tolerance for convergence.
 The eigenvalues are returned as `ws.W` and the eigenvectors in `ws.Z`.
 """
 syevr!(ws::HermitianEigenWs, jobz::AbstractChar, range::AbstractChar,
-       uplo::AbstractChar, A::AbstractMatrix{$elty},
+       uplo::AbstractChar, A::AbstractMatrix,
        vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer,
        abstol::AbstractFloat)
 
@@ -444,12 +444,12 @@ julia> B = [8.2 1.7
 
 julia> ws = GeneralizedEigenWs(A, rvecs=true)
 GeneralizedEigenWs{Float64, Matrix{Float64}, Float64}
-        work: 78-element Vector{Float64}
-        vl: 0×2 Matrix{Float64}
-        vr: 2×2 Matrix{Float64}
-        αr: 2-element Vector{Float64}
-        αi: 2-element Vector{Float64}
-        β: 2-element Vector{Float64}
+  work: 78-element Vector{Float64}
+  vl: 0×2 Matrix{Float64}
+  vr: 2×2 Matrix{Float64}
+  αr: 2-element Vector{Float64}
+  αi: 2-element Vector{Float64}
+  β: 2-element Vector{Float64}
 
 
 julia> αr, αi, β, _, vr = LAPACK.ggev!(ws, 'N', 'V', A, B);

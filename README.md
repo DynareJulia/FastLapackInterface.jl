@@ -1,5 +1,5 @@
-[![codecov](https://codecov.io/gh/louisponet/FastLapackInterface.jl/branch/main/graph/badge.svg?token=3VH7VTUQNR)](https://codecov.io/gh/louisponet/FastLapackInterface.jl)
-[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://louisponet.github.io/FastLapackInterface.jl/dev)
+[![codecov](https://codecov.io/gh/dynarejulia/FastLapackInterface.jl/branch/main/graph/badge.svg?token=3VH7VTUQNR)](https://codecov.io/gh/dynarejulia/FastLapackInterface.jl)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://dynarejulia.github.io/FastLapackInterface.jl/dev/)
 
 ``FastLapackInterface`` separates workspace allocation and actual
 running for some Lapack algorithms:

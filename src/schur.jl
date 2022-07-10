@@ -47,9 +47,13 @@ julia> A = [1.2 2.3
 
 julia> ws = SchurWs(A)
 SchurWs{Float64}
-work: 68-element Vector{Float64}
-vs: 2×2 Matrix{Float64}
-eigen_values: 2-element Vector{ComplexF64}
+  work: 68-element Vector{Float64}
+  wr: 2-element Vector{Float64}
+  wi: 2-element Vector{Float64}
+  vs: 2×2 Matrix{Float64}
+  sdim: Base.RefValue{Int64}
+  bwork: 2-element Vector{Int64}
+  eigen_values: 2-element Vector{ComplexF64}
 
 julia> t = Schur(LAPACK.gees!(ws, 'V', A)...)
 Schur{Float64, Matrix{Float64}, Vector{Float64}}
@@ -202,11 +206,16 @@ julia> B = [8.2 0.3
 
 julia> ws = GeneralizedSchurWs(A)
 GeneralizedSchurWs{Float64}
-work: 90-element Vector{Float64}
-vsl: 2×2 Matrix{Float64}
-vsr: 2×2 Matrix{Float64}
-eigen_values: 2-element Vector{ComplexF64}
-
+  work: 90-element Vector{Float64}
+  αr: 2-element Vector{Float64}
+  αi: 2-element Vector{Float64}
+  β: 2-element Vector{Float64}
+  vsl: 2×2 Matrix{Float64}
+  vsr: 2×2 Matrix{Float64}
+  sdim: Base.RefValue{Int64}
+  bwork: 2-element Vector{Int64}
+  eigen_values: 2-element Vector{ComplexF64}
+  
 julia> t = GeneralizedSchur(LAPACK.gges!(ws, 'V','V', A, B)...)
 GeneralizedSchur{Float64, Matrix{Float64}, Vector{ComplexF64}, Vector{Float64}}
 S factor:

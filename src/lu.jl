@@ -15,7 +15,7 @@ julia> A = [1.2 2.3
 
 julia> ws = LUWs(A)
 LUWs
-ipiv: 2-element Vector{Int64}
+  ipiv: 2-element Vector{Int64}
 
 julia> t = LU(LAPACK.getrf!(ws, A)...)
 LU{Float64, Matrix{Float64}, Vector{Int64}}

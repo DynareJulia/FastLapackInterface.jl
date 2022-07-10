@@ -13,13 +13,7 @@ Workspace
 
 ```@docs
 QRWs
-```
-
-```@docs
 QRWYWs
-```
-
-```@docs
 QRpWs
 ```
 
@@ -33,4 +27,11 @@ GeneralizedSchurWs
 ## [LU](@id LU-id)
 ```@docs
 LUWs
+```
+
+## [Eigen](@id Eigen-id)
+```@docs
+EigenWs
+HermitianEigenWs
+GeneralizedEigenWs
 ```

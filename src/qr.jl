@@ -17,8 +17,8 @@ julia> A = [1.2 2.3
 
 julia> ws = QRWs(A)
 QRWs{Float64}
-work: 64-element Vector{Float64}
-τ: 2-element Vector{Float64}
+  work: 64-element Vector{Float64}
+  τ: 2-element Vector{Float64}
 
 julia> t = QR(LAPACK.geqrf!(ws, A)...)
 QR{Float64, Matrix{Float64}, Vector{Float64}}
@@ -182,9 +182,8 @@ julia> A = [1.2 2.3
 
 julia> ws = QRWYWs(A)
 QRWYWs{Float64, Matrix{Float64}}
-blocksize: 2
-work: 4-element Vector{Float64}
-T: 2×2 Matrix{Float64}
+  work: 4-element Vector{Float64}
+  T: 2×2 Matrix{Float64}
 
 julia> t = QRCompactWY(LAPACK.geqrt!(ws, A)...)
 QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
@@ -280,9 +279,9 @@ julia> A = [1.2 2.3
 
 julia> ws = QRpWs(A)
 QRpWs{Float64}
-work: 100-element Vector{Float64}
-τ: 2-element Vector{Float64}
-jpvt: 2-element Vector{Int64}
+  work: 100-element Vector{Float64}
+  τ: 2-element Vector{Float64}
+  jpvt: 2-element Vector{Int64}
 
 julia> t = QRPivoted(LAPACK.geqp3!(ws, A)...)
 QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
