@@ -29,16 +29,9 @@ U factor:
  0.0  1.66129
 ```
 """
-struct LUWs
+struct LUWs <: Workspace
     ipiv::Vector{BlasInt}
 end
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::LUWs)
-    summary(io, ws)
-    println(io)
-    print(io, "ipiv: ")
-    return summary(io, ws.ipiv)
-end
-
 LUWs(n::Int) = LUWs(zeros(BlasInt, n))
 LUWs(a::AbstractMatrix) = LUWs(min(size(a)...))
 

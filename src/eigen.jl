@@ -16,29 +16,34 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = QRWs(A)
-QRWs{Float64}
-work: 64-element Vector{Float64}
-τ: 2-element Vector{Float64}
+julia> ws = EigenWs(A, rvecs=true)
+EigenWs{Float64, Matrix{Float64}, Float64}
+        work: 260-element Vector{Float64}
+        rwork: 2-element Vector{Float64}
+        VL: 0×2 Matrix{Float64}
+        VR: 2×2 Matrix{Float64}
+        W: 2-element Vector{Float64}
+        scale: 2-element Vector{Float64}
+        iwork: 0-element Vector{Int64}
+        rconde: 0-element Vector{Float64}
+        rcondv: 0-element Vector{Float64}
 
-julia> t = QR(LAPACK.geqrf!(ws, A)...)
-QR{Float64, Matrix{Float64}, Vector{Float64}}
-Q factor:
-2×2 QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
- -0.190022  -0.98178
- -0.98178    0.190022
-R factor:
-2×2 Matrix{Float64}:
- -6.31506  -3.67692
-  0.0      -1.63102
 
-julia> Matrix(t)
+julia> t = LAPACK.geevx!(ws, 'N', 'N', 'V', 'N', A);
+
+julia> LinearAlgebra.Eigen(t[2], t[5])
+Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+values:
+2-element Vector{Float64}:
+ -1.6695025194532018
+  6.169502519453203
+vectors:
 2×2 Matrix{Float64}:
- 1.2  2.3
- 6.2  3.3
+ -0.625424  -0.420019
+  0.780285  -0.907515
 ```
 """
-struct EigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat}
+struct EigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
     work::Vector{T}
     rwork::Vector{RT} # Can be rwork if T <: Complex or WI if T <: Float64
     VL::MT
@@ -48,15 +53,6 @@ struct EigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat}
     iwork::Vector{BlasInt}
     rconde::Vector{RT}
     rcondv::Vector{RT}
-end
-
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::EigenWs)
-    summary(io, ws)
-    println(io)
-    for f in fieldnames(EigenWs)
-        print(io, "$f: ")
-        summary(io, getfield(ws, f))
-    end
 end
 
 for (geevx, elty, relty) in
@@ -212,23 +208,70 @@ for (geevx, elty, relty) in
     end
 end
 
-struct HermitianEigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat}
+"""
+    geevx!(ws, balanc, jobvl, jobvr, sense, A) -> (A, ws.W, [ws.rwork,] ws.VL, ws.VR, ilo, ihi, ws.scale, abnrm, ws.rconde, ws.rcondv)
+
+Finds the eigensystem of `A` with matrix balancing using a preallocated [`EigenWs`](@ref).
+If `jobvl = N`, the left eigenvectors of `A` aren't computed. If `jobvr = N`, the right
+eigenvectors of `A` aren't computed. If `jobvl = V` or `jobvr = V`, the
+corresponding eigenvectors are computed. If `balanc = N`, no balancing is
+performed. If `balanc = P`, `A` is permuted but not scaled. If
+`balanc = S`, `A` is scaled but not permuted. If `balanc = B`, `A` is
+permuted and scaled. If `sense = N`, no reciprocal condition numbers are
+computed. If `sense = E`, reciprocal condition numbers are computed for
+the eigenvalues only. If `sense = V`, reciprocal condition numbers are
+computed for the right eigenvectors only. If `sense = B`, reciprocal
+condition numbers are computed for the right eigenvectors and the
+eigenvectors. If `sense = E,B`, the right and left eigenvectors must be
+computed. `ws.rwork` is only returned in the `Real` case.
+"""
+geevx!(ws::EigenWs, balanc::AbstractChar, jobvl::AbstractChar,
+       jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix)
+
+
+
+"""
+    HermitianEigenWs
+
+Workspace to be used with Hermitian diagonalzation using the [`LAPACK.syever!`](@ref) function.
+Supports both `Real` and `Complex` Hermitian matrices.
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> ws = HermitianEigenWs(A, vecs=true)
+HermitianEigenWs{Float64, Matrix{Float64}, Float64}
+        work: 66-element Vector{Float64}
+        rwork: 0-element Vector{Float64}
+        iwork: 20-element Vector{Int64}
+        w: 2-element Vector{Float64}
+        Z: 2×2 Matrix{Float64}
+        isuppz: 4-element Vector{Int64}
+
+
+julia> LinearAlgebra.Eigen(LAPACK.syevr!(ws, 'V', 'A', 'U', A, 0.0, 0.0, 0, 0, 1e-6)...)
+Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+values:
+2-element Vector{Float64}:
+ -0.2783393759541063
+  4.778339375954106
+vectors:
+2×2 Matrix{Float64}:
+ -0.841217  0.540698
+  0.540698  0.841217
+```
+"""
+struct HermitianEigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
     work::Vector{T}
     rwork::Vector{RT}
     iwork::Vector{BlasInt}
     w::Vector{RT}
     Z::MT
     isuppz::Vector{BlasInt}
-end
-
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::HermitianEigenWs)
-    summary(io, ws)
-    println(io)
-    for f in fieldnames(HermitianEigenWs)
-        print(io, "$f: ")
-        summary(io, getfield(ws, f))
-        print(io, "\n")
-    end
 end
 
 for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
@@ -363,22 +406,75 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
     end
 end
 
-struct GeneralizedEigenWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat}
+"""
+    syevr!(ws, jobz, range, uplo, A, vl, vu, il, iu, abstol) -> (ws.W, ws.Z)
+
+Finds the eigenvalues (`jobz = N`) or eigenvalues and eigenvectors
+(`jobz = V`) of a symmetric matrix `A` using a preallocated [`HermitianEigenWs`](@ref).
+If `uplo = U`, the upper triangle of `A` is used. If `uplo = L`, the lower triangle of `A` is used.
+If `range = A`, all the eigenvalues are found. If `range = V`, the
+eigenvalues in the half-open interval `(vl, vu]` are found.
+If `range = I`, the eigenvalues with indices between `il` and `iu` are
+found. `abstol` can be set as a tolerance for convergence.
+
+The eigenvalues are returned as `ws.W` and the eigenvectors in `ws.Z`.
+"""
+syevr!(ws::HermitianEigenWs, jobz::AbstractChar, range::AbstractChar,
+       uplo::AbstractChar, A::AbstractMatrix{$elty},
+       vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer,
+       abstol::AbstractFloat)
+
+"""
+    GeneralizedEigenWs
+
+Workspace that can be used for Generalized eigen decomposition using [`LAPACK.ggev!`](@ref).
+Supports `Real` and `Complex` matrices.
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> B = [8.2 1.7
+            5.9 2.1]
+2×2 Matrix{Float64}:
+ 8.2  1.7
+ 5.9  2.1
+
+julia> ws = GeneralizedEigenWs(A, rvecs=true)
+GeneralizedEigenWs{Float64, Matrix{Float64}, Float64}
+        work: 78-element Vector{Float64}
+        vl: 0×2 Matrix{Float64}
+        vr: 2×2 Matrix{Float64}
+        αr: 2-element Vector{Float64}
+        αi: 2-element Vector{Float64}
+        β: 2-element Vector{Float64}
+
+
+julia> αr, αi, β, _, vr = LAPACK.ggev!(ws, 'N', 'V', A, B);
+
+julia> LinearAlgebra.Eigen(αr ./ β, vr)
+Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+values:
+2-element Vector{Float64}:
+ -0.8754932558185097
+  1.6362721153456299
+vectors:
+2×2 Matrix{Float64}:
+ -0.452121  -0.0394242
+  1.0        1.0
+```
+"""
+struct GeneralizedEigenWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: Workspace
     work::Vector{T}
     vl::MT
     vr::MT
     αr::Vector{T}
     αi::Vector{RT}
     β::Vector{T}
-end
-
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GeneralizedEigenWs)
-    summary(io, ws)
-    println(io)
-    for f in fieldnames(GeneralizedEigenWs)
-        print(io, "$f: ")
-        summary(io, getfield(ws, f))
-    end
 end
 
 for (ggev, elty, relty) in
@@ -487,3 +583,13 @@ for (ggev, elty, relty) in
         end
     end
 end
+
+"""
+    ggev!(ws, jobvl, jobvr, A, B) -> (ws.αr, [ws.αi,], ws.β, ws.vl, ws.vr)
+
+Finds the generalized eigendecomposition of `A` and `B` usin a preallocated [`GeneralizedEigenWs`](@ref).
+If `jobvl = N`, the left eigenvectors aren't computed. If `jobvr = N`, the right
+eigenvectors aren't computed. If `jobvl = V` or `jobvr = V`, the
+corresponding eigenvectors are computed. `ws.αi` is only returned in the `Real` case.
+"""
+ggev!(ws::GeneralizedEigenWs, jobvl::AbstractChar, jobvr::AbstractChar, A::AbstractMatrix, B::AbstractMatrix)

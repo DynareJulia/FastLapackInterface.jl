@@ -37,22 +37,12 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRWs{T<:Number}
+struct QRWs{T<:Number} <: Workspace
     work::Vector{T}
     τ::Vector{T}
 end
 
 Base.length(ws::QRWs) = length(ws.τ)
-
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRWs)
-    summary(io, ws)
-    println(io)
-    print(io, "work: ")
-    summary(io, ws.work)
-    println(io)
-    print(io, "τ: ")
-    return summary(io, ws.τ)
-end
 
 for (geqrf, elty) in ((:dgeqrf_, :Float64),
                       (:sgeqrf_, :Float32),
@@ -213,20 +203,9 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRWYWs{R<:Number,MT<:StridedMatrix{R}}
+struct QRWYWs{R<:Number,MT<:StridedMatrix{R}} <: Workspace
     work::Vector{R}
     T::MT
-end
-
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRWYWs)
-    summary(io, ws)
-    println(io)
-    println(io, "blocksize: $(size(ws.T, 1))")
-    print(io, "work: ")
-    summary(io, ws.work)
-    println(io)
-    print(io, "T: ")
-    return summary(io, ws.T)
 end
 
 for (geqrt, elty) in ((:dgeqrt_, :Float64),
@@ -326,23 +305,10 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRpWs{T<:Number}
+struct QRpWs{T<:Number} <: Workspace
     work::Vector{T}
     τ::Vector{T}
     jpvt::Vector{BlasInt}
-end
-
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::QRpWs)
-    summary(io, ws)
-    println(io)
-    print(io, "work: ")
-    summary(io, ws.work)
-    println(io)
-    print(io, "τ: ")
-    summary(io, ws.τ)
-    println(io)
-    print(io, "jpvt: ")
-    return summary(io, ws.jpvt)
 end
 
 for (geqp3, elty) in ((:dgeqp3_, :Float64),

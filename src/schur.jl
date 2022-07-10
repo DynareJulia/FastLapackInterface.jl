@@ -72,7 +72,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-mutable struct SchurWs{T<:AbstractFloat}
+mutable struct SchurWs{T<:AbstractFloat} <: Workspace
     work::Vector{T}
     wr::Vector{T}
     wi::Vector{T}
@@ -80,19 +80,6 @@ mutable struct SchurWs{T<:AbstractFloat}
     sdim::Ref{BlasInt}
     bwork::Vector{BlasInt}
     eigen_values::Vector{Complex{T}}
-end
-
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::SchurWs)
-    summary(io, ws)
-    println(io)
-    print(io, "work: ")
-    summary(io, ws.work)
-    println(io)
-    print(io, "vs: ")
-    summary(io, ws.vs)
-    println(io)
-    print(io, "eigen_values: ")
-    return summary(io, ws.eigen_values)
 end
 
 Base.length(ws::SchurWs) = length(ws.wr)
@@ -248,7 +235,7 @@ Z factor:
  6.855578082442485
 ```
 """
-mutable struct GeneralizedSchurWs{T}
+mutable struct GeneralizedSchurWs{T} <: Workspace
     work::Vector{T}
     αr::Vector{T}
     αi::Vector{T}
@@ -258,22 +245,6 @@ mutable struct GeneralizedSchurWs{T}
     sdim::Ref{BlasInt}
     bwork::Vector{BlasInt}
     eigen_values::Vector{Complex{T}}
-end
-
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::GeneralizedSchurWs)
-    summary(io, ws)
-    println(io)
-    print(io, "work: ")
-    summary(io, ws.work)
-    println(io)
-    print(io, "vsl: ")
-    summary(io, ws.vsl)
-    println(io)
-    print(io, "vsr: ")
-    summary(io, ws.vsr)
-    println(io)
-    print(io, "eigen_values: ")
-    return summary(io, ws.eigen_values)
 end
 
 Base.length(ws::GeneralizedSchurWs) = length(ws.αr)
