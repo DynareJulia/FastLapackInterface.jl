@@ -231,7 +231,7 @@ geevx!(ws::EigenWs, balanc::AbstractChar, jobvl::AbstractChar,
 """
     HermitianEigenWs
 
-Workspace to be used with Hermitian diagonalzation using the [`LAPACK.syevr!`](@ref) function.
+Workspace to be used with Hermitian diagonalization using the [`LAPACK.syevr!`](@ref) function.
 Supports both `Real` and `Complex` Hermitian matrices.
 # Examples
 ```jldoctest
@@ -425,7 +425,8 @@ syevr!(ws::HermitianEigenWs, jobz::AbstractChar, range::AbstractChar,
 """
     GeneralizedEigenWs
 
-Workspace that can be used for Generalized eigen decomposition using [`LAPACK.ggev!`](@ref).
+Workspace that can be used for [`LinearAlgebra.GeneralizedEigen`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedEigen)
+factorization using [`LAPACK.ggev!`](@ref).
 Supports `Real` and `Complex` matrices.
 
 # Examples
@@ -454,8 +455,8 @@ GeneralizedEigenWs{Float64, Matrix{Float64}, Float64}
 
 julia> αr, αi, β, _, vr = LAPACK.ggev!(ws, 'N', 'V', A, B);
 
-julia> LinearAlgebra.Eigen(αr ./ β, vr)
-Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+julia> LinearAlgebra.GeneralizedEigen(αr ./ β, vr)
+GeneralizedEigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
 values:
 2-element Vector{Float64}:
  -0.8754932558185097
