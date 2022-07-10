@@ -29,7 +29,6 @@ using LinearAlgebra.LAPACK
         @test isapprox(ihi1, ihi2)
         @test isapprox(scale1, scale2)
         @test isapprox(abnrm1, abnrm2)
-        @test isapprox(rconde1, rconde2; atol = 1e-16)
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
 
         # using Workspace, factorize!
@@ -49,7 +48,6 @@ using LinearAlgebra.LAPACK
         @test isapprox(ihi1, ihi2)
         @test isapprox(scale1, scale2)
         @test isapprox(abnrm1, abnrm2)
-        @test isapprox(rconde1, rconde2; atol = 1e-16)
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
 
         show(devnull, "text/plain", ws)
