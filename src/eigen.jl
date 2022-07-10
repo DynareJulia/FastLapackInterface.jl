@@ -228,8 +228,6 @@ computed. `ws.rwork` is only returned in the `Real` case.
 geevx!(ws::EigenWs, balanc::AbstractChar, jobvl::AbstractChar,
        jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix)
 
-
-
 """
     HermitianEigenWs
 
@@ -468,7 +466,7 @@ vectors:
   1.0        1.0
 ```
 """
-struct GeneralizedEigenWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: Workspace
+struct GeneralizedEigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
     work::Vector{T}
     vl::MT
     vr::MT
@@ -478,13 +476,12 @@ struct GeneralizedEigenWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: Worksp
 end
 
 for (ggev, elty, relty) in
-    ((:dggev_,:Float64, :Float64),
-     (:sggev_,:Float32, :Float32),
-     (:zggev_,:ComplexF64,:Float64),
-     (:cggev_,:ComplexF32,:Float32))
-     
+    ((:dggev_, :Float64, :Float64),
+     (:sggev_, :Float32, :Float32),
+     (:zggev_, :ComplexF64, :Float64),
+     (:cggev_, :ComplexF32, :Float32))
     @eval begin
-        function GeneralizedEigenWs(A::AbstractMatrix{$elty}; lvecs=false, rvecs=false)
+        function GeneralizedEigenWs(A::AbstractMatrix{$elty}; lvecs = false, rvecs = false)
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -493,50 +490,51 @@ for (ggev, elty, relty) in
             αr = zeros($elty, n)
             cmplx = eltype(A) <: Complex
             αi = cmplx ? Vector{$relty}(undef, 8n) : zeros($relty, n)
-            β  = zeros($elty, n)
-            
+            β = zeros($elty, n)
+
             jobvl = lvecs ? 'V' : 'N'
             jobvr = rvecs ? 'V' : 'N'
             ldvl = lvecs ? n : 1
             ldvr = rvecs ? n : 1
             vl = zeros($elty, lvecs ? n : 0, n)
             vr = zeros($elty, rvecs ? n : 0, n)
-            
+
             work = Vector{$elty}(undef, 1)
             lwork = BlasInt(-1)
             info = Ref{BlasInt}()
 
             if cmplx
                 ccall((@blasfunc($ggev), liblapack), Cvoid,
-                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
-                     Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                     Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                     Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
-                     Ptr{BlasInt}, Clong, Clong),
-                    jobvl, jobvr, n, A,
-                    lda, A, ldb, αr,
-                    β, vl, ldvl, vr,
-                    ldvr, work, lwork, αi,
-                    info, 1, 1)
+                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
+                       Ptr{BlasInt}, Clong, Clong),
+                      jobvl, jobvr, n, A,
+                      lda, A, ldb, αr,
+                      β, vl, ldvl, vr,
+                      ldvr, work, lwork, αi,
+                      info, 1, 1)
             else
                 ccall((@blasfunc($ggev), liblapack), Cvoid,
-                        (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
-                         Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                         Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                         Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                         Ptr{BlasInt}, Clong, Clong),
-                        jobvl, jobvr, n, A,
-                        lda, A, ldb, αr,
-                        αi, β, vl, ldvl,
-                        vr, ldvr, work, lwork,
-                        info, 1, 1)
+                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{BlasInt}, Clong, Clong),
+                      jobvl, jobvr, n, A,
+                      lda, A, ldb, αr,
+                      αi, β, vl, ldvl,
+                      vr, ldvr, work, lwork,
+                      info, 1, 1)
             end
             chklapackerror(info[])
             resize!(work, BlasInt(work[1]))
             return GeneralizedEigenWs(work, vl, vr, αr, αi, β)
         end
-        
-        function ggev!(ws::GeneralizedEigenWs, jobvl::AbstractChar, jobvr::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty})
+
+        function ggev!(ws::GeneralizedEigenWs, jobvl::AbstractChar, jobvr::AbstractChar,
+                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty})
             require_one_based_indexing(A, B)
             chkstride1(A, B)
             n, m = checksquare(A, B)
@@ -553,30 +551,30 @@ for (ggev, elty, relty) in
             info = Ref{BlasInt}()
             if eltype(A) <: Complex
                 ccall((@blasfunc($ggev), liblapack), Cvoid,
-                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
-                     Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                     Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                     Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
-                     Ptr{BlasInt}, Clong, Clong),
-                    jobvl, jobvr, n, A,
-                    lda, B, ldb, ws.αr,
-                    ws.β, ws.vl, max(ldvl, 1), ws.vr,
-                    max(ldvl, 1), ws.work, length(ws.work), ws.αi,
-                    info, 1, 1)
+                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
+                       Ptr{BlasInt}, Clong, Clong),
+                      jobvl, jobvr, n, A,
+                      lda, B, ldb, ws.αr,
+                      ws.β, ws.vl, max(ldvl, 1), ws.vr,
+                      max(ldvl, 1), ws.work, length(ws.work), ws.αi,
+                      info, 1, 1)
                 chklapackerror(info[])
                 return ws.αr, ws.β, ws.vl, ws.vr
             else
                 ccall((@blasfunc($ggev), liblapack), Cvoid,
-                        (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
-                         Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                         Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                         Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                         Ptr{BlasInt}, Clong, Clong),
-                        jobvl, jobvr, n, A,
-                        lda, B, ldb, ws.αr,
-                        ws.αi, ws.β, ws.vl, max(ldvl, 1),
-                        ws.vr, max(ldvr, 1), ws.work, length(ws.work),
-                        info, 1, 1)
+                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{BlasInt}, Clong, Clong),
+                      jobvl, jobvr, n, A,
+                      lda, B, ldb, ws.αr,
+                      ws.αi, ws.β, ws.vl, max(ldvl, 1),
+                      ws.vr, max(ldvr, 1), ws.work, length(ws.work),
+                      info, 1, 1)
                 chklapackerror(info[])
                 return ws.αr, ws.αi, ws.β, ws.vl, ws.vr
             end
@@ -592,4 +590,5 @@ If `jobvl = N`, the left eigenvectors aren't computed. If `jobvr = N`, the right
 eigenvectors aren't computed. If `jobvl = V` or `jobvr = V`, the
 corresponding eigenvectors are computed. `ws.αi` is only returned in the `Real` case.
 """
-ggev!(ws::GeneralizedEigenWs, jobvl::AbstractChar, jobvr::AbstractChar, A::AbstractMatrix, B::AbstractMatrix)
+ggev!(ws::GeneralizedEigenWs, jobvl::AbstractChar, jobvr::AbstractChar, A::AbstractMatrix,
+      B::AbstractMatrix)

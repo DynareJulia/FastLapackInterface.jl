@@ -41,7 +41,7 @@ decompose!(ws::QRpWs, args...)  = LAPACK.geqp3!(ws, args...)
 decompose!(ws::SchurWs, args...)            = LAPACK.gees!(ws, args...)
 decompose!(ws::GeneralizedSchurWs, args...) = LAPACK.gges!(ws, args...)
 
-decompose!(ws::EigenWs, args...)          = LAPACK.geevx!(ws, args...)
+decompose!(ws::EigenWs, args...) = LAPACK.geevx!(ws, args...)
 decompose!(ws::HermitianEigenWs, args...) = LAPACK.syevr!(ws, args...)
 decompose!(ws::GeneralizedEigenWs, args...) = LAPACK.ggev!(ws, args...)
 
@@ -51,4 +51,3 @@ decompose!(ws::GeneralizedEigenWs, args...) = LAPACK.ggev!(ws, args...)
 Alias for [`decompose!`](@ref).
 """
 const factorize! = decompose!
-
