@@ -23,7 +23,7 @@ suite["LUWs"]["getrf!"]["LAPACK"]    = BenchmarkGroup()
 
 function bench_getrf!(As, ws)
     for A in As
-        LAPACK.getrf!(A, ws)
+        LAPACK.getrf!(ws, A)
     end
 end
 function bench_getrf!(As)

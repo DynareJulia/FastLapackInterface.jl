@@ -9,9 +9,14 @@ using LinearAlgebra.LAPACK
         ws = QRWs(A0)
         @testset "geqrf!" begin
             A = copy(A0)
-            AT, tau = LAPACK.geqrf!(A, ws)
+            AT, tau = LAPACK.geqrf!(ws, A)
 
             AT1, tau1 = LAPACK.geqrf!(copy(A0), randn(n))
+            @test AT1 == AT
+            @test tau1 == tau
+            # using Workspace, factorize!
+            ws = Workspace(LAPACK.geqrf!, copy(A0))
+            AT1, tau1 = factorize!(ws, copy(A0))
             @test AT1 == AT
             @test tau1 == tau
         end
@@ -21,11 +26,11 @@ using LinearAlgebra.LAPACK
             tau = randn(n)
             ws.τ .= tau
             Cout = LAPACK.ormqr!('L', 'N', copy(A0), tau, copy(C))
-            Cout2 = LAPACK.ormqr!('L', 'N', copy(A0), copy(C), ws)
+            Cout2 = LAPACK.ormqr!(ws, 'L', 'N', copy(A0), copy(C))
             @test isapprox(Cout, Cout2)
 
             # Is more testing required?
-            Cout2 = LAPACK.ormqr!('L', 'T', copy(A0)', copy(C), ws)
+            Cout2 = LAPACK.ormqr!(ws, 'L', 'T', copy(A0)', copy(C))
             @test isapprox(Cout, Cout2)
         end
         show(devnull, "text/plain", ws)
@@ -40,9 +45,14 @@ end
         @testset "geqrt!" begin
             A = copy(A0)
             ws = QRWYWs(A)
-            AT, taut = LAPACK.geqrt!(A, ws)
 
+            AT, taut = LAPACK.geqrt!(ws, copy(A))
             AT1, taut1 = LAPACK.geqrt!(copy(A0), zeros(size(ws.T)))
+            @test AT1 == AT
+            @test isapprox(taut1, taut)
+            # using Workspace, factorize!
+            ws = Workspace(LAPACK.geqrt!, copy(A))
+            AT, taut = factorize!(ws, A)
             @test AT1 == AT
             @test isapprox(taut1, taut)
             show(devnull, "text/plain", ws)
@@ -58,13 +68,21 @@ end
         @testset "geqp3!" begin
             A = copy(A0)
             ws = QRpWs(A)
-            AT, taut, jpvt = LAPACK.geqp3!(A, ws)
+            AT, taut, jpvt = LAPACK.geqp3!(ws, copy(A))
 
             AT1, taut1, jpvt1 = LAPACK.geqp3!(copy(A0), zeros(Int, length(ws.jpvt)),
                                               zeros(size(ws.τ)))
             @test isapprox(AT1, AT)
             @test isapprox(jpvt1, jpvt)
             @test isapprox(taut1, taut)
+
+            # using Workspace, factorize!
+            ws = Workspace(LAPACK.geqp3!, copy(A))
+            AT, taut, jpvt = factorize!(ws, copy(A))
+            @test isapprox(AT1, AT)
+            @test isapprox(jpvt1, jpvt)
+            @test isapprox(taut1, taut)
+
             show(devnull, "text/plain", ws)
         end
     end

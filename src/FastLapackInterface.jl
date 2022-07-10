@@ -15,11 +15,21 @@ else
     const liblapack = "libblastrampoline"
 end
 
+abstract type Workspace end
+
 include("lu.jl")
 export LUWs
 include("qr.jl")
 export QRWs, QRWYWs, QRpWs
 include("schur.jl")
 export SchurWs, GeneralizedSchurWs
+include("eigen.jl")
+export EigenWs, HermitianEigenWs, GeneralizedEigenWs
+
+# Uniform interface
+include("workspace.jl")
+export Workspace
+export decompose!, factorize!
+
 end #module
 #import LinearAlgebra: USE_BLAS64, LAPACKException

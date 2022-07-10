@@ -15,9 +15,9 @@ julia> A = [1.2 2.3
 
 julia> ws = LUWs(A)
 LUWs
-ipiv: 2-element Vector{Int64}
+  ipiv: 2-element Vector{Int64}
 
-julia> t = LU(LAPACK.getrf!(A, ws)...)
+julia> t = LU(LAPACK.getrf!(ws, A)...)
 LU{Float64, Matrix{Float64}, Vector{Int64}}
 L factor:
 2×2 Matrix{Float64}:
@@ -29,16 +29,9 @@ U factor:
  0.0  1.66129
 ```
 """
-struct LUWs
+struct LUWs <: Workspace
     ipiv::Vector{BlasInt}
 end
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::LUWs)
-    summary(io, ws)
-    println(io)
-    print(io, "ipiv: ")
-    return summary(io, ws.ipiv)
-end
-
 LUWs(n::Int) = LUWs(zeros(BlasInt, n))
 LUWs(a::AbstractMatrix) = LUWs(min(size(a)...))
 
@@ -47,7 +40,7 @@ for (getrf, elty) in ((:dgetrf_, :Float64),
                       (:zgetrf_, :ComplexF64),
                       (:cgetrf_, :ComplexF32))
     @eval begin
-        function getrf!(A::AbstractMatrix{$elty}, ws::LUWs)
+        function getrf!(ws::LUWs, A::AbstractMatrix{$elty})
             @assert min(size(A)...) <= length(ws.ipiv) "Allocated Workspace is too small."
             require_one_based_indexing(A)
             chkstride1(A)
@@ -63,10 +56,9 @@ for (getrf, elty) in ((:dgetrf_, :Float64),
         end
     end
 end
-# No need to reimplement the solve because can just reuse LU from base Julia
 
 """
-    getrf!(A, ws) -> (A, ws.ipiv, info)
+    getrf!(ws, A) -> (A, ws.ipiv, info)
 
 Compute the pivoted `LU` factorization of `A`, `A = LU`, using the preallocated [`LUWs`](@ref) workspace `ws`.
 
@@ -74,4 +66,4 @@ Returns `A`, modified in-place, `ws.ipiv`, the pivoting information, and the `ws
 code which indicates success (`info = 0`), a singular value in `U`
 (`info = i`, in which case `U[i,i]` is singular), or an error code (`info < 0`).
 """
-getrf!(A::AbstractMatrix, ws::LUWs)
+getrf!(ws::LUWs, A::AbstractMatrix)
