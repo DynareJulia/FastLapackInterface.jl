@@ -11,7 +11,7 @@ running for some Lapack algorithms:
 ### LU factorization and linear problem solution
 
  - ``ws = LUWs(A)`` creates storage for a linear problem with matrix representation `A`.
- - ``LAPACK.getrf!(A, ws)`` computes the LU factorization using the preallocated workspace and returns the
+ - ``LAPACK.getrf!(ws, A)`` computes the LU factorization using the preallocated workspace and returns the
  arguments that can be used to construct `LinearAlgebra.LU`.
  
 ```julia
@@ -25,9 +25,9 @@ LinearAlgebra.LU(LAPACK.getrf!(ws, A)...)
 
 - `ws = QRWs(A)` allocates workspace for QR factorization of
   a matrix similar to `A`
-- `geqrf!(A, ws)` computes QR factorization of matrix `A` and
+- `geqrf!(ws, A)` computes QR factorization of matrix `A` and
   stores it in `A` and `ws.τ`, and returns the arguments for the constructor of `LinearAlgebra.QR`.  
-- `ormqr!(side, A, C, ws)` computes `Q*C` (`side='L'`) or `C*Q`
+- `ormqr!(ws, side, A, C)` computes `Q*C` (`side='L'`) or `C*Q`
   (`side='R'`) 
 - `ormqr!(side, transpose(A), C, ws)` computes `transpose(Q)*C`
   (`side='L'`) or `C*transpose(Q)` (`side='R'`)
@@ -44,7 +44,7 @@ LinearAlgebra.QR(LAPACK.geqrf!(ws, A)...)
 
 - `SchurWs(A)` allocates workspace for the real Schur decomposition of
   a matrix similar to `A`.
-- `gees!(A, ws)` computes the Schur decomposition and returns the arguments to
+- `gees!(ws, A)` computes the Schur decomposition and returns the arguments to
    the constructor of `LinearAlgebra.Schur`.
 - A workspace for the generalized Schur decomposition also exists.
 - It is possible to use select functions with `gees!` or `gges!` to order the eigenvalues.
