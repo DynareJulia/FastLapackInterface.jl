@@ -18,7 +18,7 @@ running for some Lapack algorithms:
 A = [1.2 2.3
      6.2 3.3]
 ws = LUWs(A)
-LinearAlgebra.LU(LAPACK.getrf!(A, ws)...)
+LinearAlgebra.LU(LAPACK.getrf!(ws, A)...)
 ```
 
 ### QR factorization ( A = Q*R)
@@ -37,7 +37,7 @@ LinearAlgebra.LU(LAPACK.getrf!(A, ws)...)
 A = [1.2 2.3
      6.2 3.3]
 ws = QRWs(A)
-LinearAlgebra.QR(LAPACK.geqrf!(A, ws)...)
+LinearAlgebra.QR(LAPACK.geqrf!(ws, A)...)
 ```
   
 ### Schur factorization
@@ -52,7 +52,7 @@ LinearAlgebra.QR(LAPACK.geqrf!(A, ws)...)
 A = [1.2 2.3
      6.2 3.3]
 ws = SchurWs(A)
-LinearAlgebra.Schur(LAPACK.gees!('V', A, ws)...)
+LinearAlgebra.Schur(LAPACK.gees!(ws, 'V', A)...)
 ```
 For more info see the [Documentation](https://louisponet.github.io/FastLapackInterface.jl/dev)
 
