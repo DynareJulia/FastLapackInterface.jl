@@ -1,3 +1,13 @@
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::T) where {T<:Workspace}
+    summary(io, ws)
+    println(io)
+    for f in fieldnames(T)
+        print(io, "  $f: ")
+        summary(io, getfield(ws, f))
+        println(io)
+    end
+end
+
 """
     Workspace(lapack_function, A)
 
@@ -43,15 +53,8 @@ Workspace(::typeof(LAPACK.geevx!), A::AbstractMatrix; kwargs...) = EigenWs(A; kw
 Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...) = HermitianEigenWs(A; kwargs...)
 Workspace(::typeof(LAPACK.ggev!), A::AbstractMatrix; kwargs...) = GeneralizedEigenWs(A; kwargs...)
 
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::T) where {T<:Workspace}
-    summary(io, ws)
-    println(io)
-    for f in fieldnames(T)
-        print(io, "  $f: ")
-        summary(io, getfield(ws, f))
-        println(io)
-    end
-end
+Workspace(::typeof(LAPACK.sytrf!), A::AbstractMatrix) = BunchKaufmanWs(A)
+Workspace(::typeof(LAPACK.sytrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
 
 """
     decompose!(ws, args...)
@@ -70,6 +73,8 @@ decompose!(ws::GeneralizedSchurWs, args...) = LAPACK.gges!(ws, args...)
 decompose!(ws::EigenWs, args...) = LAPACK.geevx!(ws, args...)
 decompose!(ws::HermitianEigenWs, args...) = LAPACK.syevr!(ws, args...)
 decompose!(ws::GeneralizedEigenWs, args...) = LAPACK.ggev!(ws, args...)
+
+decompose!(ws::BunchKaufmanWs, args...) = LAPACK.sytrf!(ws, args...)
 
 """
     factorize!(ws, args...)

@@ -25,6 +25,8 @@ include("schur.jl")
 export SchurWs, GeneralizedSchurWs
 include("eigen.jl")
 export EigenWs, HermitianEigenWs, GeneralizedEigenWs
+include("bunch_kaufman.jl")
+export BunchKaufmanWs
 
 # Uniform interface
 include("workspace.jl")
