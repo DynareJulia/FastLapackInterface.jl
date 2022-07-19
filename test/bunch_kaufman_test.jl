@@ -29,4 +29,29 @@ using LinearAlgebra.LAPACK
             @test ipiv1 == ipiv2
         end
     end
+    for T in (ComplexF32, ComplexF64)
+        @testset "$(T) hetrf!" begin
+            A = rand(T, n, n)
+            ws = BunchKaufmanWs(copy(A))
+            
+            A1, ipiv1, inf1 = LAPACK.hetrf!(ws, 'U', copy(A)) 
+            A2, ipiv2, inf2 = LAPACK.hetrf!('U', copy(A))
+            @test A1 == A2
+            @test ipiv1 == ipiv2
+
+            # ws = Workspace(LAPACK.hetrf!, copy(A))
+            # A1, ipiv1, inf1 = LAPACK.hetrf!(ws, 'U', copy(A)) 
+            # @test A1 == A2
+            # @test ipiv1 == ipiv2
+        end
+        @testset "$(T) hetrf_rook!" begin
+            A = rand(T, n, n)
+            ws = BunchKaufmanWs(copy(A))
+            
+            A1, ipiv1, inf1 = LAPACK.hetrf_rook!(ws, 'U', copy(A)) 
+            A2, ipiv2, inf2 = LAPACK.hetrf_rook!('U', copy(A))
+            @test A1 == A2
+            @test ipiv1 == ipiv2
+        end
+    end
 end

@@ -1,11 +1,11 @@
 using LinearAlgebra.LAPACK: chkuplo
-import LinearAlgebra.LAPACK: sytrf!, sytrf_rook!
+import LinearAlgebra.LAPACK: sytrf!, sytrf_rook!, hetrf!, hetrf_rook!
 
 """
     BunchKaufmanWs
 
 Workspace for [`LinearAlgebra.BunchKaufman`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.BunchKaufman)
-factorization of _symmetric_ matrices, using the [`LAPACK.sytrf!`](@ref) or [`LAPACK.sytrf_rook!`](@ref) functions.
+factorization using the [`LAPACK.sytrf!`](@ref) or [`LAPACK.sytrf_rook!`](@ref) functions for symmetric matrices, and [`LAPACK.hetrf!`](@ref) or [`LAPACK.hetrf_rook!`](@ref) functions for hermitian matrices .
 
 # Examples
 ```jldoctest
@@ -78,8 +78,8 @@ end
 for (sytrfs,  elty) in
     (((:dsytrf_,:dsytrf_rook_),:Float64),
      ((:ssytrf_,:ssytrf_rook_),:Float32),
-     ((:zsytrf_,:zsytrf_rook_),:ComplexF64),
-     ((:csytrf_,:csytrf_rook_),:ComplexF32))  
+     ((:zsytrf_,:zsytrf_rook_, :zhetrf_,:zhetrf_rook_),:ComplexF64),
+     ((:csytrf_,:csytrf_rook_, :chetrf_,:chetrf_rook_),:ComplexF32))  
     @eval function BunchKaufmanWs(A::AbstractMatrix{$elty})
         chkstride1(A)
         n = checksquare(A)
@@ -98,7 +98,7 @@ for (sytrfs,  elty) in
         resize!(work, BlasInt(real(work[1])))
         return BunchKaufmanWs(work, ipiv)
     end
-    for (sytrf, fn) in zip(sytrfs, (:sytrf!, :sytrf_rook!))
+    for (sytrf, fn) in zip(sytrfs, (:sytrf!, :sytrf_rook!, :hetrf!, :hetrf_rook!))
         @eval function $fn(ws::BunchKaufmanWs{$elty}, uplo::AbstractChar, A::AbstractMatrix{$elty})
             chkstride1(A)
             n = checksquare(A)
@@ -140,3 +140,25 @@ sytrf!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
 Similar to above but using the bounded ("rook") diagonal pivoting method.
 """
 sytrf_rook!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
+
+"""
+    hetrf!(ws, uplo, A) -> (A, ws.ipiv, info)
+
+Computes the Bunch-Kaufman factorization of a hermitian matrix `A`,
+using previously allocated workspace `ws`.
+If `uplo = U`, the upper half of `A` is stored. If `uplo = L`, the lower
+half is stored.
+
+Returns `A`, overwritten by the factorization, a pivot vector `ws.ipiv`, and
+the error code `info` which is a non-negative integer. If `info` is positive
+the matrix is singular and the diagonal part of the factorization is exactly
+zero at position `info`.
+"""
+hetrf!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
+
+"""
+    hetrf_rook!(ws, uplo, A) -> (A, ws.ipiv, info)
+
+Similar to above but using the bounded ("rook") diagonal pivoting method.
+"""
+hetrf_rook!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)

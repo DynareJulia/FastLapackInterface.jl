@@ -55,6 +55,8 @@ Workspace(::typeof(LAPACK.ggev!), A::AbstractMatrix; kwargs...) = GeneralizedEig
 
 Workspace(::typeof(LAPACK.sytrf!), A::AbstractMatrix) = BunchKaufmanWs(A)
 Workspace(::typeof(LAPACK.sytrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
+Workspace(::typeof(LAPACK.hetrf!), A::AbstractMatrix) = BunchKaufmanWs(A)
+Workspace(::typeof(LAPACK.hetrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
 
 """
     decompose!(ws, args...)
