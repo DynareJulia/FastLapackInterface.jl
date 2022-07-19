@@ -3,7 +3,7 @@ The goal of `FastLapackInterface` is to eliminate any temporary allocations when
 Eliminating most of the allocations not only improves the computation time of the functions, but dramatically improves `GC` impact when performing multithreaded workloads.
 
 !!! note
-    For now the target functionality is limited to [`QR`](@ref QR-id), [`Schur`](@ref Schur-id), [`LU`](@ref LU-id) and [`Eigen`](@ref Eigen-id) related decompositions.
+    For now the target functionality is limited to [`QR`](@ref QR-id), [`Schur`](@ref Schur-id), [`LU`](@ref LU-id), [`Eigen`](@ref Eigen-id), and [`Bunch-Kaufman`](@ref BunchKaufman-id) related decompositions.
 
 ```@meta
 DocTestSetup = quote

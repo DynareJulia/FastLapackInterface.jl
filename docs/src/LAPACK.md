@@ -37,3 +37,9 @@ LinearAlgebra.LAPACK.syevr!(::HermitianEigenWs, ::AbstractChar, ::AbstractChar,
 LinearAlgebra.LAPACK.ggev!(::GeneralizedEigenWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix,
       ::AbstractMatrix)
 ```
+
+## BunchKaufman
+```@docs
+LinearAlgebra.LAPACK.sytrf!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.sytrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
+```

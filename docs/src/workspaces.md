@@ -35,3 +35,8 @@ EigenWs
 HermitianEigenWs
 GeneralizedEigenWs
 ```
+
+## [BunchKaufman](@id BunchKaufman-id)
+```@docs
+BunchKaufmanWs
+```
