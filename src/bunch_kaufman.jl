@@ -5,7 +5,7 @@ import LinearAlgebra.LAPACK: sytrf!, sytrf_rook!, hetrf!, hetrf_rook!
     BunchKaufmanWs
 
 Workspace for [`LinearAlgebra.BunchKaufman`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.BunchKaufman)
-factorization using the [`LAPACK.sytrf!`](@ref) or [`LAPACK.sytrf_rook!`](@ref) functions for symmetric matrices, and [`LAPACK.hetrf!`](@ref) or [`LAPACK.hetrf_rook!`](@ref) functions for hermitian matrices .
+factorization using the [`LAPACK.sytrf!`](@ref) or [`LAPACK.sytrf_rook!`](@ref) functions for symmetric matrices, and [`LAPACK.hetrf!`](@ref) or [`LAPACK.hetrf_rook!`](@ref) functions for hermitian matrices (i.e. with `ComplexF64` and `ComplexF32`).
 
 # Examples
 ```jldoctest
@@ -137,28 +137,20 @@ sytrf!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
 """
     sytrf_rook!(ws, uplo, A) -> (A, ws.ipiv, info)
 
-Similar to above but using the bounded ("rook") diagonal pivoting method.
+Similar to [`sytrf!`](@ref) but using the bounded ("rook") diagonal pivoting method.
 """
 sytrf_rook!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
 
 """
     hetrf!(ws, uplo, A) -> (A, ws.ipiv, info)
 
-Computes the Bunch-Kaufman factorization of a hermitian matrix `A`,
-using previously allocated workspace `ws`.
-If `uplo = U`, the upper half of `A` is stored. If `uplo = L`, the lower
-half is stored.
-
-Returns `A`, overwritten by the factorization, a pivot vector `ws.ipiv`, and
-the error code `info` which is a non-negative integer. If `info` is positive
-the matrix is singular and the diagonal part of the factorization is exactly
-zero at position `info`.
+Similar as [`sytrf!`](@ref) but for Hermitian matrices.
 """
 hetrf!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
 
 """
     hetrf_rook!(ws, uplo, A) -> (A, ws.ipiv, info)
 
-Similar to above but using the bounded ("rook") diagonal pivoting method.
+Similar to [`hetrf!`](@ref) but using the bounded ("rook") diagonal pivoting method.
 """
 hetrf_rook!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)

@@ -61,5 +61,49 @@ for n in sizes
     suite["BunchKaufman"]["sytrf_rook!"]["LAPACK"]["$n"] = @benchmarkable bench_sytrf_rook!($As)
 end
 
+suite["BunchKaufman"]["hetrf!"]              = BenchmarkGroup()
+suite["BunchKaufman"]["hetrf!"]["workspace"] = BenchmarkGroup()
+suite["BunchKaufman"]["hetrf!"]["LAPACK"]    = BenchmarkGroup()
+
+function bench_hetrf!(As, ws)
+    for A in As
+        LAPACK.hetrf!(ws,'U', A)
+    end
+end
+function bench_hetrf!(As)
+    for A in As
+        LAPACK.hetrf!('U', A)
+    end
+end
+
+for n in sizes
+    As = [rand(ComplexF64, n, n) for i in 1:vector_length]
+    ws = BunchKaufmanWs(As[1])
+    suite["BunchKaufman"]["hetrf!"]["workspace"]["$n"] = @benchmarkable bench_hetrf!($As, $ws)
+    suite["BunchKaufman"]["hetrf!"]["LAPACK"]["$n"] = @benchmarkable bench_hetrf!($As)
+end
+
+suite["BunchKaufman"]["hetrf_rook!"]              = BenchmarkGroup()
+suite["BunchKaufman"]["hetrf_rook!"]["workspace"] = BenchmarkGroup()
+suite["BunchKaufman"]["hetrf_rook!"]["LAPACK"]    = BenchmarkGroup()
+
+function bench_hetrf_rook!(As, ws)
+    for A in As
+        LAPACK.hetrf_rook!(ws,'U', A)
+    end
+end
+function bench_hetrf_rook!(As)
+    for A in As
+        LAPACK.hetrf_rook!('U', A)
+    end
+end
+
+for n in sizes
+    As = [rand(ComplexF64, n, n) for i in 1:vector_length]
+    ws = BunchKaufmanWs(As[1])
+    suite["BunchKaufman"]["hetrf_rook!"]["workspace"]["$n"] = @benchmarkable bench_hetrf_rook!($As, $ws)
+    suite["BunchKaufman"]["hetrf_rook!"]["LAPACK"]["$n"] = @benchmarkable bench_hetrf_rook!($As)
+end
+
 end
 BenchBunchKaufman.suite

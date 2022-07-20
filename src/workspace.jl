@@ -76,7 +76,20 @@ decompose!(ws::EigenWs, args...) = LAPACK.geevx!(ws, args...)
 decompose!(ws::HermitianEigenWs, args...) = LAPACK.syevr!(ws, args...)
 decompose!(ws::GeneralizedEigenWs, args...) = LAPACK.ggev!(ws, args...)
 
-decompose!(ws::BunchKaufmanWs, args...) = LAPACK.sytrf!(ws, args...)
+function decompose!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; rook=false)
+    if issymmetric(A)
+        return rook ? LAPACK.sytrf_rook!(ws, uplo, A) : LAPACK.sytrf!(ws, uplo, A)
+    else
+        return rook ? LAPACK.hetrf_rook!(ws, uplo, A) : LAPACK.hetrf!(ws, uplo, A)
+    end
+end
+
+function decompose!(ws::BunchKaufmanWs, A::Hermitian; rook=false)
+    return rook ? LAPACK.hetrf_rook!(ws, A.uplo, A.data) : LAPACK.hetrf!(ws, A.uplo, A.data)
+end
+function decompose!(ws::BunchKaufmanWs, A::Symmetric; rook=false)
+    return rook ? LAPACK.sytrf_rook!(ws, A.uplo, A.data) : LAPACK.sytrf!(ws, A.uplo, A.data)
+end
 
 """
     factorize!(ws, args...)

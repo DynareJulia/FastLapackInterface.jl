@@ -42,4 +42,6 @@ LinearAlgebra.LAPACK.ggev!(::GeneralizedEigenWs, ::AbstractChar, ::AbstractChar,
 ```@docs
 LinearAlgebra.LAPACK.sytrf!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
 LinearAlgebra.LAPACK.sytrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.hetrf!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.hetrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
 ```
