@@ -58,6 +58,8 @@ Workspace(::typeof(LAPACK.sytrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
 Workspace(::typeof(LAPACK.hetrf!), A::AbstractMatrix) = BunchKaufmanWs(A)
 Workspace(::typeof(LAPACK.hetrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
 
+Workspace(::typeof(LAPACK.pstrf!), A::AbstractMatrix) = CholeskyPivotedWs(A)
+
 """
     decompose!(ws, args...)
 
@@ -89,6 +91,14 @@ function decompose!(ws::BunchKaufmanWs, A::Hermitian; rook=false)
 end
 function decompose!(ws::BunchKaufmanWs, A::Symmetric; rook=false)
     return rook ? LAPACK.sytrf_rook!(ws, A.uplo, A.data) : LAPACK.sytrf!(ws, A.uplo, A.data)
+end
+
+function decompose!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix, tol=1e-16)
+    return LAPACK.pstrf!(ws, uplo, A, tol)
+end
+
+function decompose!(ws::CholeskyPivotedWs, A::Union{Hermitian, Symmetric}, tol=1e-16)
+    return LAPACK.pstrf!(ws, A.uplo, A.data, tol)
 end
 
 """

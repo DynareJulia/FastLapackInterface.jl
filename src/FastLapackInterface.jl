@@ -27,6 +27,8 @@ include("eigen.jl")
 export EigenWs, HermitianEigenWs, GeneralizedEigenWs
 include("bunch_kaufman.jl")
 export BunchKaufmanWs
+include("cholesky.jl")
+export CholeskyPivotedWs
 
 # Uniform interface
 include("workspace.jl")
