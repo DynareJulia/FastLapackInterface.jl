@@ -45,3 +45,8 @@ LinearAlgebra.LAPACK.sytrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMat
 LinearAlgebra.LAPACK.hetrf!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
 LinearAlgebra.LAPACK.hetrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
 ```
+
+## Cholesky
+```@docs
+LinearAlgebra.LAPACK.pstrf!(::CholeskyPivotedWs, ::AbstractChar, ::AbstractMatrix, ::Real)
+```

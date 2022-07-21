@@ -40,3 +40,8 @@ GeneralizedEigenWs
 ```@docs
 BunchKaufmanWs
 ```
+
+## [Cholesky](@id Cholesky-id)
+```@docs
+CholeskyPivotedWs
+```

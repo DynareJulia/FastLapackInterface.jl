@@ -5,7 +5,7 @@ import LinearAlgebra.LAPACK: sytrf!, sytrf_rook!, hetrf!, hetrf_rook!
     BunchKaufmanWs
 
 Workspace for [`LinearAlgebra.BunchKaufman`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.BunchKaufman)
-factorization using the [`LAPACK.sytrf!`](@ref) or [`LAPACK.sytrf_rook!`](@ref) functions for symmetric matrices, and [`LAPACK.hetrf!`](@ref) or [`LAPACK.hetrf_rook!`](@ref) functions for hermitian matrices (i.e. with `ComplexF64` and `ComplexF32`).
+factorization using the [`LAPACK.sytrf!`](@ref) or [`LAPACK.sytrf_rook!`](@ref) functions for symmetric matrices, and [`LAPACK.hetrf!`](@ref) or [`LAPACK.hetrf_rook!`](@ref) functions for hermitian matrices (e.g. with `ComplexF64` or `ComplexF32` elements).
 
 # Examples
 ```jldoctest
