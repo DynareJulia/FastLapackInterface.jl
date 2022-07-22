@@ -98,6 +98,8 @@ for (gees, elty) in ((:dgees_, :Float64),
             resize!(ws.wr, n)
             resize!(ws.wi, n)
             ws.vs = zeros($elty, n, n)
+            resize!(ws.bwork, n)
+            resize!(ws.eigen_values, n)
             info  = Ref{BlasInt}()
             ccall((@blasfunc($gees), liblapack), Cvoid,
                   (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
@@ -127,7 +129,7 @@ for (gees, elty) in ((:dgees_, :Float64),
             n = checksquare(A)
             if n > length(ws)
                 if resize
-                    resize!(A)
+                    resize!(ws, A)
                 else
                     throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
                 end

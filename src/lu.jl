@@ -34,14 +34,24 @@ struct LUWs <: Workspace
 end
 LUWs(n::Int) = LUWs(zeros(BlasInt, n))
 LUWs(a::AbstractMatrix) = LUWs(min(size(a)...))
+function Base.resize!(ws::LUWs, A::AbstractMatrix)
+    resize!(ws.ipiv, min(size(A)...))
+    return ws
+end
 
 for (getrf, elty) in ((:dgetrf_, :Float64),
                       (:sgetrf_, :Float32),
                       (:zgetrf_, :ComplexF64),
                       (:cgetrf_, :ComplexF32))
     @eval begin
-        function getrf!(ws::LUWs, A::AbstractMatrix{$elty})
-            @assert min(size(A)...) <= length(ws.ipiv) "Allocated Workspace is too small."
+        function getrf!(ws::LUWs, A::AbstractMatrix{$elty}; resize=true)
+            if min(size(A)...) <= length(ws.ipiv)
+                if resize
+                    resize!(ws, A)
+                else
+                    throw(ArgumentError("Allocated Workspace is too small."))
+                end
+            end
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
@@ -58,12 +68,13 @@ for (getrf, elty) in ((:dgetrf_, :Float64),
 end
 
 """
-    getrf!(ws, A) -> (A, ws.ipiv, info)
+    getrf!(ws, A; resize=true) -> (A, ws.ipiv, info)
 
-Compute the pivoted `LU` factorization of `A`, `A = LU`, using the preallocated [`LUWs`](@ref) workspace `ws`.
+Compute the pivoted `LU` factorization of `A`, `A = LU`, using the preallocated [`LUWs`](@ref) workspace `ws`. If the workspace is too small and `resize==true` it will be resized
+appropriately for `A`.
 
 Returns `A`, modified in-place, `ws.ipiv`, the pivoting information, and the `ws.info`
 code which indicates success (`info = 0`), a singular value in `U`
 (`info = i`, in which case `U[i,i]` is singular), or an error code (`info < 0`).
 """
-getrf!(ws::LUWs, A::AbstractMatrix)
+getrf!(ws::LUWs, A::AbstractMatrix; kwargs...)

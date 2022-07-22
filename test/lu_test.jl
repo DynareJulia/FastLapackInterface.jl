@@ -28,6 +28,8 @@ m = 2
             @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
 
             show(devnull, "text/plain", linws)
+            resize!(linws, rand(elty, 5,5))
+            @test length(linws.ipiv) == 5
             # res = LU(LAPACK.getrf!(collect(copy(A)'), linws)...)
             # @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
 
