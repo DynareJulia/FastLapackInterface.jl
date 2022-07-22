@@ -75,8 +75,6 @@ using LinearAlgebra.LAPACK
         @test isapprox(ihi1, ihi2)
         @test isapprox(scale1, scale2)
         @test isapprox(abnrm1, abnrm2)
-        @test isapprox(rconde1, rconde2; atol = 1e-16)
-        @test isapprox(rcondv1, rcondv2; atol = 1e-16)
         # using Workspace, factorize!
         ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
         A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = factorize!(ws, 'N',
@@ -92,8 +90,6 @@ using LinearAlgebra.LAPACK
         @test isapprox(ihi1, ihi2)
         @test isapprox(scale1, scale2)
         @test isapprox(abnrm1, abnrm2)
-        @test isapprox(rconde1, rconde2; atol = 1e-16)
-        @test isapprox(rcondv1, rcondv2; atol = 1e-16)
         show(devnull, "text/plain", ws)
     end
 end
@@ -114,6 +110,11 @@ end
         @test isapprox(w1, w2)
         @test isapprox(Z2, Z2)
         show(devnull, "text/plain", ws)
+        
+        ws = Workspace(LAPACK.syevr!, copy(A0); vecs = false)
+        w2, Z2 = factorize!(ws, 'V', 'A', 'U', randn(n+1, n+1), 0.0, 0.0, 0, 0, 1e-6)
+        @test length(ws.w) == n+1
+        @test size(ws.Z, 1) == n+1
     end
 
     @testset "Complex, square" begin
@@ -155,6 +156,17 @@ end
         @test isapprox(vl1, vl2)
         @test isapprox(vr1, vr2)
         show(devnull, "text/plain", ws)
+        
+        ws = Workspace(LAPACK.ggev!, copy(A0))
+        @test size(ws.vl, 1) == 0
+        @test size(ws.vr, 1) == 0
+        LAPACK.ggev!(ws, 'N', 'V', copy(A0), copy(B0))
+        @test size(ws.vr, 1) == n
+        LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test size(ws.vl, 1) == n
+        LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1))
+        @test size(ws.vl, 1) == n+1
+        @test size(ws.vr, 1) == n+1
     end
 
     @testset "Complex, square" begin
