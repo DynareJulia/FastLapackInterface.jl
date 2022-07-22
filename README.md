@@ -24,4 +24,4 @@ decompose!(ws, A)
 A similar API exists for the above decompositions. For more information and examples please see the [documentation](https://dynarejulia.github.io/FastLapackInterface.jl/dev/).
 
 ## Package version
--   v1.x: works only with Julia >= 1.7
+-   v1.x: works only with Julia >= 1.6.3
