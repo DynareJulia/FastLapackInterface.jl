@@ -60,28 +60,24 @@ end
     end
 end
 
-@testset "QRpWs" begin
+@testset "QRPivotedWs" begin
     n = 3
     @testset "Real, square" begin
         A0 = randn(n, n)
 
         @testset "geqp3!" begin
             A = copy(A0)
-            ws = QRpWs(A)
-            AT, taut, jpvt = LAPACK.geqp3!(ws, copy(A))
+            ws = QRPivotedWs(A)
+            q1 = QRPivoted(LAPACK.geqp3!(ws, copy(A))...)
 
-            AT1, taut1, jpvt1 = LAPACK.geqp3!(copy(A0), zeros(Int, length(ws.jpvt)),
-                                              zeros(size(ws.τ)))
-            @test isapprox(AT1, AT)
-            @test isapprox(jpvt1, jpvt)
-            @test isapprox(taut1, taut)
+            q2 = QRPivoted(LAPACK.geqp3!(copy(A0), zeros(Int, length(ws.jpvt)),
+                                              zeros(size(ws.τ)))...)
+            @test isapprox(Matrix(q1), Matrix(q2))
 
             # using Workspace, factorize!
             ws = Workspace(LAPACK.geqp3!, copy(A))
-            AT, taut, jpvt = factorize!(ws, copy(A))
-            @test isapprox(AT1, AT)
-            @test isapprox(jpvt1, jpvt)
-            @test isapprox(taut1, taut)
+            q1 = QRPivoted(factorize!(ws, copy(A))...)
+            @test isapprox(Matrix(q1), Matrix(q2))
 
             show(devnull, "text/plain", ws)
         end
