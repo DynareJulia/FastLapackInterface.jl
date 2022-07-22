@@ -1,3 +1,13 @@
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::T) where {T<:Workspace}
+    summary(io, ws)
+    println(io)
+    for f in fieldnames(T)
+        print(io, "  $f: ")
+        summary(io, getfield(ws, f))
+        println(io)
+    end
+end
+
 """
     Workspace(lapack_function, A)
 
@@ -43,15 +53,12 @@ Workspace(::typeof(LAPACK.geevx!), A::AbstractMatrix; kwargs...) = EigenWs(A; kw
 Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...) = HermitianEigenWs(A; kwargs...)
 Workspace(::typeof(LAPACK.ggev!), A::AbstractMatrix; kwargs...) = GeneralizedEigenWs(A; kwargs...)
 
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::T) where {T<:Workspace}
-    summary(io, ws)
-    println(io)
-    for f in fieldnames(T)
-        print(io, "  $f: ")
-        summary(io, getfield(ws, f))
-        println(io)
-    end
-end
+Workspace(::typeof(LAPACK.sytrf!), A::AbstractMatrix) = BunchKaufmanWs(A)
+Workspace(::typeof(LAPACK.sytrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
+Workspace(::typeof(LAPACK.hetrf!), A::AbstractMatrix) = BunchKaufmanWs(A)
+Workspace(::typeof(LAPACK.hetrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
+
+Workspace(::typeof(LAPACK.pstrf!), A::AbstractMatrix) = CholeskyPivotedWs(A)
 
 """
     decompose!(ws, args...)
@@ -70,6 +77,29 @@ decompose!(ws::GeneralizedSchurWs, args...) = LAPACK.gges!(ws, args...)
 decompose!(ws::EigenWs, args...) = LAPACK.geevx!(ws, args...)
 decompose!(ws::HermitianEigenWs, args...) = LAPACK.syevr!(ws, args...)
 decompose!(ws::GeneralizedEigenWs, args...) = LAPACK.ggev!(ws, args...)
+
+function decompose!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; rook=false)
+    if issymmetric(A)
+        return rook ? LAPACK.sytrf_rook!(ws, uplo, A) : LAPACK.sytrf!(ws, uplo, A)
+    else
+        return rook ? LAPACK.hetrf_rook!(ws, uplo, A) : LAPACK.hetrf!(ws, uplo, A)
+    end
+end
+
+function decompose!(ws::BunchKaufmanWs, A::Hermitian; rook=false)
+    return rook ? LAPACK.hetrf_rook!(ws, A.uplo, A.data) : LAPACK.hetrf!(ws, A.uplo, A.data)
+end
+function decompose!(ws::BunchKaufmanWs, A::Symmetric; rook=false)
+    return rook ? LAPACK.sytrf_rook!(ws, A.uplo, A.data) : LAPACK.sytrf!(ws, A.uplo, A.data)
+end
+
+function decompose!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix, tol=1e-16)
+    return LAPACK.pstrf!(ws, uplo, A, tol)
+end
+
+function decompose!(ws::CholeskyPivotedWs, A::Union{Hermitian, Symmetric}, tol=1e-16)
+    return LAPACK.pstrf!(ws, A.uplo, A.data, tol)
+end
 
 """
     factorize!(ws, args...)

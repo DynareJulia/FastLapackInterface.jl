@@ -7,54 +7,21 @@ running for some Lapack algorithms:
  - LU factorization
  - QR factorization
  - Schur factorization
+ - Eigen decomposition
+ - Bunch-Kaufman decomposition
+ - Cholesky decomposition
 
-### LU factorization and linear problem solution
-
- - ``ws = LUWs(A)`` creates storage for a linear problem with matrix representation `A`.
- - ``LAPACK.getrf!(ws, A)`` computes the LU factorization using the preallocated workspace and returns the
- arguments that can be used to construct `LinearAlgebra.LU`.
- 
+The API follows the Base julia `LAPACK` definitions and should thus be very transparent.
+There is also a unified interface which returns the right `Workspace` to be used with a given
+`LAPACK` function.
+e.g.
 ```julia
 A = [1.2 2.3
      6.2 3.3]
-ws = LUWs(A)
-LinearAlgebra.LU(LAPACK.getrf!(ws, A)...)
+ws = Workspace(LAPACK.getrf!, A)
+decompose!(ws, A)
 ```
-
-### QR factorization ( A = Q*R)
-
-- `ws = QRWs(A)` allocates workspace for QR factorization of
-  a matrix similar to `A`
-- `geqrf!(ws, A)` computes QR factorization of matrix `A` and
-  stores it in `A` and `ws.τ`, and returns the arguments for the constructor of `LinearAlgebra.QR`.  
-- `ormqr!(ws, side, A, C)` computes `Q*C` (`side='L'`) or `C*Q`
-  (`side='R'`) 
-- `ormqr!(side, transpose(A), C, ws)` computes `transpose(Q)*C`
-  (`side='L'`) or `C*transpose(Q)` (`side='R'`)
-- Workspaces exist for `QRCompactWY` (`QRWYWs`) and `QRPivoted` (`QRpWs`).
-
-```julia
-A = [1.2 2.3
-     6.2 3.3]
-ws = QRWs(A)
-LinearAlgebra.QR(LAPACK.geqrf!(ws, A)...)
-```
-  
-### Schur factorization
-
-- `SchurWs(A)` allocates workspace for the real Schur decomposition of
-  a matrix similar to `A`.
-- `gees!(ws, A)` computes the Schur decomposition and returns the arguments to
-   the constructor of `LinearAlgebra.Schur`.
-- A workspace for the generalized Schur decomposition also exists.
-- It is possible to use select functions with `gees!` or `gges!` to order the eigenvalues.
-```julia
-A = [1.2 2.3
-     6.2 3.3]
-ws = SchurWs(A)
-LinearAlgebra.Schur(LAPACK.gees!(ws, 'V', A)...)
-```
-For more info see the [Documentation](https://louisponet.github.io/FastLapackInterface.jl/dev)
+A similar API exists for the above decompositions. For more information and examples please see the [documentation](https://dynarejulia.github.io/FastLapackInterface.jl/dev/).
 
 ## Package version
--   v0.1.3: works only with Julia >= 1.7
+-   v1.x: works only with Julia >= 1.7
