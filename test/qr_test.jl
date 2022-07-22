@@ -19,9 +19,14 @@ using LinearAlgebra.LAPACK
             AT1, tau1 = factorize!(ws, copy(A0))
             @test AT1 == AT
             @test tau1 == tau
+            
+            @test_throws ArgumentError factorize!(ws, rand(n+1, n+1); resize=false)
+            factorize!(ws, rand(n+1, n+1))
+            @test size(ws.τ , 1) == n+1
         end
 
         @testset "ormqr!" begin
+            ws = Workspace(LAPACK.geqrf!, copy(A0))
             C = randn(n, n)
             tau = randn(n)
             ws.τ .= tau
@@ -56,6 +61,9 @@ end
             @test AT1 == AT
             @test isapprox(taut1, taut)
             show(devnull, "text/plain", ws)
+            @test_throws ArgumentError factorize!(ws, rand(n-1, n-1); resize=false)
+            factorize!(ws, rand(n-1, n-1))
+            @test size(ws.T, 1) == n-1
         end
     end
 end
@@ -79,6 +87,9 @@ end
             q1 = QRPivoted(factorize!(ws, copy(A))...)
             @test isapprox(Matrix(q1), Matrix(q2))
 
+            @test_throws ArgumentError factorize!(ws, rand(n+1, n+1); resize=false)
+            factorize!(ws, rand(n+1, n+1))
+            @test size(ws.τ , 1) == n+1
             show(devnull, "text/plain", ws)
         end
     end

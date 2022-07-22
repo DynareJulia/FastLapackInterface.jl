@@ -33,5 +33,4 @@ using LinearAlgebra.LAPACK
             @test length(ws.piv) == n+1
         end
     end
-    @show "ping"
 end

@@ -39,14 +39,18 @@ using LinearAlgebra.LAPACK
         @test isapprox(abnrm1, abnrm2)
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
         
-        ws = Workspace(LAPACK.geevx!, copy(A0))
+        ws = Workspace(LAPACK.geevx!, copy(A0); lvecs=false, rvecs=false, sense=false)
         @test size(ws.VL, 1) == 0
+        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'N', 'N', copy(A0); resize=false)
         factorize!(ws, 'P', 'V', 'N', 'N', copy(A0))
         @test size(ws.VL, 1) != 0
+        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'V', 'N', copy(A0); resize=false)
         factorize!(ws, 'P', 'V', 'V', 'N', copy(A0))
         @test size(ws.VR, 1) != 0
+        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'V', 'E', copy(A0); resize=false)
         factorize!(ws, 'P', 'V', 'V', 'E', copy(A0))
         @test size(ws.iwork, 1) != 0
+        @test_throws ArgumentError factorize!(ws, 'P', 'N', 'N', 'N', rand(n+1, n+1); resize=false)
        
         show(devnull, "text/plain", ws)
     end
@@ -112,9 +116,14 @@ end
         show(devnull, "text/plain", ws)
         
         ws = Workspace(LAPACK.syevr!, copy(A0); vecs = false)
+        @test_throws ArgumentError factorize!(ws, 'N', 'A', 'U', randn(n+1, n+1), 0.0, 0.0, 0, 0, 1e-6; resize=false)
+        @test_throws ArgumentError factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6; resize=false)
         w2, Z2 = factorize!(ws, 'V', 'A', 'U', randn(n+1, n+1), 0.0, 0.0, 0, 0, 1e-6)
         @test length(ws.w) == n+1
         @test size(ws.Z, 1) == n+1
+        
+        @test_throws ArgumentError factorize!(ws, 'V', 'I', 'U', randn(n+1, n+1), 0.0, 0.0, 10, 5, 1e-6)
+        @test_throws ArgumentError factorize!(ws, 'V', 'V', 'U', randn(n+1, n+1), 2.0, 1.0, 0, 0, 1e-6)
     end
 
     @testset "Complex, square" begin
@@ -160,10 +169,13 @@ end
         ws = Workspace(LAPACK.ggev!, copy(A0))
         @test size(ws.vl, 1) == 0
         @test size(ws.vr, 1) == 0
+        @test_throws ArgumentError LAPACK.ggev!(ws, 'N', 'V', copy(A0), copy(B0); resize=false)
         LAPACK.ggev!(ws, 'N', 'V', copy(A0), copy(B0))
         @test size(ws.vr, 1) == n
+        @test_throws ArgumentError LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0); resize=false)
         LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
         @test size(ws.vl, 1) == n
+        @test_throws ArgumentError LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1), resize=false)
         LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1))
         @test size(ws.vl, 1) == n+1
         @test size(ws.vr, 1) == n+1

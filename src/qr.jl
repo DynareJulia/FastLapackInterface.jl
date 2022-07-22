@@ -73,7 +73,7 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
                 if resize
                     resize!(ws, A)
                 else
-                    throw(DimensionMismatch("Allocated workspace has length $(length(ws)), but needs length $(min(m,n))"))
+                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
                 end
             end
             lda = max(1, stride(A, 2))
@@ -241,10 +241,12 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
             if nb > minmn
                 if resize
                     resize!(ws, A)
+                    nb = size(ws.T, 1)
                 else
-                    throw(ArgumentError("Allocated workspace block size $nb > $minmn too large."))
+                    throw(ArgumentError("Allocated workspace block size $nb > $minmn too large.\nUse resize!(ws, A)."))
                 end
             end
+            
             lda = max(1, stride(A, 2))
             work = ws.work
             info = Ref{BlasInt}()
@@ -352,14 +354,14 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
                 if resize
                     resize!(ws, A)
                 else
-                    throw(DimensionMismatch("τ  has length $(length(ws.τ)), but needs length $(min(m,n))"))
+                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
                 end
             end
             if length(ws.jpvt) != n
                 if resize
                     resize!(ws, A)
                 else
-                    throw(DimensionMismatch("jpvt has length $(length(ws.jpvt)), but needs length $n"))
+                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
                 end
             end
             lda = stride(A, 2)
