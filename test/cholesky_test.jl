@@ -26,6 +26,9 @@ using LinearAlgebra.LAPACK
             @test A1 == A2
             @test ipiv1 == ipiv2
             @test rank1 == rank2
+
+            decompose!(ws,'U', rand(n+1, n+1), 1e-16)
+            @test length(ws.piv) == n+1
         end
     end
 end
