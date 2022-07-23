@@ -79,34 +79,43 @@ for (sytrfs,  elty) in
     (((:dsytrf_,:dsytrf_rook_),:Float64),
      ((:ssytrf_,:ssytrf_rook_),:Float32),
      ((:zsytrf_,:zsytrf_rook_, :zhetrf_,:zhetrf_rook_),:ComplexF64),
-     ((:csytrf_,:csytrf_rook_, :chetrf_,:chetrf_rook_),:ComplexF32))  
-    @eval function BunchKaufmanWs(A::AbstractMatrix{$elty})
-        chkstride1(A)
-        n = checksquare(A)
-        ipiv  = similar(A, BlasInt, n)
-        if n == 0
-            return BunchKaufmanWs($elty[], ipiv)
-        end
-        work  = Vector{$elty}(undef, 1)
-        lwork = BlasInt(-1)
-        info  = Ref{BlasInt}()
-        ccall((@blasfunc($(sytrfs[1])), liblapack), Cvoid,
-              (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-               Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
-              'U', n, A, stride(A,2), ipiv, work, lwork, info, 1)
-        chkargsok(info[])
-        resize!(work, BlasInt(real(work[1])))
-        return BunchKaufmanWs(work, ipiv)
-    end
-    for (sytrf, fn) in zip(sytrfs, (:sytrf!, :sytrf_rook!, :hetrf!, :hetrf_rook!))
-        @eval function $fn(ws::BunchKaufmanWs{$elty}, uplo::AbstractChar, A::AbstractMatrix{$elty})
+     ((:csytrf_,:csytrf_rook_, :chetrf_,:chetrf_rook_),:ComplexF32))
+    
+    @eval begin
+        function Base.resize!(ws::BunchKaufmanWs, A::AbstractMatrix{$elty})
             chkstride1(A)
             n = checksquare(A)
-            chkuplo(uplo)
-            lipiv = length(ws.ipiv)
-            @assert n <= lipiv "Workspace was allocated for matrices of maximum size ($lipiv, $lipiv)." 
+            if n == 0
+                return ws
+            end
+            resize!(ws.ipiv, n)
+            info  = Ref{BlasInt}()
+            ccall((@blasfunc($(sytrfs[1])), liblapack), Cvoid,
+                  (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                   Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
+                  'U', n, A, stride(A,2), ws.ipiv, ws.work, -1, info, 1)
+            chkargsok(info[])
+            resize!(ws.work, BlasInt(real(ws.work[1])))
+            return ws
+        end
+        function BunchKaufmanWs(A::AbstractMatrix{$elty})
+            return resize!(BunchKaufmanWs(Vector{$elty}(undef, 1), BlasInt[]), A)
+        end
+    end
+    for (sytrf, fn) in zip(sytrfs, (:sytrf!, :sytrf_rook!, :hetrf!, :hetrf_rook!))
+        @eval function $fn(ws::BunchKaufmanWs{$elty}, uplo::AbstractChar, A::AbstractMatrix{$elty}; resize=true)
+            chkstride1(A)
+            n = checksquare(A)
             if n == 0
                 return A, ws.ipiv, zero(BlasInt)
+            end
+            chkuplo(uplo)
+            if n > length(ws.ipiv)
+                if resize
+                    resize!(ws, A)
+                else
+                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                end
             end
             info  = Ref{BlasInt}()
             ccall((@blasfunc($sytrf), liblapack), Cvoid,
@@ -120,10 +129,11 @@ for (sytrfs,  elty) in
 end
 
 """
-    sytrf!(ws, uplo, A) -> (A, ws.ipiv, info)
+    sytrf!(ws, uplo, A; resize=true) -> (A, ws.ipiv, info)
 
 Computes the Bunch-Kaufman factorization of a symmetric matrix `A`,
 using previously allocated workspace `ws`.
+If the workspace was too small and `resize==true` it will automatically resized.
 If `uplo = U`, the upper half of `A` is stored. If `uplo = L`, the lower
 half is stored.
 
@@ -132,25 +142,25 @@ the error code `info` which is a non-negative integer. If `info` is positive
 the matrix is singular and the diagonal part of the factorization is exactly
 zero at position `info`.
 """
-sytrf!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
+sytrf!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; kwargs...)
 
 """
-    sytrf_rook!(ws, uplo, A) -> (A, ws.ipiv, info)
+    sytrf_rook!(ws, uplo, A; resize=true) -> (A, ws.ipiv, info)
 
 Similar to [`sytrf!`](@ref) but using the bounded ("rook") diagonal pivoting method.
 """
-sytrf_rook!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
+sytrf_rook!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; kwargs...)
 
 """
-    hetrf!(ws, uplo, A) -> (A, ws.ipiv, info)
+    hetrf!(ws, uplo, A; resize=true) -> (A, ws.ipiv, info)
 
 Similar as [`sytrf!`](@ref) but for Hermitian matrices.
 """
-hetrf!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
+hetrf!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; kwargs...)
 
 """
-    hetrf_rook!(ws, uplo, A) -> (A, ws.ipiv, info)
+    hetrf_rook!(ws, uplo, A; resize=true) -> (A, ws.ipiv, info)
 
 Similar to [`hetrf!`](@ref) but using the bounded ("rook") diagonal pivoting method.
 """
-hetrf_rook!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix)
+hetrf_rook!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; kwargs...)

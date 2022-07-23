@@ -49,28 +49,32 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
                       (:zgeqrf_, :ComplexF64),
                       (:cgeqrf_, :ComplexF32))
     @eval begin
-        function QRWs(A::StridedMatrix{$elty})
+        function Base.resize!(ws::QRWs, A::StridedMatrix{$elty})
             m, n = size(A)
             lda = max(1, stride(A, 2))
-            τ = zeros($elty, min(m, n))
-            work = Vector{$elty}(undef, 1)
-            lwork = -1
+            resize!(ws.τ, min(m, n))
             info = Ref{BlasInt}()
             ccall((@blasfunc($geqrf), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
                    Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-                  m, n, A, lda, τ, work, lwork, info)
+                  m, n, A, lda, ws.τ, ws.work, -1, info)
             chklapackerror(info[])
-            resize!(work, BlasInt(real(work[1])))
-            return QRWs(work, τ)
+            resize!(ws.work, BlasInt(real(ws.work[1])))
+            return ws
         end
+        QRWs(A::StridedMatrix{$elty}) =
+            resize!(QRWs(Vector{$elty}(undef, 1), Vector{$elty}(undef, 1)), A)
 
-        function geqrf!(ws::QRWs, A::AbstractMatrix{$elty})
+        function geqrf!(ws::QRWs, A::AbstractMatrix{$elty}; resize=true)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
-            if length(ws) != min(m, n)
-                throw(DimensionMismatch("Allocated workspace has length $(length(ws)), but needs length $(min(m,n))"))
+            if length(ws) < min(m, n)
+                if resize
+                    resize!(ws, A)
+                else
+                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                end
             end
             lda = max(1, stride(A, 2))
             lwork = length(ws.work)
@@ -90,7 +94,7 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
     @eval begin
         function ormqr!(ws::QRWs{$elty}, side::AbstractChar, trans::AbstractChar,
                         A::AbstractMatrix{$elty},
-                        C::AbstractVecOrMat{$elty})
+                        C::AbstractVecOrMat{$elty}; resize=true)
             require_one_based_indexing(A, C)
             chktrans(trans)
             chkside(side)
@@ -141,15 +145,17 @@ for (ormqr, elty) in ((:dormqr_, :Float64),
 end
 
 """
-    geqrf!(ws, A) -> (A, ws.τ)
+    geqrf!(ws, A; resize=true) -> (A, ws.τ)
 
 Compute the `QR` factorization of `A`, `A = QR`, using previously allocated [`QRWs`](@ref) workspace `ws`.
 `ws.τ` contains scalars which parameterize the elementary reflectors of the factorization.
 `ws.τ` must have length greater than or equal to the smallest dimension of `A`.
+If this is not the case, and `resize==true` the workspace will be automatically
+resized to the appropriate size.
 
 `A` and `ws.τ` modified in-place.
 """
-geqrf!(ws::QRWs, A::AbstractMatrix)
+geqrf!(ws::QRWs, A::AbstractMatrix; kwargs...)
 
 """
     ormqr!(ws, side, trans, A, C) -> C
@@ -202,7 +208,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRWYWs{R<:Number,MT<:StridedMatrix{R}} <: Workspace
+mutable struct QRWYWs{R<:Number,MT<:StridedMatrix{R}} <: Workspace
     work::Vector{R}
     T::MT
 end
@@ -212,28 +218,35 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
                       (:zgeqrt_, :ComplexF64),
                       (:cgeqrt_, :ComplexF32))
     @eval begin
-        function QRWYWs(A::StridedMatrix{$elty}; blocksize = 36)
+        function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize=36)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = BlasInt.(size(A))
             @assert n > 0 ArgumentError("Not a Matrix")
             m1 = min(m, n)
             nb = min(m1, blocksize)
-            T = zeros($elty, nb, m1)
-
-            work = zeros($elty, nb * n)
-            return QRWYWs(work, T)
+            ws.T = similar(ws.T,  nb, m1)
+            resize!(ws.work, nb*n)
+            return ws
         end
+        QRWYWs(A::StridedMatrix{$elty}; kwargs...) = 
+            resize!(QRWYWs($elty[], Matrix{$elty}(undef, 0, 0)), A; kwargs...)
 
-        function geqrt!(ws::QRWYWs, A::AbstractMatrix{$elty})
+        function geqrt!(ws::QRWYWs, A::AbstractMatrix{$elty}; resize=true)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
             minmn = min(m, n)
             nb = size(ws.T, 1)
             if nb > minmn
-                throw(ArgumentError("Allocated workspace block size $nb > $minmn too large."))
+                if resize
+                    resize!(ws, A)
+                    nb = size(ws.T, 1)
+                else
+                    throw(ArgumentError("Allocated workspace block size $nb > $minmn too large.\nUse resize!(ws, A)."))
+                end
             end
+            
             lda = max(1, stride(A, 2))
             work = ws.work
             info = Ref{BlasInt}()
@@ -251,20 +264,21 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
 end
 
 """
-    geqrt!(ws, A) -> (A, ws.T)
+    geqrt!(ws, A; resize=true) -> (A, ws.T)
 
 Compute the blocked `QR` factorization of `A`, `A = QR`, using a preallocated [`QRWYWs`](@ref) workspace `ws`. `ws.T` contains upper
 triangular block reflectors which parameterize the elementary reflectors of
 the factorization. The first dimension of `ws.T` sets the block size and it must
 satisfy `1 <= size(ws.T, 1) <= min(size(A)...)`. The second dimension of `T` must equal the smallest
-dimension of `A`, i.e. `size(ws.T, 2) == size(A, 2)`.
+dimension of `A`, i.e. `size(ws.T, 2) == size(A, 2)`. If this is not the case and
+`resize==true`, the workspace will automatically be resized to the appropriate dimensions.
 
 `A` and `ws.T` are modified in-place.
 """
-geqrt!(ws::QRWYWs, A::AbstractMatrix)
+geqrt!(ws::QRWYWs, A::AbstractMatrix; kwargs...)
 
 """
-    QRpWs
+    QRPivotedWs
 
 Workspace to be used with the [`LinearAlgebra.QRPivoted`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QRPivoted)
 representation of the QR factorization which uses the [`LAPACK.geqp3!`](@ref) function.
@@ -277,8 +291,8 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = QRpWs(A)
-QRpWs{Float64}
+julia> ws = QRPivotedWs(A)
+QRPivotedWs{Float64}
   work: 100-element Vector{Float64}
   τ: 2-element Vector{Float64}
   jpvt: 2-element Vector{Int64}
@@ -304,7 +318,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRpWs{T<:Number} <: Workspace
+struct QRPivotedWs{T<:Number} <: Workspace
     work::Vector{T}
     τ::Vector{T}
     jpvt::Vector{BlasInt}
@@ -315,32 +329,40 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
                       (:zgeqp3_, :ComplexF64),
                       (:cgeqp3_, :ComplexF32))
     @eval begin
-        function QRpWs(A::StridedMatrix{$elty})
+        function Base.resize!(ws::QRPivotedWs, A::StridedMatrix{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
             RldA = max(1, stride(A, 2))
-            jpvt = zeros(BlasInt, n)
-            τ = zeros($elty, min(m, n))
-            work = Vector{$elty}(undef, 1)
-            lwork = -1
+            resize!(ws.jpvt, n)
+            resize!(ws.τ, min(m, n))
             info = Ref{BlasInt}()
             ccall((@blasfunc($geqp3), liblapack), Cvoid,
                   (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
                    Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
-                  m, n, A, RldA, jpvt, τ, work, lwork, info)
+                  m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, info)
             chklapackerror(info[])
-            work = resize!(work, BlasInt(real(work[1])))
-            return QRpWs(work, τ, jpvt)
+            resize!(ws.work, BlasInt(real(ws.work[1])))
+            return ws
         end
+        QRPivotedWs(A::StridedMatrix{$elty}) = 
+            resize!(QRPivotedWs(Vector{$elty}(undef, 1), $elty[], BlasInt[]), A)
 
-        function geqp3!(ws::QRpWs{$elty}, A::AbstractMatrix{$elty})
+        function geqp3!(ws::QRPivotedWs{$elty}, A::AbstractMatrix{$elty}; resize=true)
             m, n = size(A)
             if length(ws.τ) != min(m, n)
-                throw(DimensionMismatch("τ  has length $(length(ws.τ)), but needs length $(min(m,n))"))
+                if resize
+                    resize!(ws, A)
+                else
+                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                end
             end
             if length(ws.jpvt) != n
-                throw(DimensionMismatch("jpvt has length $(length(ws.jpvt)), but needs length $n"))
+                if resize
+                    resize!(ws, A)
+                else
+                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                end
             end
             lda = stride(A, 2)
             if lda == 0 # Early exit
@@ -361,15 +383,16 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
 end
 
 """
-    geqp3!(ws, A) -> (A, ws.τ, ws.jpvt)
+    geqp3!(ws, A; resize=true) -> (A, ws.τ, ws.jpvt)
 
 Compute the pivoted `QR` factorization of `A`, `AP = QR` using BLAS level 3,
-using the preallocated [`QRpWs`](@ref) workspace `ws`.
+using the preallocated [`QRPivotedWs`](@ref) workspace `ws`.
 `P` is a pivoting matrix, represented by `ws.jpvt`. `ws.τ` stores the elementary
 reflectors. `ws.jpvt` must have length greater
 than or equal to `n` if `A` is an `(m x n)` matrix and `ws.τ` must have length
-greater than or equal to the smallest dimension of `A`.
+greater than or equal to the smallest dimension of `A`. If this is not the case
+and `resize == true` the workspace will be appropriately resized.
 
 `A`, `ws.jpvt`, and `ws.τ` are modified in-place.
 """
-geqp3!(ws::QRpWs, A::AbstractMatrix)
+geqp3!(ws::QRPivotedWs, A::AbstractMatrix; kwargs...)

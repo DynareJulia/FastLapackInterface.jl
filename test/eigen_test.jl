@@ -8,17 +8,10 @@ using LinearAlgebra.LAPACK
         A0 = randn(n, n)
         ws = EigenWs(copy(A0); lvecs = true, sense = true)
 
-        A1, WR1, WI1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 = LAPACK.geevx!('P',
-                                                                                             'V',
-                                                                                             'V',
-                                                                                             'V',
-                                                                                             copy(A0))
-        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = LAPACK.geevx!(ws,
-                                                                                             'P',
-                                                                                             'V',
-                                                                                             'V',
-                                                                                             'V',
-                                                                                             copy(A0))
+        A1, WR1, WI1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 =
+            LAPACK.geevx!('P', 'V', 'V', 'V', copy(A0))
+        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
+            LAPACK.geevx!(ws, 'P', 'V', 'V', 'V', copy(A0))
 
         @test isapprox(A1, A2)
         @test isapprox(WR1, WR2)
@@ -33,12 +26,8 @@ using LinearAlgebra.LAPACK
 
         # using Workspace, factorize!
         ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
-        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = factorize!(ws,
-                                                                                          'P',
-                                                                                          'V',
-                                                                                          'V',
-                                                                                          'V',
-                                                                                          copy(A0))
+        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
+            factorize!(ws, 'P', 'V', 'V', 'V', copy(A0))
         @test isapprox(A1, A2)
         @test isapprox(WR1, WR2)
         @test isapprox(WI1, WI2)
@@ -49,7 +38,20 @@ using LinearAlgebra.LAPACK
         @test isapprox(scale1, scale2)
         @test isapprox(abnrm1, abnrm2)
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
-
+        
+        ws = Workspace(LAPACK.geevx!, copy(A0); lvecs=false, rvecs=false, sense=false)
+        @test size(ws.VL, 1) == 0
+        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'N', 'N', copy(A0); resize=false)
+        factorize!(ws, 'P', 'V', 'N', 'N', copy(A0))
+        @test size(ws.VL, 1) != 0
+        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'V', 'N', copy(A0); resize=false)
+        factorize!(ws, 'P', 'V', 'V', 'N', copy(A0))
+        @test size(ws.VR, 1) != 0
+        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'V', 'E', copy(A0); resize=false)
+        factorize!(ws, 'P', 'V', 'V', 'E', copy(A0))
+        @test size(ws.iwork, 1) != 0
+        @test_throws ArgumentError factorize!(ws, 'P', 'N', 'N', 'N', rand(n+1, n+1); resize=false)
+       
         show(devnull, "text/plain", ws)
     end
 
@@ -77,8 +79,6 @@ using LinearAlgebra.LAPACK
         @test isapprox(ihi1, ihi2)
         @test isapprox(scale1, scale2)
         @test isapprox(abnrm1, abnrm2)
-        @test isapprox(rconde1, rconde2; atol = 1e-16)
-        @test isapprox(rcondv1, rcondv2; atol = 1e-16)
         # using Workspace, factorize!
         ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
         A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = factorize!(ws, 'N',
@@ -94,8 +94,6 @@ using LinearAlgebra.LAPACK
         @test isapprox(ihi1, ihi2)
         @test isapprox(scale1, scale2)
         @test isapprox(abnrm1, abnrm2)
-        @test isapprox(rconde1, rconde2; atol = 1e-16)
-        @test isapprox(rcondv1, rcondv2; atol = 1e-16)
         show(devnull, "text/plain", ws)
     end
 end
@@ -116,6 +114,16 @@ end
         @test isapprox(w1, w2)
         @test isapprox(Z2, Z2)
         show(devnull, "text/plain", ws)
+        
+        ws = Workspace(LAPACK.syevr!, copy(A0); vecs = false)
+        @test_throws ArgumentError factorize!(ws, 'N', 'A', 'U', randn(n+1, n+1), 0.0, 0.0, 0, 0, 1e-6; resize=false)
+        @test_throws ArgumentError factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6; resize=false)
+        w2, Z2 = factorize!(ws, 'V', 'A', 'U', randn(n+1, n+1), 0.0, 0.0, 0, 0, 1e-6)
+        @test length(ws.w) == n+1
+        @test size(ws.Z, 1) == n+1
+        
+        @test_throws ArgumentError factorize!(ws, 'V', 'I', 'U', randn(n+1, n+1), 0.0, 0.0, 10, 5, 1e-6)
+        @test_throws ArgumentError factorize!(ws, 'V', 'V', 'U', randn(n+1, n+1), 2.0, 1.0, 0, 0, 1e-6)
     end
 
     @testset "Complex, square" begin
@@ -157,6 +165,20 @@ end
         @test isapprox(vl1, vl2)
         @test isapprox(vr1, vr2)
         show(devnull, "text/plain", ws)
+        
+        ws = Workspace(LAPACK.ggev!, copy(A0))
+        @test size(ws.vl, 1) == 0
+        @test size(ws.vr, 1) == 0
+        @test_throws ArgumentError LAPACK.ggev!(ws, 'N', 'V', copy(A0), copy(B0); resize=false)
+        LAPACK.ggev!(ws, 'N', 'V', copy(A0), copy(B0))
+        @test size(ws.vr, 1) == n
+        @test_throws ArgumentError LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0); resize=false)
+        LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test size(ws.vl, 1) == n
+        @test_throws ArgumentError LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1), resize=false)
+        LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1))
+        @test size(ws.vl, 1) == n+1
+        @test size(ws.vr, 1) == n+1
     end
 
     @testset "Complex, square" begin

@@ -8,13 +8,17 @@ This can then be used to perform the decompositions without extra allocations.
 ```@docs
 Workspace
 ```
+Each [`Workspace`](@ref) also has a function to [`resize!`](@ref) to allow for its use with larger matrices or with more features (e.g. the computation of left eigenvectors and right eigenvectors using [`EigenWs`](@ref)).
+```@docs
+resize!(::Workspace, ::AbstractMatrix; kwargs...)
+```
 
 ## [QR](@id QR-id)
 
 ```@docs
 QRWs
 QRWYWs
-QRpWs
+QRPivotedWs
 ```
 
 ## [Schur](@id Schur-id)

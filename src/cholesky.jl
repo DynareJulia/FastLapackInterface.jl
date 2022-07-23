@@ -45,17 +45,30 @@ for (pstrf, elty, rtyp) in
      (:zpstrf_,:ComplexF64,:Float64),
      (:cpstrf_,:ComplexF32,:Float32))
     @eval begin
-        function CholeskyPivotedWs(A::AbstractMatrix{$elty})
+        function Base.resize!(ws::CholeskyPivotedWs, A::AbstractMatrix{$elty})
             n = checksquare(A)
-            return CholeskyPivotedWs(Vector{$rtyp}(undef, 2n), similar(A, BlasInt, n))
+            resize!(ws.work, 2n)
+            resize!(ws.piv, n)
+            return ws
+        end
+        function CholeskyPivotedWs(A::AbstractMatrix{$elty})
+            return resize!(CholeskyPivotedWs($rtyp[], BlasInt[]), A)
         end
 
-        function pstrf!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix{$elty}, tol::Real)
+        function pstrf!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix{$elty}, tol::Real; resize=true)
             chkstride1(A)
             n = checksquare(A)
             chkuplo(uplo)
             rank = Ref{BlasInt}()
             info = Ref{BlasInt}()
+            if length(ws.piv) < n
+                if resize
+                    resize!(ws, A)
+                else
+                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                end
+            end
+                
             ccall((@blasfunc($pstrf), liblapack), Cvoid,
                   (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
                    Ptr{BlasInt}, Ref{$rtyp}, Ptr{$rtyp}, Ptr{BlasInt}, Clong),
@@ -67,16 +80,17 @@ for (pstrf, elty, rtyp) in
 end
 
 """
-    pstrf!(ws, uplo, A, tol) -> (A, ws.piv, rank, info)
+    pstrf!(ws, uplo, A, tol; resize=true) -> (A, ws.piv, rank, info)
 
 Computes the (upper if `uplo = U`, lower if `uplo = L`) pivoted Cholesky
 decomposition of positive-definite matrix `A` with a user-set tolerance
 `tol`, using a preallocated [`CholeskyPivotedWs`](@ref).
+If the workspace was too small and `resize==true` it will be automatically resized.
 `A` is overwritten by its Cholesky decomposition.
 
 Returns `A`, the pivots `piv`, the rank of `A`, and an `info` code. If `info = 0`,
 the factorization succeeded. If `info = i > 0 `, then `A` is indefinite or
 rank-deficient.
 """
-pstrf!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix, tol::Real)
+pstrf!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix, tol::Real; kwargs...)
 

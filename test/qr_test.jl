@@ -9,19 +9,23 @@ using LinearAlgebra.LAPACK
         ws = QRWs(A0)
         @testset "geqrf!" begin
             A = copy(A0)
-            AT, tau = LAPACK.geqrf!(ws, A)
+            qr1 = QR(LAPACK.geqrf!(ws, A)...)
 
-            AT1, tau1 = LAPACK.geqrf!(copy(A0), randn(n))
-            @test AT1 == AT
-            @test tau1 == tau
+            qr2 = QR(LAPACK.geqrf!(copy(A0), randn(n))...)
+            @test isapprox(Matrix(qr1), Matrix(qr2))
             # using Workspace, factorize!
             ws = Workspace(LAPACK.geqrf!, copy(A0))
-            AT1, tau1 = factorize!(ws, copy(A0))
-            @test AT1 == AT
-            @test tau1 == tau
+            qr2 = QR(factorize!(ws, copy(A0))...)
+            
+            @test isapprox(Matrix(qr1), Matrix(qr2))
+            
+            @test_throws ArgumentError factorize!(ws, rand(n+1, n+1); resize=false)
+            factorize!(ws, rand(n+1, n+1))
+            @test size(ws.τ , 1) == n+1
         end
 
         @testset "ormqr!" begin
+            ws = Workspace(LAPACK.geqrf!, copy(A0))
             C = randn(n, n)
             tau = randn(n)
             ws.τ .= tau
@@ -46,43 +50,43 @@ end
             A = copy(A0)
             ws = QRWYWs(A)
 
-            AT, taut = LAPACK.geqrt!(ws, copy(A))
-            AT1, taut1 = LAPACK.geqrt!(copy(A0), zeros(size(ws.T)))
-            @test AT1 == AT
-            @test isapprox(taut1, taut)
+            qr1 = LinearAlgebra.QRCompactWY(LAPACK.geqrt!(ws, copy(A))...)
+            qr2 = LinearAlgebra.QRCompactWY(LAPACK.geqrt!(copy(A0), zeros(size(ws.T)))...)
+            @test isapprox(Matrix(qr1), Matrix(qr2))
             # using Workspace, factorize!
             ws = Workspace(LAPACK.geqrt!, copy(A))
-            AT, taut = factorize!(ws, A)
-            @test AT1 == AT
-            @test isapprox(taut1, taut)
+            qr1 = LinearAlgebra.QRCompactWY(factorize!(ws, A)...)
+            @test isapprox(Matrix(qr1), Matrix(qr2))
             show(devnull, "text/plain", ws)
+            @test_throws ArgumentError factorize!(ws, rand(n-1, n-1); resize=false)
+            factorize!(ws, rand(n-1, n-1))
+            @test size(ws.T, 1) == n-1
         end
     end
 end
 
-@testset "QRpWs" begin
+@testset "QRPivotedWs" begin
     n = 3
     @testset "Real, square" begin
         A0 = randn(n, n)
 
         @testset "geqp3!" begin
             A = copy(A0)
-            ws = QRpWs(A)
-            AT, taut, jpvt = LAPACK.geqp3!(ws, copy(A))
+            ws = QRPivotedWs(A)
+            q1 = QRPivoted(LAPACK.geqp3!(ws, copy(A))...)
 
-            AT1, taut1, jpvt1 = LAPACK.geqp3!(copy(A0), zeros(Int, length(ws.jpvt)),
-                                              zeros(size(ws.τ)))
-            @test isapprox(AT1, AT)
-            @test isapprox(jpvt1, jpvt)
-            @test isapprox(taut1, taut)
+            q2 = QRPivoted(LAPACK.geqp3!(copy(A0), zeros(Int, length(ws.jpvt)),
+                                              zeros(size(ws.τ)))...)
+            @test isapprox(Matrix(q1), Matrix(q2))
 
             # using Workspace, factorize!
             ws = Workspace(LAPACK.geqp3!, copy(A))
-            AT, taut, jpvt = factorize!(ws, copy(A))
-            @test isapprox(AT1, AT)
-            @test isapprox(jpvt1, jpvt)
-            @test isapprox(taut1, taut)
+            q1 = QRPivoted(factorize!(ws, copy(A))...)
+            @test isapprox(Matrix(q1), Matrix(q2))
 
+            @test_throws ArgumentError factorize!(ws, rand(n+1, n+1); resize=false)
+            factorize!(ws, rand(n+1, n+1))
+            @test size(ws.τ , 1) == n+1
             show(devnull, "text/plain", ws)
         end
     end

@@ -20,7 +20,7 @@ abstract type Workspace end
 include("lu.jl")
 export LUWs
 include("qr.jl")
-export QRWs, QRWYWs, QRpWs
+export QRWs, QRWYWs, QRPivotedWs
 include("schur.jl")
 export SchurWs, GeneralizedSchurWs
 include("eigen.jl")

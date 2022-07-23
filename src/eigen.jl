@@ -43,7 +43,7 @@ vectors:
   0.780285  -0.907515
 ```
 """
-struct EigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
+mutable struct EigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
     work::Vector{T}
     rwork::Vector{RT} # Can be rwork if T <: Complex or WI if T <: Float64
     VL::MT
@@ -61,8 +61,8 @@ for (geevx, elty, relty) in
      (:zgeevx_, :ComplexF64, :Float64),
      (:cgeevx_, :ComplexF32, :Float32))
     @eval begin
-        function EigenWs(A::AbstractMatrix{$elty}; lvecs = false, rvecs = true,
-                         sense = false)
+        function Base.resize!(ws::EigenWs, A::AbstractMatrix{$elty}; lvecs=false, rvecs=true, sense=false)
+            
             chkstride1(A)
             n = checksquare(A)
             chkfinite(A) # balancing routines don't support NaNs and Infs
@@ -78,29 +78,23 @@ for (geevx, elty, relty) in
             jobvl = lvecs ? 'V' : 'N'
             jobvr = rvecs ? 'V' : 'N'
 
-            VL    = zeros($elty, (lvecs ? n : 0, n))
-            VR    = zeros($elty, (rvecs ? n : 0, n))
+            ws.VL = zeros($elty, (lvecs ? n : 0, n))
+            ws.VR = zeros($elty, (rvecs ? n : 0, n))
             cmplx = eltype(A) <: Complex
-            if cmplx
-                W     = zeros($elty, n)
-                rwork = zeros($relty, 2n)
-            else
-                W     = zeros($elty, n)
-                rwork = zeros($elty, n)
-            end
-            work  = Vector{$elty}(undef, 1)
-            lwork = BlasInt(-1)
+            resize!(ws.W, n) 
+            resize!(ws.rwork, cmplx ? 2n : n)
+                
             info  = Ref{BlasInt}()
 
             ilo = Ref{BlasInt}()
             ihi = Ref{BlasInt}()
-            scale = zeros($relty, n)
+            resize!(ws.scale, n)
             abnrm = Ref{$relty}()
 
-            rconde = zeros($relty, sense ? n : 0)
-            rcondv = zeros($relty, sense ? n : 0)
+            resize!(ws.rconde, sense ? n : 0)
+            resize!(ws.rcondv, sense ? n : 0)
 
-            iwork = zeros(BlasInt, sense ? 2n - 1 : 0)
+            resize!(ws.iwork, sense ? 2n - 1 : 0)
 
             if cmplx
                 ccall((@blasfunc($geevx), liblapack), Cvoid,
@@ -111,11 +105,11 @@ for (geevx, elty, relty) in
                        Ptr{$relty}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
                        Ptr{$relty}, Ptr{BlasInt}, Clong, Clong, Clong, Clong),
                       'N', jobvl, jobvr, S,
-                      n, A, max(1, stride(A, 2)), W,
-                      VL, n, VR, n,
-                      ilo, ihi, scale, abnrm,
-                      rconde, rcondv, work, lwork,
-                      rwork, info, 1, 1, 1, 1)
+                      n, A, max(1, stride(A, 2)), ws.W,
+                      ws.VL, n, ws.VR, n,
+                      ilo, ihi, ws.scale, abnrm,
+                      ws.rconde, ws.rcondv, ws.work, -1,
+                      ws.rwork, info, 1, 1, 1, 1)
 
             else
                 ccall((@blasfunc($geevx), liblapack), Cvoid,
@@ -127,20 +121,22 @@ for (geevx, elty, relty) in
                        Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt},
                        Clong, Clong, Clong, Clong),
                       'N', jobvl, jobvr, 'N',
-                      n, A, max(1, stride(A, 2)), W,
-                      rwork, VL, n, VR,
-                      n, ilo, ihi, scale,
-                      abnrm, rconde, rcondv, work,
-                      lwork, iwork, info,
+                      n, A, max(1, stride(A, 2)), ws.W,
+                      ws.rwork, ws.VL, n, ws.VR,
+                      n, ilo, ihi, ws.scale,
+                      abnrm, ws.rconde, ws.rcondv, ws.work,
+                      -1, ws.iwork, info,
                       1, 1, 1, 1)
             end
             chklapackerror(info[])
-            resize!(work, BlasInt(real(work[1])))
-            return EigenWs(work, rwork, VL, VR, W, scale, iwork, rconde, rcondv)
+            resize!(ws.work, BlasInt(real(ws.work[1])))
+            return ws
         end
+        EigenWs(A::AbstractMatrix{$elty}; kwargs...) =
+            resize!(EigenWs(Vector{$elty}(undef, 1), $relty[], similar(A, 0, 0), similar(A, 0, 0), $elty[], $relty[], BlasInt[], $relty[], $relty[]), A; kwargs...)
 
         function geevx!(ws::EigenWs, balanc::AbstractChar, jobvl::AbstractChar,
-                        jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix{$elty})
+                        jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix{$elty}; resize=true)
             n = checksquare(A)
             chkfinite(A) # balancing routines don't support NaNs and Infs
             if balanc ∉ ('N', 'P', 'S', 'B')
@@ -150,19 +146,44 @@ for (geevx, elty, relty) in
                 throw(ArgumentError("sense must be 'N', 'E', 'V' or 'B', but $sense was passed"))
             end
             # work, rwork, VL, VR, W, scale, iwork, rconde, rcondv = ws
-            ldvl = size(ws.VL, 1)
-            ldvr = size(ws.VR, 1)
-
             if sense ∈ ('E', 'B')
                 if jobvl != 'V' || jobvr != 'V'
                     throw(ArgumentError("If sense = $sense it is required that jobvl = 'V' (is $jobvl) and jobvr = 'V' (is $jobvr)."))
                 elseif size(ws.iwork, 1) == 0
-                    throw(ArgumentError("Workspace was created without support for sense,\nrecreate with EigenWs(A, sense = true)"))
+                    if resize
+                        resize!(ws, A, sense=true)
+                    else
+                        throw(ArgumentError("Workspace was created without support for sense,\n use resize!(ws, A, sense=true)."))
+                    end
                 end
             end
-            @assert jobvl != 'V' || ldvl > 0 "Workspace was created without support for left eigenvectors,\nrecreate with EigenWs(A, lvecs = true)"
-            @assert jobvr != 'V' || ldvr > 0 "Workspace was created without support for right eigenvectors,\nrecreate with EigenWs(A, rvecs = true)"
+            
 
+            if jobvl == 'V' && size(ws.VL, 1) == 0
+                if resize
+                    resize!(ws, A, lvecs = true, rvecs = size(ws.VR, 1) != 0, sense=size(ws.iwork, 1) != 0)
+                else
+                    throw(ArgumentError("Workspace was created without support for left eigenvectors,\n use resize!(ws, A, lvecs=true)."))
+                end
+            end
+            if jobvr == 'V' && size(ws.VR, 1) == 0
+                if resize
+                    resize!(ws, A, rvecs = true, lvecs = size(ws.VL, 1) != 0, sense=size(ws.iwork, 1) != 0)
+                else
+                    throw(ArgumentError("Workspace was created without support for right eigenvectors,\nor use resize!(ws, A, rvecs=true)."))
+                end
+            end
+
+            ldvl = size(ws.VL, 1)
+            ldvr = size(ws.VR, 1)
+            if n > length(ws.W)
+                if resize
+                    resize!(ws, A, rvecs = ldvr != 0, lvecs = ldvl != 0, sense=size(ws.iwork, 1) != 0)
+                else
+                    throw(ArgumentError("Workspace is too small for matrix."))
+                end
+            end
+            
             abnrm = Ref{$relty}()
             ilo = Ref{BlasInt}()
             ihi = Ref{BlasInt}()
@@ -209,7 +230,7 @@ for (geevx, elty, relty) in
 end
 
 """
-    geevx!(ws, balanc, jobvl, jobvr, sense, A) -> (A, ws.W, [ws.rwork,] ws.VL, ws.VR, ilo, ihi, ws.scale, abnrm, ws.rconde, ws.rcondv)
+    geevx!(ws, balanc, jobvl, jobvr, sense, A; resize=true) -> (A, ws.W, [ws.rwork,] ws.VL, ws.VR, ilo, ihi, ws.scale, abnrm, ws.rconde, ws.rcondv)
 
 Finds the eigensystem of `A` with matrix balancing using a preallocated [`EigenWs`](@ref).
 If `jobvl = N`, the left eigenvectors of `A` aren't computed. If `jobvr = N`, the right
@@ -224,9 +245,11 @@ computed for the right eigenvectors only. If `sense = B`, reciprocal
 condition numbers are computed for the right eigenvectors and the
 eigenvectors. If `sense = E,B`, the right and left eigenvectors must be
 computed. `ws.rwork` is only returned in the `Real` case.
+If `ws` does not have the appropriate size for `A` and the work to be done,
+if `resize=true`, it will be automatically resized accordingly. 
 """
 geevx!(ws::EigenWs, balanc::AbstractChar, jobvl::AbstractChar,
-       jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix)
+       jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix; resize=true)
 
 """
     HermitianEigenWs
@@ -263,7 +286,7 @@ vectors:
   0.540698  0.841217
 ```
 """
-struct HermitianEigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
+mutable struct HermitianEigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
     work::Vector{T}
     rwork::Vector{RT}
     iwork::Vector{BlasInt}
@@ -277,30 +300,23 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                              (:dsyevr_, :Float64, :Float64),
                              (:ssyevr_, :Float32, :Float32))
     @eval begin
-        function HermitianEigenWs(A::AbstractMatrix{$elty}; vecs = true)
+        function Base.resize!(ws::HermitianEigenWs, A::AbstractMatrix{$elty}; vecs=false)
             chkstride1(A)
             n = checksquare(A)
-            w = zeros($relty, n)
+            resize!(ws.w, n)
             if vecs
                 ldz = n
-                Z = zeros($elty, ldz, n)
+                ws.Z = similar(A, ldz, n)
             else
                 ldz = 1
-                Z = zeros($elty, ldz, 0)
+                ws.Z = similar(A, 0, 0)
             end
-            isuppz = zeros(BlasInt, 2 * n)
+            resize!(ws.isuppz, 2n)
 
-            work  = Vector{$elty}(undef, 1)
-            lwork = BlasInt(-1)
-
-            iwork  = Vector{BlasInt}(undef, 1)
-            liwork = BlasInt(-1)
             info   = Ref{BlasInt}()
             jobz   = vecs ? 'V' : 'N'
             cmplx  = eltype(A) <: Complex
             if cmplx
-                rwork  = Vector{$relty}(undef, 1)
-                lrwork = BlasInt(-1)
                 ccall((@blasfunc($syevr), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
                        Ptr{$elty}, Ref{BlasInt}, Ref{$elty}, Ref{$elty},
@@ -312,14 +328,13 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                       jobz, 'A', 'U', n,
                       A, max(1, stride(A, 2)), 0, 0,
                       0, 0, 1e-6, Ref{BlasInt}(),
-                      w, Z, ldz, isuppz,
-                      work, lwork, rwork, lrwork,
-                      iwork, liwork, info,
+                      ws.w, ws.Z, ldz, ws.isuppz,
+                      ws.work, -1, ws.rwork, -1,
+                      ws.iwork, -1, info,
                       1, 1, 1)
                 chklapackerror(info[])
-                resize!(rwork, BlasInt(real(rwork[1])))
+                resize!(ws.rwork, BlasInt(real(ws.rwork[1])))
             else
-                rwork = Vector{$relty}(undef, 0)
                 ccall((@blasfunc($syevr), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
                        Ptr{$elty}, Ref{BlasInt}, Ref{$elty}, Ref{$elty},
@@ -330,20 +345,23 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                       jobz, 'A', 'U', n,
                       A, max(1, stride(A, 2)), 0, 0,
                       0, 0, 1e-6, Ref{BlasInt}(),
-                      w, Z, ldz, isuppz,
-                      work, lwork, iwork, liwork,
+                      ws.w, ws.Z, ldz, ws.isuppz,
+                      ws.work, -1, ws.iwork, -1,
                       info, 1, 1, 1)
                 chklapackerror(info[])
             end
-            resize!(work, BlasInt(real(work[1])))
-            resize!(iwork, BlasInt(real(iwork[1])))
-            return HermitianEigenWs(work, rwork, iwork, w, Z, isuppz)
+            resize!(ws.work, BlasInt(real(ws.work[1])))
+            resize!(ws.iwork, BlasInt(real(ws.iwork[1])))
+            return ws
+        end
+        function HermitianEigenWs(A::AbstractMatrix{$elty}; kwargs...)
+            return resize!(HermitianEigenWs(Vector{$elty}(undef, 1), Vector{$relty}(undef, eltype(A) <: Complex ? 1 : 0), Vector{BlasInt}(undef, 1), $relty[], similar(A, 0, 0), BlasInt[]), A; kwargs...)
         end
 
         function syevr!(ws::HermitianEigenWs, jobz::AbstractChar, range::AbstractChar,
                         uplo::AbstractChar, A::AbstractMatrix{$elty},
                         vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer,
-                        abstol::AbstractFloat)
+                        abstol::AbstractFloat; resize=true)
             chkstride1(A)
             n = checksquare(A)
             if range == 'I' && !(1 <= il <= iu <= n)
@@ -358,8 +376,22 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                 ldz = 1
             elseif jobz == 'V'
                 ldz = n
+                if size(ws.Z, 1) < ldz
+                    if resize
+                        resize!(ws, A, vecs=true)
+                    else
+                        throw(ArgumentError("Workspace does not support eigenvectors.\nUse resize!(ws, A, vecs=true)."))
+                    end
+                end
             end
-
+            if length(ws.w) < n
+                if resize
+                    resize!(ws, A, vecs = size(ws.Z, 1) > 1)
+                else
+                    throw(ArgumentError("Workspace too small.\nUse resize!(ws, A)."))
+                end
+            end
+                   
             info = Ref{BlasInt}()
             if eltype(A) <: Complex
                 ccall((@blasfunc($syevr), liblapack), Cvoid,
@@ -405,10 +437,12 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
 end
 
 """
-    syevr!(ws, jobz, range, uplo, A, vl, vu, il, iu, abstol) -> (ws.W, ws.Z)
+    syevr!(ws, jobz, range, uplo, A, vl, vu, il, iu, abstol; resize=true) -> (ws.W, ws.Z)
 
 Finds the eigenvalues (`jobz = N`) or eigenvalues and eigenvectors
 (`jobz = V`) of a symmetric matrix `A` using a preallocated [`HermitianEigenWs`](@ref).
+If the workspace is not appropriate for `A` and `resize==true` it will be automatically
+resized.
 If `uplo = U`, the upper triangle of `A` is used. If `uplo = L`, the lower triangle of `A` is used.
 If `range = A`, all the eigenvalues are found. If `range = V`, the
 eigenvalues in the half-open interval `(vl, vu]` are found.
@@ -420,7 +454,7 @@ The eigenvalues are returned as `ws.W` and the eigenvectors in `ws.Z`.
 syevr!(ws::HermitianEigenWs, jobz::AbstractChar, range::AbstractChar,
        uplo::AbstractChar, A::AbstractMatrix,
        vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer,
-       abstol::AbstractFloat)
+       abstol::AbstractFloat; resize=true)
 
 """
     GeneralizedEigenWs
@@ -467,7 +501,7 @@ vectors:
   1.0        1.0
 ```
 """
-struct GeneralizedEigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
+mutable struct GeneralizedEigenWs{T,MT<:AbstractMatrix{T},RT<:AbstractFloat} <: Workspace
     work::Vector{T}
     vl::MT
     vr::MT
@@ -482,26 +516,28 @@ for (ggev, elty, relty) in
      (:zggev_, :ComplexF64, :Float64),
      (:cggev_, :ComplexF32, :Float32))
     @eval begin
-        function GeneralizedEigenWs(A::AbstractMatrix{$elty}; lvecs = false, rvecs = false)
+        function Base.resize!(ws::GeneralizedEigenWs, A::AbstractMatrix{$elty}; lvecs=false,rvecs=false)
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
             lda = max(1, stride(A, 2))
             ldb = lda
-            αr = zeros($elty, n)
+            resize!(ws.αr, n)
             cmplx = eltype(A) <: Complex
-            αi = cmplx ? Vector{$relty}(undef, 8n) : zeros($relty, n)
-            β = zeros($elty, n)
+            if cmplx
+                resize!(ws.αi, 8n)
+            else
+                resize!(ws.αi, n)
+            end
+            resize!(ws.β, n)
 
             jobvl = lvecs ? 'V' : 'N'
             jobvr = rvecs ? 'V' : 'N'
             ldvl = lvecs ? n : 1
             ldvr = rvecs ? n : 1
-            vl = zeros($elty, lvecs ? n : 0, n)
-            vr = zeros($elty, rvecs ? n : 0, n)
+            ws.vl = zeros($elty, lvecs ? n : 0, n)
+            ws.vr = zeros($elty, rvecs ? n : 0, n)
 
-            work = Vector{$elty}(undef, 1)
-            lwork = BlasInt(-1)
             info = Ref{BlasInt}()
 
             if cmplx
@@ -512,9 +548,9 @@ for (ggev, elty, relty) in
                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
                        Ptr{BlasInt}, Clong, Clong),
                       jobvl, jobvr, n, A,
-                      lda, A, ldb, αr,
-                      β, vl, ldvl, vr,
-                      ldvr, work, lwork, αi,
+                      lda, A, ldb, ws.αr,
+                      ws.β, ws.vl, ldvl, ws.vr,
+                      ldvr, ws.work, -1, ws.αi,
                       info, 1, 1)
             else
                 ccall((@blasfunc($ggev), liblapack), Cvoid,
@@ -524,18 +560,21 @@ for (ggev, elty, relty) in
                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
                        Ptr{BlasInt}, Clong, Clong),
                       jobvl, jobvr, n, A,
-                      lda, A, ldb, αr,
-                      αi, β, vl, ldvl,
-                      vr, ldvr, work, lwork,
+                      lda, A, ldb, ws.αr,
+                      ws.αi, ws.β, ws.vl, ldvl,
+                      ws.vr, ldvr, ws.work, -1,
                       info, 1, 1)
             end
             chklapackerror(info[])
-            resize!(work, BlasInt(work[1]))
-            return GeneralizedEigenWs(work, vl, vr, αr, αi, β)
+            resize!(ws.work, BlasInt(ws.work[1]))
+            return ws
+        end
+        function GeneralizedEigenWs(A::AbstractMatrix{$elty}; kwargs...)
+            return resize!(GeneralizedEigenWs(Vector{$elty}(undef, 1), similar(A, 0,0),similar(A,0,0), $elty[], $relty[], $elty[]), A; kwargs...)
         end
 
         function ggev!(ws::GeneralizedEigenWs, jobvl::AbstractChar, jobvr::AbstractChar,
-                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty})
+                       A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}; resize=true)
             require_one_based_indexing(A, B)
             chkstride1(A, B)
             n, m = checksquare(A, B)
@@ -544,10 +583,30 @@ for (ggev, elty, relty) in
             end
             lda = max(1, stride(A, 2))
             ldb = max(1, stride(B, 2))
+            if length(ws.β) < n
+                if resize
+                    resize!(ws, A, lvecs = size(ws.vl, 1) > 0, rvecs = size(ws.vr, 1) > 0 )
+                else
+                    throw(ArgumentError("Workspace too small.\nUse resize!(ws, A)."))
+                end
+            end
+            if jobvl == 'V' && size(ws.vl, 1) == 0
+                if resize
+                    resize!(ws, A, lvecs = true, rvecs = size(ws.vr, 1) != 0)
+                else
+                    throw(ArgumentError("Workspace was created without support for left eigenvectors,\n use resize!(ws, A, lvecs=true)."))
+                end
+            end
+            if jobvr == 'V' && size(ws.vr, 1) == 0
+                if resize
+                    resize!(ws, A, rvecs = true, lvecs = size(ws.vl, 1) != 0)
+                else
+                    throw(ArgumentError("Workspace was created without support for right eigenvectors,\nor use resize!(ws, A, rvecs=true)."))
+                end
+            end
             ldvl = size(ws.vl, 1)
             ldvr = size(ws.vr, 1)
-            @assert jobvl != 'V' || ldvl > 0 "Workspace was created without support for left eigenvectors,\nrecreate with EigenWs(A, lvecs = true)"
-            @assert jobvr != 'V' || ldvr > 0 "Workspace was created without support for right eigenvectors,\nrecreate with EigenWs(A, rvecs = true)"
+                   
             rwork = ws.αi
             info = Ref{BlasInt}()
             if eltype(A) <: Complex
@@ -584,12 +643,14 @@ for (ggev, elty, relty) in
 end
 
 """
-    ggev!(ws, jobvl, jobvr, A, B) -> (ws.αr, [ws.αi,], ws.β, ws.vl, ws.vr)
+    ggev!(ws, jobvl, jobvr, A, B; resize=true) -> (ws.αr, [ws.αi,], ws.β, ws.vl, ws.vr)
 
 Finds the generalized eigendecomposition of `A` and `B` usin a preallocated [`GeneralizedEigenWs`](@ref).
+If the workspace is not appropriately sized and `resize == true`, it will automatically be
+resized.
 If `jobvl = N`, the left eigenvectors aren't computed. If `jobvr = N`, the right
 eigenvectors aren't computed. If `jobvl = V` or `jobvr = V`, the
 corresponding eigenvectors are computed. `ws.αi` is only returned in the `Real` case.
 """
 ggev!(ws::GeneralizedEigenWs, jobvl::AbstractChar, jobvr::AbstractChar, A::AbstractMatrix,
-      B::AbstractMatrix)
+      B::AbstractMatrix; resize=true)

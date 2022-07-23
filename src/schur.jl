@@ -91,16 +91,15 @@ Base.length(ws::SchurWs) = length(ws.wr)
 for (gees, elty) in ((:dgees_, :Float64),
                      (:sgees_, :Float32))
     @eval begin
-        function SchurWs(A::AbstractMatrix{$elty})
+        function Base.resize!(ws::SchurWs, A::AbstractMatrix{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             n     = checksquare(A)
-            wr    = zeros($elty, n)
-            wi    = zeros($elty, n)
-            vs    = zeros($elty, n, n)
-            ldvs  = max(size(vs, 1), 1)
-            work  = Vector{$elty}(undef, 1)
-            lwork = BlasInt(-1)
+            resize!(ws.wr, n)
+            resize!(ws.wi, n)
+            ws.vs = zeros($elty, n, n)
+            resize!(ws.bwork, n)
+            resize!(ws.eigen_values, n)
             info  = Ref{BlasInt}()
             ccall((@blasfunc($gees), liblapack), Cvoid,
                   (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
@@ -108,24 +107,32 @@ for (gees, elty) in ((:dgees_, :Float64),
                    Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
                    Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}, Clong, Clong),
                   'V', 'N', C_NULL, n,
-                  A, max(1, stride(A, 2)), C_NULL, wr,
-                  wi, vs, ldvs, work,
-                  lwork, C_NULL, info, 1, 1)
+                  A, max(1, stride(A, 2)), C_NULL, ws.wr,
+                  ws.wi, ws.vs, max(size(ws.vs, 1), 1), ws.work,
+                  -1, C_NULL, info, 1, 1)
 
             chklapackerror(info[])
 
-            resize!(work, BlasInt(real(work[1])))
-            return SchurWs{$elty}(work, wr, wi, vs, Ref{BlasInt}(),
-                                  Vector{BlasInt}(undef, n), similar(A, Complex{$elty}, n))
+            resize!(ws.work, BlasInt(real(ws.work[1])))
+            return ws
         end
+            
+        SchurWs(A::AbstractMatrix{$elty}) =
+            resize!(SchurWs(Vector{$elty}(undef, 1), $elty[], $elty[], Matrix{$elty}(undef, 0, 0), Ref{BlasInt}(), BlasInt[], Complex{$elty}[]), A) 
 
         function gees!(ws::SchurWs{$elty}, jobvs::AbstractChar,
-                       A::AbstractMatrix{$elty}; select::Union{Nothing,Function} = nothing)
+                       A::AbstractMatrix{$elty};
+                       select::Union{Nothing,Function} = nothing,
+                       resize=false)
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
             if n > length(ws)
-                throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
+                if resize
+                    resize!(ws, A)
+                else
+                    throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
+                end
             end
             info = Ref{BlasInt}()
             ldvs = max(size(ws.vs, 1), 1)
@@ -170,10 +177,10 @@ for (gees, elty) in ((:dgees_, :Float64),
 end
 
 """
-    gees!(ws, jobvs, A; select=nothing) -> (A, vs, ws.eigen_values)
+    gees!(ws, jobvs, A; select=nothing, resize=true) -> (A, vs, ws.eigen_values)
 
 Computes the eigenvalues (`jobvs = N`) or the eigenvalues and Schur
-vectors (`jobvs = V`) of matrix `A`, using the preallocated [`SchurWs`](@ref) worspace `ws`.
+vectors (`jobvs = V`) of matrix `A`, using the preallocated [`SchurWs`](@ref) worspace `ws`. If `ws` is not of the appropriate size and `resize==true` it will be resized for `A`. 
 `A` is overwritten by its Schur form, and `ws.eigen_values` is overwritten with the eigenvalues.
 
 It is possible to specify `select`, a function used to sort the eigenvalues during the decomponsition.
@@ -182,7 +189,7 @@ The function should have the signature `f(wr::T, wi::T) -> Bool`, where
 
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 """
-gees!(ws::SchurWs, jobvs::AbstractChar, A::AbstractMatrix)
+gees!(ws::SchurWs, jobvs::AbstractChar, A::AbstractMatrix; kwargs...)
 
 """
     GeneralizedSchurWs
@@ -262,16 +269,16 @@ Base.length(ws::GeneralizedSchurWs) = length(ws.αr)
 for (gges, elty) in ((:dgges_, :Float64),
                      (:sgges_, :Float32))
     @eval begin
-        function GeneralizedSchurWs(A::AbstractMatrix{$elty})
+        function Base.resize!(ws::GeneralizedSchurWs, A::AbstractMatrix{$elty})
             chkstride1(A)
             n     = checksquare(A)
-            αr    = zeros($elty, n)
-            αi    = zeros($elty, n)
-            β     = zeros($elty, n)
-            vsl   = zeros($elty, n, n)
-            vsr   = zeros($elty, n, n)
-            work  = Vector{$elty}(undef, 1)
-            lwork = BlasInt(-1)
+            resize!(ws.αr, n)
+            resize!(ws.αi, n)
+            resize!(ws.β, n)
+            resize!(ws.bwork, n)
+            resize!(ws.eigen_values, n)
+            ws.vsl = zeros($elty, n, n)
+            ws.vsr = zeros($elty, n, n)
             info  = Ref{BlasInt}()
             ccall((@blasfunc($gges), liblapack), Cvoid,
                   (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
@@ -282,29 +289,34 @@ for (gges, elty) in ((:dgges_, :Float64),
                    Ref{BlasInt}, Clong, Clong, Clong),
                   'V', 'V', 'N', C_NULL,
                   n, A, max(1, stride(A, 2)), A,
-                  max(1, stride(A, 2)), C_NULL, αr, αi,
-                  β, vsl, n, vsr,
-                  n, work, lwork, C_NULL,
+                  max(1, stride(A, 2)), C_NULL, ws.αr, ws.αi,
+                  ws.β, ws.vsl, n, ws.vsr,
+                  n, ws.work, -1, C_NULL,
                   info, 1, 1, 1)
 
             chklapackerror(info[])
-            resize!(work, BlasInt(real(work[1])))
-            return GeneralizedSchurWs(work, αr, αi, β, vsl, vsr, Ref{BlasInt}(),
-                                      Vector{BlasInt}(undef, n),
-                                      similar(A, Complex{$elty}, n))
+            resize!(ws.work, BlasInt(real(ws.work[1])))
+            return ws
         end
+        GeneralizedSchurWs(A::AbstractMatrix{$elty}) = 
+            resize!(GeneralizedSchurWs(Vector{$elty}(undef, 1), $elty[], $elty[], $elty[], Matrix{$elty}(undef, 0, 0), Matrix{$elty}(undef, 0, 0), Ref{BlasInt}(), BlasInt[], Complex{$elty}[]), A)
 
         function gges!(ws::GeneralizedSchurWs, jobvsl::AbstractChar,
                        jobvsr::AbstractChar,
                        A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty};
-                       select::Union{Nothing,Function} = nothing)
+                       select::Union{Nothing,Function} = nothing,
+                       resize=true)
             chkstride1(A, B)
             n, m = checksquare(A, B)
             if n != m
                 throw(DimensionMismatch("dimensions of A, ($n,$n), and B, ($m,$m), must match"))
             end
             if n > length(ws)
-                throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
+                if resize
+                    resize!(ws, A)
+                else
+                    throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
+                end
             end
 
             info = Ref{BlasInt}()
@@ -353,11 +365,12 @@ for (gges, elty) in ((:dgges_, :Float64),
 end
 
 """
-    gges!(ws, jobvsl, jobvsr, A, B; select=nothing) -> (A, B, ws.eigen_values, ws.β, ws.vsl, ws.vsr)
+    gges!(ws, jobvsl, jobvsr, A, B; select=nothing, resize=true) -> (A, B, ws.eigen_values, ws.β, ws.vsl, ws.vsr)
 
 Computes the generalized eigenvalues, generalized Schur form, left Schur
 vectors (`jobsvl = V`), or right Schur vectors (`jobvsr = V`) of `A` and
 `B`, using preallocated [`GeneralizedSchurWs`](@ref) workspace `ws`.
+If `ws` is not of the right size, and `resize==true` it will be resized appropriately.
 
 It is possible to specify `select`, a function used to sort the eigenvalues during the decomposition.
 The function should have the signature `f(αr::T, αi::T, β::T) -> Bool`, where

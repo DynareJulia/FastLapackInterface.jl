@@ -44,7 +44,7 @@ Workspace(::typeof(LAPACK.getrf!), A::AbstractMatrix) = LUWs(A)
 Workspace(::typeof(LAPACK.geqrf!), A::AbstractMatrix) = QRWs(A)
 Workspace(::typeof(LAPACK.ormqr!), A::AbstractMatrix) = QRWs(A)
 Workspace(::typeof(LAPACK.geqrt!), A::AbstractMatrix) = QRWYWs(A)
-Workspace(::typeof(LAPACK.geqp3!), A::AbstractMatrix) = QRpWs(A)
+Workspace(::typeof(LAPACK.geqp3!), A::AbstractMatrix) = QRPivotedWs(A)
 
 Workspace(::typeof(LAPACK.gees!), A::AbstractMatrix) = SchurWs(A)
 Workspace(::typeof(LAPACK.gges!), A::AbstractMatrix) = GeneralizedSchurWs(A)
@@ -65,40 +65,40 @@ Workspace(::typeof(LAPACK.pstrf!), A::AbstractMatrix) = CholeskyPivotedWs(A)
 
 Will use the previously created [`Workspace`](@ref WorkSpaces) `ws` to dispatch to the correct LAPACK call.  
 """
-decompose!(ws::LUWs, args...) = LAPACK.getrf!(ws, args...)
+decompose!(ws::LUWs, args...; kwargs...) = LAPACK.getrf!(ws, args...; kwargs...)
 
-decompose!(ws::QRWs, args...)   = LAPACK.geqrf!(ws, args...)
-decompose!(ws::QRWYWs, args...) = LAPACK.geqrt!(ws, args...)
-decompose!(ws::QRpWs, args...)  = LAPACK.geqp3!(ws, args...)
+decompose!(ws::QRWs, args...; kwargs...)   = LAPACK.geqrf!(ws, args...; kwargs...)
+decompose!(ws::QRWYWs, args...; kwargs...) = LAPACK.geqrt!(ws, args...; kwargs...)
+decompose!(ws::QRPivotedWs, args...; kwargs...)  = LAPACK.geqp3!(ws, args...; kwargs...)
 
-decompose!(ws::SchurWs, args...)            = LAPACK.gees!(ws, args...)
-decompose!(ws::GeneralizedSchurWs, args...) = LAPACK.gges!(ws, args...)
+decompose!(ws::SchurWs, args...; kwargs...)            = LAPACK.gees!(ws, args...; kwargs...)
+decompose!(ws::GeneralizedSchurWs, args...; kwargs...) = LAPACK.gges!(ws, args...; kwargs...)
 
-decompose!(ws::EigenWs, args...) = LAPACK.geevx!(ws, args...)
-decompose!(ws::HermitianEigenWs, args...) = LAPACK.syevr!(ws, args...)
-decompose!(ws::GeneralizedEigenWs, args...) = LAPACK.ggev!(ws, args...)
+decompose!(ws::EigenWs, args...; kwargs...) = LAPACK.geevx!(ws, args...; kwargs...)
+decompose!(ws::HermitianEigenWs, args...; kwargs...) = LAPACK.syevr!(ws, args...; kwargs...)
+decompose!(ws::GeneralizedEigenWs, args...; kwargs...) = LAPACK.ggev!(ws, args...; kwargs...)
 
-function decompose!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; rook=false)
+function decompose!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; rook=false, kwargs...)
     if issymmetric(A)
-        return rook ? LAPACK.sytrf_rook!(ws, uplo, A) : LAPACK.sytrf!(ws, uplo, A)
+        return rook ? LAPACK.sytrf_rook!(ws, uplo, A; kwargs...) : LAPACK.sytrf!(ws, uplo, A; kwargs...)
     else
-        return rook ? LAPACK.hetrf_rook!(ws, uplo, A) : LAPACK.hetrf!(ws, uplo, A)
+        return rook ? LAPACK.hetrf_rook!(ws, uplo, A; kwargs...) : LAPACK.hetrf!(ws, uplo, A; kwargs...)
     end
 end
 
-function decompose!(ws::BunchKaufmanWs, A::Hermitian; rook=false)
-    return rook ? LAPACK.hetrf_rook!(ws, A.uplo, A.data) : LAPACK.hetrf!(ws, A.uplo, A.data)
+function decompose!(ws::BunchKaufmanWs, A::Hermitian; rook=false, kwargs...)
+    return rook ? LAPACK.hetrf_rook!(ws, A.uplo, A.data; kwargs...) : LAPACK.hetrf!(ws, A.uplo, A.data; kwargs...)
 end
-function decompose!(ws::BunchKaufmanWs, A::Symmetric; rook=false)
-    return rook ? LAPACK.sytrf_rook!(ws, A.uplo, A.data) : LAPACK.sytrf!(ws, A.uplo, A.data)
-end
-
-function decompose!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix, tol=1e-16)
-    return LAPACK.pstrf!(ws, uplo, A, tol)
+function decompose!(ws::BunchKaufmanWs, A::Symmetric; rook=false, kwargs...)
+    return rook ? LAPACK.sytrf_rook!(ws, A.uplo, A.data; kwargs...) : LAPACK.sytrf!(ws, A.uplo, A.data; kwargs...)
 end
 
-function decompose!(ws::CholeskyPivotedWs, A::Union{Hermitian, Symmetric}, tol=1e-16)
-    return LAPACK.pstrf!(ws, A.uplo, A.data, tol)
+function decompose!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix, tol=1e-16; kwargs...)
+    return LAPACK.pstrf!(ws, uplo, A, tol; kwargs...)
+end
+
+function decompose!(ws::CholeskyPivotedWs, A::Union{Hermitian, Symmetric}, tol=1e-16; kwargs...)
+    return LAPACK.pstrf!(ws, A.uplo, A.data, tol; kwargs...)
 end
 
 """
@@ -107,3 +107,13 @@ end
 Alias for [`decompose!`](@ref).
 """
 const factorize! = decompose!
+
+"""
+    resize!(ws, A; kwargs...)
+
+Resizes the `ws` to be appropriate for use with matrix `A`. The `kwargs` can be used to
+communicate which features should be supported by the [`Workspace`](@ref), such as
+left and right eigenvectors while using [`EigenWs`](@ref).
+This function is mainly used for automatic resizing inside [`LAPACK functions`](@ref LAPACK).
+"""
+Base.resize!(ws::Workspace, A::AbstractMatrix; kwargs...)

@@ -26,6 +26,11 @@ using LinearAlgebra.LAPACK
             @test A1 == A2
             @test ipiv1 == ipiv2
             @test rank1 == rank2
+
+            A = T[1 0 0 0;0 3.1 0.1 0; 0.0 0.0 5.0 0.0; 0.1 0.0 0.3 1.0]
+            A = (A .+ A') ./ 2
+            decompose!(ws,'U', A, 1e-16)
+            @test length(ws.piv) == n+1
         end
     end
 end
