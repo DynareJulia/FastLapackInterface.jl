@@ -218,7 +218,7 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
                       (:zgeqrt_, :ComplexF64),
                       (:cgeqrt_, :ComplexF32))
     @eval begin
-        function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize=36)
+        function Base.resize!(ws::QRWYWs, A::StridedMatrix{$elty}; blocksize=36)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = BlasInt.(size(A))
