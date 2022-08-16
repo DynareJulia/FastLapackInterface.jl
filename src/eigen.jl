@@ -426,11 +426,15 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
             end
             chklapackerror(info[])
             if range == 'A'
-                return ws.w, ws.Z
+                if ldz == size(ws.Z, 1)
+                    return ws.w, ws.Z
+                else
+                    return view(ws.w, 1:ldz), view(ws.Z, 1:ldz, 1:ldz)
+                end
             elseif range == 'I'
-                return ws.w[1:iu-il+1], ws.Z[:, 1:(jobz == 'V' ? iu - il + 1 : 0)]
+                return view(ws.w,1:iu-il+1), view(ws.Z, 1:ldz, 1:(jobz == 'V' ? iu - il + 1 : 0))
             else
-                return ws.w[1:m[]], ws.Z[:, 1:(jobz == 'V' ? m[] : 0)]
+                return view(ws.w,1:m[]), view(ws.Z,1:ldz, 1:(jobz == 'V' ? m[] : 0))
             end
         end
     end
@@ -622,7 +626,12 @@ for (ggev, elty, relty) in
                       max(ldvl, 1), ws.work, length(ws.work), ws.αi,
                       info, 1, 1)
                 chklapackerror(info[])
-                return ws.αr, ws.β, ws.vl, ws.vr
+                if n == length(ws.β)
+                    return ws.αr, ws.β, ws.vl, ws.vr
+                else
+                    return view(ws.αr, 1:n), view(ws.β, 1:n), size(ws.vl, 1) > 0 ? view(ws.vl, 1:n, 1:n) : ws.vl, size(ws.vr, 1) > 0 ? view(ws.vr, 1:n, 1:n) : ws.vr
+                end
+                    
             else
                 ccall((@blasfunc($ggev), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
@@ -636,7 +645,11 @@ for (ggev, elty, relty) in
                       ws.vr, max(ldvr, 1), ws.work, length(ws.work),
                       info, 1, 1)
                 chklapackerror(info[])
-                return ws.αr, ws.αi, ws.β, ws.vl, ws.vr
+                if n == length(ws.β)
+                    return ws.αr, ws.αi, ws.β, ws.vl, ws.vr
+                else
+                    return view(ws.αr, 1:n), view(ws.αi, 1:n), view(ws.β, 1:n), size(ws.vl, 1) > 0 ? view(ws.vl, 1:n, 1:n) : ws.vl, size(ws.vr, 1) > 0 ? view(ws.vr, 1:n, 1:n) : ws.vr
+                end
             end
         end
     end
