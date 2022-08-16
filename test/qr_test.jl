@@ -37,6 +37,15 @@ using LinearAlgebra.LAPACK
             Cout2 = LAPACK.ormqr!(ws, 'L', 'T', copy(A0)', copy(C))
             @test isapprox(Cout, Cout2)
         end
+        @testset "orgqr!" begin
+            ws = Workspace(LAPACK.geqrf!, copy(A0))
+            C = randn(n, n)
+            tau = randn(n)
+            ws.τ .= tau
+            Cout = LAPACK.orgqr!(copy(A0), tau)
+            Cout2 = LAPACK.orgqr!(ws, copy(A0))
+            @test isapprox(Cout, Cout2)
+        end
         show(devnull, "text/plain", ws)
     end
 end
@@ -88,6 +97,15 @@ end
             factorize!(ws, rand(n+1, n+1))
             @test size(ws.τ , 1) == n+1
             show(devnull, "text/plain", ws)
+        end
+        @testset "orgqr!" begin
+            ws = Workspace(LAPACK.geqrf!, copy(A0))
+            C = randn(n, n)
+            tau = randn(n)
+            ws.τ .= tau
+            Cout = LAPACK.orgqr!(copy(A0), tau)
+            Cout2 = LAPACK.orgqr!(ws, copy(A0))
+            @test isapprox(Cout, Cout2)
         end
     end
 end
