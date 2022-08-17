@@ -176,11 +176,11 @@ for (geevx, elty, relty) in
 
             ldvl = size(ws.VL, 1)
             ldvr = size(ws.VR, 1)
-            if n > length(ws.W)
+            if n != length(ws.W)
                 if resize
                     resize!(ws, A, rvecs = ldvr != 0, lvecs = ldvl != 0, sense=size(ws.iwork, 1) != 0)
                 else
-                    throw(ArgumentError("Workspace is too small for matrix."))
+                    throw(ArgumentError("Workspace is not the right size, use resize!(ws, A)."))
                 end
             end
             
@@ -372,11 +372,10 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
             end
             m = Ref{BlasInt}()
 
-            if jobz == 'N'
                 ldz = 1
-            elseif jobz == 'V'
+            if jobz == 'V'
                 ldz = n
-                if size(ws.Z, 1) < ldz
+                if size(ws.Z, 1) != ldz
                     if resize
                         resize!(ws, A, vecs=true)
                     else
@@ -384,11 +383,11 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                     end
                 end
             end
-            if length(ws.w) < n
+            if length(ws.w) != n
                 if resize
                     resize!(ws, A, vecs = size(ws.Z, 1) > 1)
                 else
-                    throw(ArgumentError("Workspace too small.\nUse resize!(ws, A)."))
+                    throw(ArgumentError("Workspace is not the right size, use resize!(ws, A)."))
                 end
             end
                    
@@ -583,11 +582,11 @@ for (ggev, elty, relty) in
             end
             lda = max(1, stride(A, 2))
             ldb = max(1, stride(B, 2))
-            if length(ws.β) < n
+            if length(ws.β) != n
                 if resize
                     resize!(ws, A, lvecs = size(ws.vl, 1) > 0, rvecs = size(ws.vr, 1) > 0 )
                 else
-                    throw(ArgumentError("Workspace too small.\nUse resize!(ws, A)."))
+                    throw(ArgumentError("Workspace is not the right size, use resize!(ws, A)."))
                 end
             end
             if jobvl == 'V' && size(ws.vl, 1) == 0

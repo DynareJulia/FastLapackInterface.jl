@@ -3,7 +3,7 @@ using FastLapackInterface
 using LinearAlgebra.LAPACK
 
 @testset "EigenWs" begin
-    n = 3
+    n = 4
     @testset "Real, square" begin
         A0 = randn(n, n)
         ws = EigenWs(copy(A0); lvecs = true, sense = true)
@@ -51,7 +51,14 @@ using LinearAlgebra.LAPACK
         factorize!(ws, 'P', 'V', 'V', 'E', copy(A0))
         @test size(ws.iwork, 1) != 0
         @test_throws ArgumentError factorize!(ws, 'P', 'N', 'N', 'N', rand(n+1, n+1); resize=false)
-       
+
+        # test that a smaller matrix resizes workspace
+        A0 = randn(n-1, n-1)
+        A3, WR3 = LAPACK.geevx!('P', 'V', 'V', 'V', copy(A0))
+        A4, WR4 = factorize!(ws, 'P', 'V', 'V', 'V', copy(A0); resize=true)
+        @test isapprox(A3, A4)
+        @test isapprox(WR3, WR4)
+
         show(devnull, "text/plain", ws)
     end
 
@@ -99,7 +106,7 @@ using LinearAlgebra.LAPACK
 end
 
 @testset "HermitianEigenWs" begin
-    n = 3
+    n = 4
     @testset "Real, square" begin
         A0 = randn(n, n)
         ws = HermitianEigenWs(copy(A0); vecs = true)
@@ -124,6 +131,13 @@ end
         
         @test_throws ArgumentError factorize!(ws, 'V', 'I', 'U', randn(n+1, n+1), 0.0, 0.0, 10, 5, 1e-6)
         @test_throws ArgumentError factorize!(ws, 'V', 'V', 'U', randn(n+1, n+1), 2.0, 1.0, 0, 0, 1e-6)
+
+        # test that a smaller matrix resizes workspace
+        A0 = randn(n-1, n-1)
+        w1, Z1 = LAPACK.syevr!('V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
+        w2, Z2 = factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
+        @test isapprox(w1, w2)
+        @test isapprox(Z2, Z2)
     end
 
     @testset "Complex, square" begin
@@ -142,8 +156,9 @@ end
         @test isapprox(Z2, Z2)
     end
 end
+
 @testset "GeneralizedEigenWs" begin
-    n = 3
+    n = 4
     @testset "Real, square" begin
         A0 = randn(n, n)
         B0 = randn(n, n)
@@ -179,6 +194,15 @@ end
         LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1))
         @test size(ws.vl, 1) == n+1
         @test size(ws.vr, 1) == n+1
+
+        # test that a smaller matrix resizes workspace
+        A0 = randn(n-1, n-1)
+        B0 = randn(n-1, n-1)
+        αr1, αi1, β1 = LAPACK.ggev!('V', 'V', copy(A0), copy(B0))
+        αr2, αi2, β2 = LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
+        @test isapprox(αr1, αr2)
+        @test isapprox(αi1, αi2)
+        @test isapprox(β1, β2)
     end
 
     @testset "Complex, square" begin
