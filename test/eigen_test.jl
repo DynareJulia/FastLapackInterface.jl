@@ -128,7 +128,7 @@ end
         @test size(ws.Z, 1) == n+1
         w2, Z2 = factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-16)
         @test length(w2) == n
-        @test sum(abs.(Matrix(Eigen(w2, Z2)) .- A0)) < 1e-14
+        @test sum(abs.(Matrix(Eigen(w2, Z2)) .- A0)) < 1e-12
         
         
         @test_throws ArgumentError factorize!(ws, 'V', 'I', 'U', randn(n+1, n+1), 0.0, 0.0, 10, 5, 1e-6)
