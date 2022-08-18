@@ -158,7 +158,6 @@ for (geevx, elty, relty) in
                 end
             end
             
-
             if jobvl == 'V' && size(ws.VL, 1) == 0
                 if resize
                     resize!(ws, A, lvecs = true, rvecs = size(ws.VR, 1) != 0, sense=size(ws.iwork, 1) != 0)
@@ -176,11 +175,11 @@ for (geevx, elty, relty) in
 
             ldvl = size(ws.VL, 1)
             ldvr = size(ws.VR, 1)
-            if n > length(ws.W)
+            if n != length(ws.W)
                 if resize
                     resize!(ws, A, rvecs = ldvr != 0, lvecs = ldvl != 0, sense=size(ws.iwork, 1) != 0)
                 else
-                    throw(ArgumentError("Workspace is too small for matrix."))
+                    throw(ArgumentError("Workspace is not the right size for matrix."))
                 end
             end
             
@@ -382,6 +381,13 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                     else
                         throw(ArgumentError("Workspace does not support eigenvectors.\nUse resize!(ws, A, vecs=true)."))
                     end
+                elseif size(ws.Z, 1) > ldz
+                    if resize
+                        # Only resize Z because w we resize below
+                        ws.Z = similar(ws.Z, ldz, ldz)
+                    else
+                        throw(ArgumentError("Workspace too large."))
+                    end
                 end
             end
             if length(ws.w) < n
@@ -389,6 +395,12 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                     resize!(ws, A, vecs = size(ws.Z, 1) > 1)
                 else
                     throw(ArgumentError("Workspace too small.\nUse resize!(ws, A)."))
+                end
+            elseif length(ws.w) > n
+                if resize
+                    resize!(ws.w, n)
+                else
+                    throw(ArgumentError("Workspace too large."))
                 end
             end
                    
@@ -426,15 +438,11 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
             end
             chklapackerror(info[])
             if range == 'A'
-                if ldz == size(ws.Z, 1)
-                    return ws.w, ws.Z
-                else
-                    return view(ws.w, 1:ldz), view(ws.Z, 1:ldz, 1:ldz)
-                end
+                return ws.w, ws.Z
             elseif range == 'I'
-                return view(ws.w,1:iu-il+1), view(ws.Z, 1:ldz, 1:(jobz == 'V' ? iu - il + 1 : 0))
+                return ws.w[1:iu-il+1], ws.Z[1:ldz, 1:(jobz == 'V' ? iu - il + 1 : 0)]
             else
-                return view(ws.w,1:m[]), view(ws.Z,1:ldz, 1:(jobz == 'V' ? m[] : 0))
+                return ws.w[1:m[]], ws.Z[1:ldz, 1:(jobz == 'V' ? m[] : 0)]
             end
         end
     end
@@ -587,31 +595,64 @@ for (ggev, elty, relty) in
             end
             lda = max(1, stride(A, 2))
             ldb = max(1, stride(B, 2))
-            if length(ws.β) < n
+
+            lb = length(ws.β)
+            if lb < n
                 if resize
                     resize!(ws, A, lvecs = size(ws.vl, 1) > 0, rvecs = size(ws.vr, 1) > 0 )
                 else
                     throw(ArgumentError("Workspace too small.\nUse resize!(ws, A)."))
                 end
-            end
-            if jobvl == 'V' && size(ws.vl, 1) == 0
+            elseif lb > n
                 if resize
-                    resize!(ws, A, lvecs = true, rvecs = size(ws.vr, 1) != 0)
+                    resize!(ws.β, n)
+                    resize!(ws.αr, n)
+                    if eltype(A) <: AbstractFloat
+                        # Otherwise it's just a work buffer
+                        resize!(ws.αi, n)
+                    end
                 else
-                    throw(ArgumentError("Workspace was created without support for left eigenvectors,\n use resize!(ws, A, lvecs=true)."))
+                    throw(ArgumentError("Workspace too large."))
                 end
             end
-            if jobvr == 'V' && size(ws.vr, 1) == 0
-                if resize
-                    resize!(ws, A, rvecs = true, lvecs = size(ws.vl, 1) != 0)
-                else
-                    throw(ArgumentError("Workspace was created without support for right eigenvectors,\nor use resize!(ws, A, rvecs=true)."))
+            
+            ldvl = size(ws.vl, 1)
+            ldvr = size(ws.vr, 1)
+            
+            if jobvl == 'V'
+                if ldvl < n
+                    if resize
+                        resize!(ws, A, lvecs = true, rvecs = ldvr != 0)
+                    else
+                        throw(ArgumentError("Workspace was created without support for left eigenvectors or too small,\n use resize!(ws, A, lvecs=true)."))
+                    end
+                elseif ldvl > n
+                    if resize
+                        ws.vl = similar(ws.vl, n, n)
+                    else
+                        throw(ArgumentError("ws.vl is too large, needs to be of size $n x $n."))
+                    end
                 end
             end
+            if jobvr == 'V'
+                if ldvr < n
+                    if resize
+                        resize!(ws, A, rvecs = true, lvecs = ldvl != 0)
+                    else
+                        throw(ArgumentError("Workspace was created without support for right eigenvectors or too small,\n use resize!(ws, A, rvecs=true)."))
+                    end
+                elseif ldvr > n
+                    if resize
+                        ws.vr = similar(ws.vr, n, n)
+                    else
+                        throw(ArgumentError("ws.vr is too large, needs to be of size $n x $n."))
+                    end
+                end
+            end
+
             ldvl = size(ws.vl, 1)
             ldvr = size(ws.vr, 1)
                    
-            rwork = ws.αi
             info = Ref{BlasInt}()
             if eltype(A) <: Complex
                 ccall((@blasfunc($ggev), liblapack), Cvoid,
@@ -626,11 +667,7 @@ for (ggev, elty, relty) in
                       max(ldvl, 1), ws.work, length(ws.work), ws.αi,
                       info, 1, 1)
                 chklapackerror(info[])
-                if n == length(ws.β)
-                    return ws.αr, ws.β, ws.vl, ws.vr
-                else
-                    return view(ws.αr, 1:n), view(ws.β, 1:n), size(ws.vl, 1) > 0 ? view(ws.vl, 1:n, 1:n) : ws.vl, size(ws.vr, 1) > 0 ? view(ws.vr, 1:n, 1:n) : ws.vr
-                end
+                return ws.αr, ws.β, ws.vl, ws.vr
                     
             else
                 ccall((@blasfunc($ggev), liblapack), Cvoid,
@@ -645,11 +682,7 @@ for (ggev, elty, relty) in
                       ws.vr, max(ldvr, 1), ws.work, length(ws.work),
                       info, 1, 1)
                 chklapackerror(info[])
-                if n == length(ws.β)
-                    return ws.αr, ws.αi, ws.β, ws.vl, ws.vr
-                else
-                    return view(ws.αr, 1:n), view(ws.αi, 1:n), view(ws.β, 1:n), size(ws.vl, 1) > 0 ? view(ws.vl, 1:n, 1:n) : ws.vl, size(ws.vr, 1) > 0 ? view(ws.vr, 1:n, 1:n) : ws.vr
-                end
+                return ws.αr, ws.αi, ws.β, ws.vl, ws.vr
             end
         end
     end

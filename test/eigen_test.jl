@@ -106,6 +106,7 @@ end
     n = 3
     @testset "Real, square" begin
         A0 = randn(n, n)
+        A0 = (A0 + A0')/2
         ws = HermitianEigenWs(copy(A0); vecs = true)
 
         w1, Z1 = LAPACK.syevr!('V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
@@ -125,8 +126,10 @@ end
         w2, Z2 = factorize!(ws, 'V', 'A', 'U', randn(n+1, n+1), 0.0, 0.0, 0, 0, 1e-6)
         @test length(ws.w) == n+1
         @test size(ws.Z, 1) == n+1
-        w2, Z2 = factorize!(ws, 'V', 'A', 'U', randn(n, n), 0.0, 0.0, 0, 0, 1e-6)
+        w2, Z2 = factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-16)
         @test length(w2) == n
+        @test sum(abs.(Matrix(Eigen(w2, Z2)) .- A0)) < 1e-14
+        
         
         @test_throws ArgumentError factorize!(ws, 'V', 'I', 'U', randn(n+1, n+1), 0.0, 0.0, 10, 5, 1e-6)
         @test_throws ArgumentError factorize!(ws, 'V', 'V', 'U', randn(n+1, n+1), 2.0, 1.0, 0, 0, 1e-6)
@@ -185,7 +188,7 @@ end
         LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1))
         @test size(ws.vl, 1) == n+1
         @test size(ws.vr, 1) == n+1
-        αr1, αi1, β1, vl1, vr1 = LAPACK.ggev!(ws, 'V', 'V', randn(n,n), randn(n, n))
+        αr1, αi1, β1, vl1, vr1 = LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
         @test length(αr1) == n
     end
 
