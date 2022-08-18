@@ -1,5 +1,5 @@
 # TODO: LinearAlgebra.qr! method that works with any workspace
-import LinearAlgebra.LAPACK: geqrf!, ormqr!, geqrt!, geqp3!
+import LinearAlgebra.LAPACK: geqrf!, ormqr!, geqrt!, geqp3!, orgqr!, orgql!
 
 """
     QRWs
@@ -88,62 +88,6 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
         end
     end
 end
-
-for (ormqr, elty) in ((:dormqr_, :Float64),
-                      (:sormqr_, :Float32))
-    @eval begin
-        function ormqr!(ws::QRWs{$elty}, side::AbstractChar, trans::AbstractChar,
-                        A::AbstractMatrix{$elty},
-                        C::AbstractVecOrMat{$elty}; resize=true)
-            require_one_based_indexing(A, C)
-            chktrans(trans)
-            chkside(side)
-            chkstride1(A, C)
-            m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
-            mA   = size(A, 1)
-            k    = length(ws.τ)
-            if side == 'L' && m != mA
-                throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
-            end
-            if side == 'R' && n != mA
-                throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
-            end
-            if side == 'L' && k > m
-                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
-            end
-            if side == 'R' && k > n
-                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
-            end
-            info = Ref{BlasInt}()
-            ccall((@blasfunc($ormqr), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                   Ref{BlasInt}, Clong, Clong),
-                  side, trans, m, n,
-                  k, A, max(1, stride(A, 2)), ws.τ,
-                  C, max(1, stride(C, 2)), ws.work, length(ws.work),
-                  info, 1, 1)
-            chklapackerror(info[])
-            return C
-        end
-    end
-
-    for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),
-                  eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
-        @eval begin
-            function ormqr!(ws::QRWs{$elty}, side::AbstractChar, trans::AbstractChar,
-                            A::$elty2,
-                            C::StridedMatrix{$elty})
-                chktrans(trans)
-                chkside(side)
-                trans = trans == 'T' ? 'N' : 'T'
-                return LAPACK.ormqr!(ws, side, trans, A.parent, C)
-            end
-        end
-    end
-end
-
 """
     geqrf!(ws, A; resize=true) -> (A, ws.τ)
 
@@ -157,18 +101,6 @@ resized to the appropriate size.
 """
 geqrf!(ws::QRWs, A::AbstractMatrix; kwargs...)
 
-"""
-    ormqr!(ws, side, trans, A, C) -> C
-
-Computes `Q * C` (`trans = N`), `transpose(Q) * C` (`trans = T`), `adjoint(Q) * C`
-(`trans = C`) for `side = L` or the equivalent right-sided multiplication
-for `side = R` using `Q` from a `QR` factorization of `A` computed using
-`geqrf!`.
-Uses preallocated workspace `ws` and the factors are assumed to be stored in `ws.τ`.
-`C` is overwritten.
-"""
-ormqr!(ws::QRWs, side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
-       C::AbstractVecOrMat)
 
 """
     QRWYWs
@@ -395,3 +327,103 @@ and `resize == true` the workspace will be appropriately resized.
 `A`, `ws.jpvt`, and `ws.τ` are modified in-place.
 """
 geqp3!(ws::QRPivotedWs, A::AbstractMatrix; kwargs...)
+
+for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
+                             (:sormqr_, :sorgqr_, :Float32),
+                             (:zunmqr_, :zungqr_, :ComplexF64),
+                             (:cunmqr_, :cungqr_, :ComplexF32))
+                      
+    @eval function ormqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, side::AbstractChar, trans::AbstractChar,
+                          A::AbstractMatrix{$elty},
+                          C::AbstractVecOrMat{$elty}; resize=true)
+        require_one_based_indexing(A, C)
+        chktrans(trans)
+        chkside(side)
+        chkstride1(A, C)
+        m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
+        mA   = size(A, 1)
+        k    = length(ws.τ)
+        if side == 'L' && m != mA
+            throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
+        end
+        if side == 'R' && n != mA
+            throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
+        end
+        if side == 'L' && k > m
+            throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
+        end
+        if side == 'R' && k > n
+            throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
+        end
+        info = Ref{BlasInt}()
+        ccall((@blasfunc($ormqr), liblapack), Cvoid,
+              (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+               Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+               Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+               Ref{BlasInt}, Clong, Clong),
+              side, trans, m, n,
+              k, A, max(1, stride(A, 2)), ws.τ,
+              C, max(1, stride(C, 2)), ws.work, length(ws.work),
+              info, 1, 1)
+        chklapackerror(info[])
+        return C
+    end
+
+    for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),
+                  eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
+        @eval function ormqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, side::AbstractChar, trans::AbstractChar,
+                              A::$elty2,
+                              C::StridedMatrix{$elty})
+            chktrans(trans)
+            chkside(side)
+            trans = trans == 'T' ? 'N' : 'T'
+            return LAPACK.ormqr!(ws, side, trans, A.parent, C)
+        end
+    end
+    @eval function orgqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, A::AbstractMatrix{$elty}, k::Integer = size(A, 2))
+        require_one_based_indexing(A, ws.τ)
+        chkstride1(A, ws.τ)
+        m = size(A, 1)
+        n = min(m, size(A, 2))
+        if k > n
+            throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
+        end
+        info  = Ref{BlasInt}()
+        ccall((@blasfunc($orgqr), liblapack), Cvoid,
+              (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+               Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+              m, n, k, A,
+              max(1,stride(A,2)), ws.τ, ws.work, length(ws.work),
+              info)
+            chklapackerror(info[])
+        if n < size(A,2)
+            return view(A, :, 1:n)
+        else
+            return A
+        end
+    end
+end
+
+"""
+    ormqr!(ws, side, trans, A, C) -> C
+
+Computes `Q * C` (`trans = N`), `transpose(Q) * C` (`trans = T`), `adjoint(Q) * C`
+(`trans = C`) for `side = L` or the equivalent right-sided multiplication
+for `side = R` using `Q` from a `QR` factorization of `A` computed using
+[`geqrf!`](@ref) in the case where `ws` is a [`QRWs`](@ref) or [`geqp3!`](@ref) when `ws` is a [`QRPivotedWs`](@ref).
+Uses preallocated workspace `ws` and the factors are assumed to be stored in `ws.τ`.
+`C` is overwritten.
+"""
+ormqr!(ws::Union{QRWs,QRPivotedWs}, side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
+       C::AbstractVecOrMat)
+
+"""
+    orgqr!(ws, A, k = length(tau))
+
+Explicitly finds the matrix `Q` of a `QR` factorization using the
+factors stored in `ws.τ`, that were generated from calling 
+[`geqrf!`](@ref) if `ws` is a [`QRWs`](@ref) or [`geqp3!`](@ref) if `ws` is a [`QRPivotedWs`](@ref).
+`A` is overwritten by `Q`.
+"""
+orgqr!(ws::Union{QRWs, QRPivotedWs}, A::AbstractMatrix, k::Integer = size(A, 2))
+

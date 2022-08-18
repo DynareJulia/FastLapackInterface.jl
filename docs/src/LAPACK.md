@@ -13,9 +13,10 @@ factorize!
 ## QR
 ```@docs
 LinearAlgebra.LAPACK.geqrf!(::QRWs, ::AbstractMatrix)
-LinearAlgebra.LAPACK.ormqr!(::QRWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractVecOrMat)
 LinearAlgebra.LAPACK.geqrt!(::QRWYWs, ::AbstractMatrix)
 LinearAlgebra.LAPACK.geqp3!(::QRPivotedWs, ::AbstractMatrix)
+LinearAlgebra.LAPACK.ormqr!(::QRWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractVecOrMat)
+LinearAlgebra.LAPACK.orgqr!(::QRWs, ::AbstractMatrix, ::Integer)
 ```
 
 ## Schur
