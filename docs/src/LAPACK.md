@@ -1,5 +1,14 @@
 # [LAPACK](@id LAPACK)
-This section details the [`LAPACK functions`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK) that are supported for use with various [`Workspaces`](@ref WorkSpaces). Each function has a `resize` keyword argument that is `true` by default, allowing for automatic resizing of the workspaces to accomodate larger Matrices or different features than they were originally constructed for.
+This section details the [`LAPACK
+functions`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK)
+that are supported for use with various [`Workspaces`](@ref
+WorkSpaces). Each function has a `resize` keyword argument that is
+`true` by default, allowing for automatic resizing of the workspaces
+to accomodate larger or smaller Matrices or different features than they were
+originally constructed for. This is provided as a convenience but
+involves an efficiency cost. When working with matrices of different sizes,
+the best strategy is to successively apply a function to all matrices of the same
+size and to minimize triggering the resizing mechanism.
 
 ## Unified Interface
 After having created the [`Workspace`](@ref WorkSpaces) that corresponds to the targeted factorization or decomposition,
