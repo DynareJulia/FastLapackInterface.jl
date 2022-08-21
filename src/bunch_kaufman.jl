@@ -82,20 +82,22 @@ for (sytrfs,  elty) in
      ((:csytrf_,:csytrf_rook_, :chetrf_,:chetrf_rook_),:ComplexF32))
     
     @eval begin
-        function Base.resize!(ws::BunchKaufmanWs, A::AbstractMatrix{$elty})
+        function Base.resize!(ws::BunchKaufmanWs, A::AbstractMatrix{$elty}; work = true)
             chkstride1(A)
             n = checksquare(A)
             if n == 0
                 return ws
             end
             resize!(ws.ipiv, n)
-            info  = Ref{BlasInt}()
-            ccall((@blasfunc($(sytrfs[1])), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                   Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
-                  'U', n, A, stride(A,2), ws.ipiv, ws.work, -1, info, 1)
-            chkargsok(info[])
-            resize!(ws.work, BlasInt(real(ws.work[1])))
+            if work
+                info  = Ref{BlasInt}()
+                ccall((@blasfunc($(sytrfs[1])), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
+                      'U', n, A, stride(A,2), ws.ipiv, ws.work, -1, info, 1)
+                chkargsok(info[])
+                resize!(ws.work, BlasInt(real(ws.work[1])))
+            end
             return ws
         end
         function BunchKaufmanWs(A::AbstractMatrix{$elty})
@@ -110,11 +112,12 @@ for (sytrfs,  elty) in
                 return A, ws.ipiv, zero(BlasInt)
             end
             chkuplo(uplo)
-            if n > length(ws.ipiv)
+            nws = length(ws.ipiv)
+            if n != nws 
                 if resize
-                    resize!(ws, A)
+                    resize!(ws, A, work=nws<n)
                 else
-                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                    throw(WorkspaceSizeError(nws, n))
                 end
             end
             info  = Ref{BlasInt}()

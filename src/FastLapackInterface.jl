@@ -16,7 +16,7 @@ else
 end
 
 abstract type Workspace end
-
+include("exceptions.jl")
 include("lu.jl")
 export LUWs
 include("qr.jl")
