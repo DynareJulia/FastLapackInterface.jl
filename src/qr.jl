@@ -49,17 +49,19 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
                       (:zgeqrf_, :ComplexF64),
                       (:cgeqrf_, :ComplexF32))
     @eval begin
-        function Base.resize!(ws::QRWs, A::StridedMatrix{$elty})
+        function Base.resize!(ws::QRWs, A::StridedMatrix{$elty}; work=true)
             m, n = size(A)
             lda = max(1, stride(A, 2))
             resize!(ws.τ, min(m, n))
-            info = Ref{BlasInt}()
-            ccall((@blasfunc($geqrf), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-                  m, n, A, lda, ws.τ, ws.work, -1, info)
-            chklapackerror(info[])
-            resize!(ws.work, BlasInt(real(ws.work[1])))
+            if work
+                info = Ref{BlasInt}()
+                ccall((@blasfunc($geqrf), liblapack), Cvoid,
+                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                      m, n, A, lda, ws.τ, ws.work, -1, info)
+                chklapackerror(info[])
+                resize!(ws.work, BlasInt(real(ws.work[1])))
+            end
             return ws
         end
         QRWs(A::StridedMatrix{$elty}) =
@@ -69,11 +71,13 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
-            if length(ws) < min(m, n)
+            nws = length(ws)
+            minn = min(m, n)
+            if nws != minn 
                 if resize
-                    resize!(ws, A)
+                    resize!(ws, A; work = minn > nws)
                 else
-                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                    throw(WorkspaceSizeError(nws, minn))
                 end
             end
             lda = max(1, stride(A, 2))
@@ -145,7 +149,7 @@ mutable struct QRWYWs{R<:Number,MT<:StridedMatrix{R}} <: Workspace
     T::MT
 end
 
-function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize=36)
+function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize=36, work=true)
     require_one_based_indexing(A)
     chkstride1(A)
     m, n = BlasInt.(size(A))
@@ -153,7 +157,9 @@ function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize=36)
     m1 = min(m, n)
     nb = min(m1, blocksize)
     ws.T = similar(ws.T,  nb, m1)
-    resize!(ws.work, nb*n)
+    if work
+        resize!(ws.work, nb*n)
+    end
     return ws
 end
 
@@ -170,14 +176,14 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
         m, n = size(A)
         minmn = min(m, n)
         nb = size(ws.T, 1)
-        if nb > minmn
+        if nb != minmn
             if resize
-                resize!(ws, A)
-                nb = size(ws.T, 1)
+                resize!(ws, A, work = nb < minmn)
             else
-                throw(ArgumentError("Allocated workspace block size $nb > $minmn too large.\nUse resize!(ws, A)."))
+                throw(WorkspaceSizeError(nb, minmn))
             end
         end
+        nb = size(ws.T, 1)
 
         lda = max(1, stride(A, 2))
         work = ws.work
@@ -260,20 +266,22 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
                       (:zgeqp3_, :ComplexF64),
                       (:cgeqp3_, :ComplexF32))
     @eval begin
-        function Base.resize!(ws::QRPivotedWs, A::StridedMatrix{$elty})
+        function Base.resize!(ws::QRPivotedWs, A::StridedMatrix{$elty}; work=true)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
             RldA = max(1, stride(A, 2))
             resize!(ws.jpvt, n)
             resize!(ws.τ, min(m, n))
-            info = Ref{BlasInt}()
-            ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                   Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
-                  m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, info)
-            chklapackerror(info[])
-            resize!(ws.work, BlasInt(real(ws.work[1])))
+            if work
+                info = Ref{BlasInt}()
+                ccall((@blasfunc($geqp3), liblapack), Cvoid,
+                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
+                      m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, info)
+                chklapackerror(info[])
+                resize!(ws.work, BlasInt(real(ws.work[1])))
+            end
             return ws
         end
         QRPivotedWs(A::StridedMatrix{$elty}) =
@@ -281,18 +289,13 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
 
         function geqp3!(ws::QRPivotedWs{$elty}, A::AbstractMatrix{$elty}; resize=true)
             m, n = size(A)
-            if length(ws.τ) != min(m, n)
+            nws = length(ws.jpvt)
+            minn =  min(m, n)
+            if nws != n || minn != length(ws.τ)
                 if resize
-                    resize!(ws, A)
+                    resize!(ws, A; work = n > nws)
                 else
-                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
-                end
-            end
-            if length(ws.jpvt) != n
-                if resize
-                    resize!(ws, A)
-                else
-                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                    throw(WorkspaceSizeError(nws, minn))
                 end
             end
             lda = stride(A, 2)
@@ -335,7 +338,7 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
                       
     @eval function ormqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, side::AbstractChar, trans::AbstractChar,
                           A::AbstractMatrix{$elty},
-                          C::AbstractVecOrMat{$elty}; resize=true)
+                          C::AbstractVecOrMat{$elty})
         require_one_based_indexing(A, C)
         chktrans(trans)
         chkside(side)
@@ -397,7 +400,7 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
               info)
             chklapackerror(info[])
         if n < size(A,2)
-            return view(A, :, 1:n)
+            return A[:, 1:n]
         else
             return A
         end

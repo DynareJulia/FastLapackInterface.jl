@@ -28,8 +28,12 @@ m = 2
             @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
 
             show(devnull, "text/plain", linws)
-            resize!(linws, rand(elty, 5,5))
-            @test length(linws.ipiv) == 5
+            for div in (-1, 1)
+                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(linws, rand(elty, n+div, n+div); resize=false)
+                factorize!(linws, rand(elty, n+div, n+div))
+                @test length(linws.ipiv) == n+div
+            end
+
             # res = LU(LAPACK.getrf!(collect(copy(A)'), linws)...)
             # @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
 

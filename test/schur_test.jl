@@ -20,6 +20,12 @@ using LinearAlgebra.LAPACK
         @test isapprox(vs1, vs2)
         @test isapprox(wr1, wr2)
         show(devnull, "text/plain", ws)
+        for div in (-1,1)
+            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, 'V', randn(n+div, n+div); resize=false)
+            factorize!(ws, 'V', randn(n+div, n+div))
+            @test length(ws.wr) == n+div
+        end
+        
     end
 
     @testset "Real, square, select" begin
@@ -66,6 +72,12 @@ end
         @test isapprox(vsl1, vsl2)
         @test isapprox(vsr1, vsr2)
         show(devnull, "text/plain", ws)
+
+        for div in (-1,1)
+            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, 'V', 'V', randn(n+div, n+div), randn(n+div, n+div); resize=false)
+            factorize!(ws, 'V', 'V', randn(n+div, n+div), randn(n+div, n+div))
+            @test length(ws.αr) == n+div
+        end
     end
 
     #TODO: This should be tested with something realistic

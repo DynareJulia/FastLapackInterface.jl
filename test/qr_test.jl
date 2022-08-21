@@ -18,10 +18,11 @@ using LinearAlgebra.LAPACK
             qr2 = QR(factorize!(ws, copy(A0))...)
             
             @test isapprox(Matrix(qr1), Matrix(qr2))
-            
-            @test_throws ArgumentError factorize!(ws, rand(n+1, n+1); resize=false)
-            factorize!(ws, rand(n+1, n+1))
-            @test size(ws.τ , 1) == n+1
+            for div in (-1, 1)            
+                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, rand(n+div, n+div); resize=false)
+                factorize!(ws, rand(n+div, n+div))
+                @test size(ws.τ , 1) == n+div
+            end
         end
 
         @testset "ormqr!" begin
@@ -67,10 +68,13 @@ end
             qr1 = LinearAlgebra.QRCompactWY(factorize!(ws, A)...)
             @test isapprox(Matrix(qr1), Matrix(qr2))
             show(devnull, "text/plain", ws)
-            @test_throws ArgumentError factorize!(ws, rand(n-1, n-1); resize=false)
-            factorize!(ws, rand(n-1, n-1))
-            @test size(ws.T, 1) == n-1
+            for div in (-1, 1)            
+                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, rand(n+div, n+div); resize=false)
+                factorize!(ws, rand(n+div, n+div))
+                @test size(ws.T , 1) == n+div
+            end
         end
+            
     end
 end
 
@@ -93,9 +97,11 @@ end
             q1 = QRPivoted(factorize!(ws, copy(A))...)
             @test isapprox(Matrix(q1), Matrix(q2))
 
-            @test_throws ArgumentError factorize!(ws, rand(n+1, n+1); resize=false)
-            factorize!(ws, rand(n+1, n+1))
-            @test size(ws.τ , 1) == n+1
+            for div in (-1, 1)            
+                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, rand(n+div, n+div); resize=false)
+                factorize!(ws, rand(n+div, n+div))
+                @test size(ws.τ, 1) == n+div
+            end
             show(devnull, "text/plain", ws)
         end
         @testset "orgqr!" begin

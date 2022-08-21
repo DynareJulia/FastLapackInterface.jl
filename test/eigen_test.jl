@@ -50,12 +50,11 @@ using LinearAlgebra.LAPACK
         @test_throws ArgumentError factorize!(ws, 'P', 'V', 'V', 'E', copy(A0); resize=false)
         factorize!(ws, 'P', 'V', 'V', 'E', copy(A0))
         @test size(ws.iwork, 1) != 0
-        @test_throws ArgumentError factorize!(ws, 'P', 'N', 'N', 'N', rand(n+1, n+1); resize=false)
-        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            factorize!(ws, 'P', 'N', 'N', 'N', rand(n+1, n+1))
-
-        @test length(WR2) == n+1
-       
+        for div in (-1, 1)            
+            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, 'P', 'N', 'N', 'N',rand(n+div, n+div); resize=false)
+            factorize!(ws, 'P', 'N', 'N', 'N',rand(n+div, n+div))
+            @test length(ws.W) == n+div
+        end
         show(devnull, "text/plain", ws)
     end
 
@@ -121,18 +120,17 @@ end
         show(devnull, "text/plain", ws)
         
         ws = Workspace(LAPACK.syevr!, copy(A0); vecs = false)
-        @test_throws ArgumentError factorize!(ws, 'N', 'A', 'U', randn(n+1, n+1), 0.0, 0.0, 0, 0, 1e-6; resize=false)
-        @test_throws ArgumentError factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6; resize=false)
-        w2, Z2 = factorize!(ws, 'V', 'A', 'U', randn(n+1, n+1), 0.0, 0.0, 0, 0, 1e-6)
-        @test length(ws.w) == n+1
-        @test size(ws.Z, 1) == n+1
+        for div in (-1, 1)            
+            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, 'N', 'A', 'U', randn(n+div, n+div), 0.0, 0.0, 0, 0, 1e-6; resize=false)
+            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, 'V', 'A', 'U', randn(n+div, n+div), 0.0, 0.0, 0, 0, 1e-6; resize=false)
+            w2, Z2 = factorize!(ws, 'V', 'A', 'U', randn(n+div, n+div), 0.0, 0.0, 0, 0, 1e-6)
+            @test length(ws.w) == n+div
+            @test size(ws.Z, 1) == n+div
+        end
         w2, Z2 = factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-16)
         @test length(w2) == n
         @test sum(abs.(Matrix(Eigen(w2, Z2)) .- A0)) < 1e-12
         
-        
-        @test_throws ArgumentError factorize!(ws, 'V', 'I', 'U', randn(n+1, n+1), 0.0, 0.0, 10, 5, 1e-6)
-        @test_throws ArgumentError factorize!(ws, 'V', 'V', 'U', randn(n+1, n+1), 2.0, 1.0, 0, 0, 1e-6)
     end
 
     @testset "Complex, square" begin
@@ -184,12 +182,13 @@ end
         @test_throws ArgumentError LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0); resize=false)
         LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
         @test size(ws.vl, 1) == n
-        @test_throws ArgumentError LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1), resize=false)
-        LAPACK.ggev!(ws, 'V', 'V', randn(n+1,n+1), randn(n+1, n+1))
-        @test size(ws.vl, 1) == n+1
-        @test size(ws.vr, 1) == n+1
-        αr1, αi1, β1, vl1, vr1 = LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
-        @test length(αr1) == n
+
+        for div in (-1,1)
+            @test_throws FastLapackInterface.WorkspaceSizeError LAPACK.ggev!(ws, 'V', 'V', randn(n+div,n+div), randn(n+div, n+div), resize=false)
+            LAPACK.ggev!(ws, 'V', 'V', randn(n+div,n+div), randn(n+div, n+div))
+            @test size(ws.vl, 1) == n+div
+            @test size(ws.vr, 1) == n+div
+        end
     end
 
     @testset "Complex, square" begin

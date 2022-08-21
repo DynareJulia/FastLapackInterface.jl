@@ -45,11 +45,13 @@ for (getrf, elty) in ((:dgetrf_, :Float64),
                       (:cgetrf_, :ComplexF32))
     @eval begin
         function getrf!(ws::LUWs, A::AbstractMatrix{$elty}; resize=true)
-            if min(size(A)...) <= length(ws.ipiv)
+            nws = length(ws.ipiv)
+            n = min(size(A)...)
+            if n != nws 
                 if resize
                     resize!(ws, A)
                 else
-                    throw(ArgumentError("Allocated Workspace is too small."))
+                    throw(WorkspaceSizeError(nws, n))
                 end
             end
             require_one_based_indexing(A)
