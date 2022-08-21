@@ -312,7 +312,8 @@ for (gges, elty) in ((:dgges_, :Float64),
                        select::Union{Nothing,Function} = nothing,
                        resize=true)
             chkstride1(A, B)
-            n, m = checksquare(A, B)
+            n = checksquare(A)
+            m = checksquare(B)
             if n != m
                 throw(DimensionMismatch("dimensions of A, ($n,$n), and B, ($m,$m), must match"))
             end
