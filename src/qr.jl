@@ -400,7 +400,7 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
               info)
             chklapackerror(info[])
         if n < size(A,2)
-            return view(A, :, 1:n)
+            return A[:, 1:n]
         else
             return A
         end
