@@ -175,11 +175,12 @@ for (geevx, elty, relty) in
 
             ldvl = size(ws.VL, 1)
             ldvr = size(ws.VR, 1)
-            if n != length(ws.W)
+            nws = length(ws.W)
+            if n != nws
                 if resize
                     resize!(ws, A, rvecs = ldvr != 0, lvecs = ldvl != 0, sense=size(ws.iwork, 1) != 0)
                 else
-                    throw(ArgumentError("Workspace is not the right size for matrix."))
+                    throw(WorkspaceSizeError(nws, n))
                 end
             end
             
@@ -299,7 +300,7 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                              (:dsyevr_, :Float64, :Float64),
                              (:ssyevr_, :Float32, :Float32))
     @eval begin
-        function Base.resize!(ws::HermitianEigenWs, A::AbstractMatrix{$elty}; vecs=false)
+        function Base.resize!(ws::HermitianEigenWs, A::AbstractMatrix{$elty}; vecs=false, work=true)
             chkstride1(A)
             n = checksquare(A)
             resize!(ws.w, n)
@@ -312,45 +313,47 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
             end
             resize!(ws.isuppz, 2n)
 
-            info   = Ref{BlasInt}()
-            jobz   = vecs ? 'V' : 'N'
-            cmplx  = eltype(A) <: Complex
-            if cmplx
-                ccall((@blasfunc($syevr), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ref{$elty}, Ref{$elty},
-                       Ref{BlasInt}, Ref{BlasInt}, Ref{$elty}, Ptr{BlasInt},
-                       Ptr{$relty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt},
-                       Ptr{BlasInt}, Ref{BlasInt}, Ptr{BlasInt},
-                       Clong, Clong, Clong),
-                      jobz, 'A', 'U', n,
-                      A, max(1, stride(A, 2)), 0, 0,
-                      0, 0, 1e-6, Ref{BlasInt}(),
-                      ws.w, ws.Z, ldz, ws.isuppz,
-                      ws.work, -1, ws.rwork, -1,
-                      ws.iwork, -1, info,
-                      1, 1, 1)
-                chklapackerror(info[])
-                resize!(ws.rwork, BlasInt(real(ws.rwork[1])))
-            else
-                ccall((@blasfunc($syevr), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ref{$elty}, Ref{$elty},
-                       Ref{BlasInt}, Ref{BlasInt}, Ref{$elty}, Ptr{BlasInt},
-                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
-                       Ptr{BlasInt}, Clong, Clong, Clong),
-                      jobz, 'A', 'U', n,
-                      A, max(1, stride(A, 2)), 0, 0,
-                      0, 0, 1e-6, Ref{BlasInt}(),
-                      ws.w, ws.Z, ldz, ws.isuppz,
-                      ws.work, -1, ws.iwork, -1,
-                      info, 1, 1, 1)
-                chklapackerror(info[])
+            if work
+                info   = Ref{BlasInt}()
+                jobz   = vecs ? 'V' : 'N'
+                cmplx  = eltype(A) <: Complex
+                if cmplx
+                    ccall((@blasfunc($syevr), liblapack), Cvoid,
+                          (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
+                           Ptr{$elty}, Ref{BlasInt}, Ref{$elty}, Ref{$elty},
+                           Ref{BlasInt}, Ref{BlasInt}, Ref{$elty}, Ptr{BlasInt},
+                           Ptr{$relty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
+                           Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt},
+                           Ptr{BlasInt}, Ref{BlasInt}, Ptr{BlasInt},
+                           Clong, Clong, Clong),
+                          jobz, 'A', 'U', n,
+                          A, max(1, stride(A, 2)), 0, 0,
+                          0, 0, 1e-6, Ref{BlasInt}(),
+                          ws.w, ws.Z, ldz, ws.isuppz,
+                          ws.work, -1, ws.rwork, -1,
+                          ws.iwork, -1, info,
+                          1, 1, 1)
+                    chklapackerror(info[])
+                    resize!(ws.rwork, BlasInt(real(ws.rwork[1])))
+                else
+                    ccall((@blasfunc($syevr), liblapack), Cvoid,
+                          (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
+                           Ptr{$elty}, Ref{BlasInt}, Ref{$elty}, Ref{$elty},
+                           Ref{BlasInt}, Ref{BlasInt}, Ref{$elty}, Ptr{BlasInt},
+                           Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
+                           Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
+                           Ptr{BlasInt}, Clong, Clong, Clong),
+                          jobz, 'A', 'U', n,
+                          A, max(1, stride(A, 2)), 0, 0,
+                          0, 0, 1e-6, Ref{BlasInt}(),
+                          ws.w, ws.Z, ldz, ws.isuppz,
+                          ws.work, -1, ws.iwork, -1,
+                          info, 1, 1, 1)
+                    chklapackerror(info[])
+                end
+                resize!(ws.work, BlasInt(real(ws.work[1])))
+                resize!(ws.iwork, BlasInt(real(ws.iwork[1])))
             end
-            resize!(ws.work, BlasInt(real(ws.work[1])))
-            resize!(ws.iwork, BlasInt(real(ws.iwork[1])))
             return ws
         end
         function HermitianEigenWs(A::AbstractMatrix{$elty}; kwargs...)
@@ -361,49 +364,41 @@ for (syevr, elty, relty) in ((:zheevr_, :ComplexF64, :Float64),
                         uplo::AbstractChar, A::AbstractMatrix{$elty},
                         vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer,
                         abstol::AbstractFloat; resize=true)
-            chkstride1(A)
-            n = checksquare(A)
+                        
             if range == 'I' && !(1 <= il <= iu <= n)
                 throw(ArgumentError("illegal choice of eigenvalue indices (il = $il, iu=$iu), which must be between 1 and n = $n"))
             end
             if range == 'V' && vl >= vu
                 throw(ArgumentError("lower boundary, $vl, must be less than upper boundary, $vu"))
             end
-            m = Ref{BlasInt}()
+            
+            chkstride1(A)
+            n = checksquare(A)
+            nws = length(ws.w)
+            if nws != n
+                if resize
+                    resize!(ws, A, vecs = size(ws.Z, 1) > 1 || jobz == 'V', work = n > nws)
+                else
+                    throw(WorkspaceSizeError(nws, n))
+                end
+            end
 
+            # If WS was created without support for vectors
             if jobz == 'N'
                 ldz = 1
             elseif jobz == 'V'
                 ldz = n
-                if size(ws.Z, 1) < ldz
+                nws = size(ws.Z, 1)
+                if nws != ldz
                     if resize
-                        resize!(ws, A, vecs=true)
+                        ws.Z = similar(ws.Z, ldz, ldz)
                     else
                         throw(ArgumentError("Workspace does not support eigenvectors.\nUse resize!(ws, A, vecs=true)."))
                     end
-                elseif size(ws.Z, 1) > ldz
-                    if resize
-                        # Only resize Z because w we resize below
-                        ws.Z = similar(ws.Z, ldz, ldz)
-                    else
-                        throw(ArgumentError("Workspace too large."))
-                    end
-                end
-            end
-            if length(ws.w) < n
-                if resize
-                    resize!(ws, A, vecs = size(ws.Z, 1) > 1)
-                else
-                    throw(ArgumentError("Workspace too small.\nUse resize!(ws, A)."))
-                end
-            elseif length(ws.w) > n
-                if resize
-                    resize!(ws.w, n)
-                else
-                    throw(ArgumentError("Workspace too large."))
                 end
             end
                    
+            m = Ref{BlasInt}()
             info = Ref{BlasInt}()
             if eltype(A) <: Complex
                 ccall((@blasfunc($syevr), liblapack), Cvoid,
@@ -528,7 +523,7 @@ for (ggev, elty, relty) in
      (:zggev_, :ComplexF64, :Float64),
      (:cggev_, :ComplexF32, :Float32))
     @eval begin
-        function Base.resize!(ws::GeneralizedEigenWs, A::AbstractMatrix{$elty}; lvecs=false,rvecs=false)
+        function Base.resize!(ws::GeneralizedEigenWs, A::AbstractMatrix{$elty}; lvecs=false,rvecs=false,work=true)
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
@@ -536,7 +531,7 @@ for (ggev, elty, relty) in
             ldb = lda
             resize!(ws.αr, n)
             cmplx = eltype(A) <: Complex
-            if cmplx
+            if cmplx && work
                 resize!(ws.αi, 8n)
             else
                 resize!(ws.αi, n)
@@ -549,36 +544,36 @@ for (ggev, elty, relty) in
             ldvr = rvecs ? n : 1
             ws.vl = zeros($elty, lvecs ? n : 0, n)
             ws.vr = zeros($elty, rvecs ? n : 0, n)
-
-            info = Ref{BlasInt}()
-
-            if cmplx
-                ccall((@blasfunc($ggev), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
-                       Ptr{BlasInt}, Clong, Clong),
-                      jobvl, jobvr, n, A,
-                      lda, A, ldb, ws.αr,
-                      ws.β, ws.vl, ldvl, ws.vr,
-                      ldvr, ws.work, -1, ws.αi,
-                      info, 1, 1)
-            else
-                ccall((@blasfunc($ggev), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{BlasInt}, Clong, Clong),
-                      jobvl, jobvr, n, A,
-                      lda, A, ldb, ws.αr,
-                      ws.αi, ws.β, ws.vl, ldvl,
-                      ws.vr, ldvr, ws.work, -1,
-                      info, 1, 1)
+            if work
+                info = Ref{BlasInt}()
+                if cmplx
+                    ccall((@blasfunc($ggev), liblapack), Cvoid,
+                          (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                           Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                           Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                           Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
+                           Ptr{BlasInt}, Clong, Clong),
+                          jobvl, jobvr, n, A,
+                          lda, A, ldb, ws.αr,
+                          ws.β, ws.vl, ldvl, ws.vr,
+                          ldvr, ws.work, -1, ws.αi,
+                          info, 1, 1)
+                else
+                    ccall((@blasfunc($ggev), liblapack), Cvoid,
+                          (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                           Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                           Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                           Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                           Ptr{BlasInt}, Clong, Clong),
+                          jobvl, jobvr, n, A,
+                          lda, A, ldb, ws.αr,
+                          ws.αi, ws.β, ws.vl, ldvl,
+                          ws.vr, ldvr, ws.work, -1,
+                          info, 1, 1)
+                end
+                chklapackerror(info[])
+                resize!(ws.work, BlasInt(ws.work[1]))
             end
-            chklapackerror(info[])
-            resize!(ws.work, BlasInt(ws.work[1]))
             return ws
         end
         function GeneralizedEigenWs(A::AbstractMatrix{$elty}; kwargs...)
@@ -596,56 +591,27 @@ for (ggev, elty, relty) in
             lda = max(1, stride(A, 2))
             ldb = max(1, stride(B, 2))
 
-            lb = length(ws.β)
-            if lb < n
+            nws = length(ws.β)
+            if nws != n
                 if resize
-                    resize!(ws, A, lvecs = size(ws.vl, 1) > 0, rvecs = size(ws.vr, 1) > 0 )
+                    resize!(ws, A, lvecs = size(ws.vl, 1) > 0 || jobvl == 'V', rvecs = size(ws.vr, 1) > 0 || jobvl == 'V', work=n > nws)
                 else
-                    throw(ArgumentError("Workspace too small.\nUse resize!(ws, A)."))
-                end
-            elseif lb > n
-                if resize
-                    resize!(ws.β, n)
-                    resize!(ws.αr, n)
-                    if eltype(A) <: AbstractFloat
-                        # Otherwise it's just a work buffer
-                        resize!(ws.αi, n)
-                    end
-                else
-                    throw(ArgumentError("Workspace too large."))
+                    throw(WorkspaceSizeError(nws, n))
                 end
             end
             
             ldvl = size(ws.vl, 1)
             ldvr = size(ws.vr, 1)
-            
-            if jobvl == 'V'
-                if ldvl < n
-                    if resize
-                        resize!(ws, A, lvecs = true, rvecs = ldvr != 0)
-                    else
-                        throw(ArgumentError("Workspace was created without support for left eigenvectors or too small,\n use resize!(ws, A, lvecs=true)."))
-                    end
-                elseif ldvl > n
-                    if resize
-                        ws.vl = similar(ws.vl, n, n)
-                    else
-                        throw(ArgumentError("ws.vl is too large, needs to be of size $n x $n."))
-                    end
-                end
-            end
-            if jobvr == 'V'
-                if ldvr < n
-                    if resize
-                        resize!(ws, A, rvecs = true, lvecs = ldvl != 0)
-                    else
-                        throw(ArgumentError("Workspace was created without support for right eigenvectors or too small,\n use resize!(ws, A, rvecs=true)."))
-                    end
-                elseif ldvr > n
-                    if resize
-                        ws.vr = similar(ws.vr, n, n)
-                    else
-                        throw(ArgumentError("ws.vr is too large, needs to be of size $n x $n."))
+
+            for (job, v, str1, str2) in ((jobvl, :vl, "left", "lvecs"),(jobvr, :vr, "right", "rvecs"))
+                ldv = size(getfield(ws, v), 1) 
+                if job == 'V'
+                    if ldv != n
+                        if resize
+                            setfield!(ws, v, similar(A, n, n))
+                        else
+                            throw(ArgumentError("Workspace was created without support for $str1 eigenvectors or too small,\n use resize!(ws, A, $str2=true)."))
+                        end
                     end
                 end
             end

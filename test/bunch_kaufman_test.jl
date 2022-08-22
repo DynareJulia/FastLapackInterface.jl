@@ -23,8 +23,11 @@ using LinearAlgebra.LAPACK
             A1, ipiv1, inf1 = decompose!(ws, 'U', copy(A))
             @test A1 == A2
             @test ipiv1 == ipiv2
-            decompose!(ws, Symmetric(rand(T, n+1, n+1)))
-            @test length(ws.ipiv) == n+1
+            for div in (-1,1)
+                @test_throws FastLapackInterface.WorkspaceSizeError decompose!(ws, Symmetric(rand(T, n+div, n+div)); resize=false)
+                decompose!(ws, Symmetric(rand(T, n+div, n+div)))
+                @test length(ws.ipiv) == n+div
+            end
         end
         @testset "$(T) sytrf_rook!" begin
             A = rand(T, n, n)

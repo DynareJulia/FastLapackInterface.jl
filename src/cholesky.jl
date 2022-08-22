@@ -45,10 +45,12 @@ for (pstrf, elty, rtyp) in
      (:zpstrf_,:ComplexF64,:Float64),
      (:cpstrf_,:ComplexF32,:Float32))
     @eval begin
-        function Base.resize!(ws::CholeskyPivotedWs, A::AbstractMatrix{$elty})
+        function Base.resize!(ws::CholeskyPivotedWs, A::AbstractMatrix{$elty}; work = true)
             n = checksquare(A)
-            resize!(ws.work, 2n)
             resize!(ws.piv, n)
+            if work
+                resize!(ws.work, 2n)
+            end
             return ws
         end
         function CholeskyPivotedWs(A::AbstractMatrix{$elty})
@@ -61,11 +63,12 @@ for (pstrf, elty, rtyp) in
             chkuplo(uplo)
             rank = Ref{BlasInt}()
             info = Ref{BlasInt}()
-            if length(ws.piv) < n
+            nws = length(ws.piv)
+            if nws != n
                 if resize
-                    resize!(ws, A)
+                    resize!(ws, A; work = nws < n)
                 else
-                    throw(ArgumentError("Workspace is too small, use resize!(ws, A)."))
+                    throw(WorkspaceSizeError(nws, n))
                 end
             end
                 

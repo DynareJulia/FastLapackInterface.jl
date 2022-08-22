@@ -91,7 +91,7 @@ Base.length(ws::SchurWs) = length(ws.wr)
 for (gees, elty) in ((:dgees_, :Float64),
                      (:sgees_, :Float32))
     @eval begin
-        function Base.resize!(ws::SchurWs, A::AbstractMatrix{$elty})
+        function Base.resize!(ws::SchurWs, A::AbstractMatrix{$elty}; work=true)
             require_one_based_indexing(A)
             chkstride1(A)
             n     = checksquare(A)
@@ -100,20 +100,22 @@ for (gees, elty) in ((:dgees_, :Float64),
             ws.vs = zeros($elty, n, n)
             resize!(ws.bwork, n)
             resize!(ws.eigen_values, n)
-            info  = Ref{BlasInt}()
-            ccall((@blasfunc($gees), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
-                   Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty},
-                   Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}, Clong, Clong),
-                  'V', 'N', C_NULL, n,
-                  A, max(1, stride(A, 2)), C_NULL, ws.wr,
-                  ws.wi, ws.vs, max(size(ws.vs, 1), 1), ws.work,
-                  -1, C_NULL, info, 1, 1)
+            if work
+                info  = Ref{BlasInt}()
+                ccall((@blasfunc($gees), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{Cvoid}, Ptr{BlasInt}, Clong, Clong),
+                      'V', 'N', C_NULL, n,
+                      A, max(1, stride(A, 2)), C_NULL, ws.wr,
+                      ws.wi, ws.vs, max(size(ws.vs, 1), 1), ws.work,
+                      -1, C_NULL, info, 1, 1)
 
-            chklapackerror(info[])
+                chklapackerror(info[])
 
-            resize!(ws.work, BlasInt(real(ws.work[1])))
+                resize!(ws.work, BlasInt(real(ws.work[1])))
+            end
             return ws
         end
             
@@ -123,15 +125,16 @@ for (gees, elty) in ((:dgees_, :Float64),
         function gees!(ws::SchurWs{$elty}, jobvs::AbstractChar,
                        A::AbstractMatrix{$elty};
                        select::Union{Nothing,Function} = nothing,
-                       resize=false)
+                       resize=true)
             require_one_based_indexing(A)
             chkstride1(A)
             n = checksquare(A)
-            if n > length(ws)
+            nws = length(ws)
+            if n != nws  
                 if resize
-                    resize!(ws, A)
+                    resize!(ws, A; work = n > nws)
                 else
-                    throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
+                    throw(WorkspaceSizeError(nws, n))
                 end
             end
             info = Ref{BlasInt}()
@@ -269,7 +272,7 @@ Base.length(ws::GeneralizedSchurWs) = length(ws.αr)
 for (gges, elty) in ((:dgges_, :Float64),
                      (:sgges_, :Float32))
     @eval begin
-        function Base.resize!(ws::GeneralizedSchurWs, A::AbstractMatrix{$elty})
+        function Base.resize!(ws::GeneralizedSchurWs, A::AbstractMatrix{$elty}; work=true)
             chkstride1(A)
             n     = checksquare(A)
             resize!(ws.αr, n)
@@ -279,23 +282,25 @@ for (gges, elty) in ((:dgges_, :Float64),
             resize!(ws.eigen_values, n)
             ws.vsl = zeros($elty, n, n)
             ws.vsr = zeros($elty, n, n)
-            info  = Ref{BlasInt}()
-            ccall((@blasfunc($gges), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty}, Ptr{$elty},
-                   Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
-                   Ref{BlasInt}, Clong, Clong, Clong),
-                  'V', 'V', 'N', C_NULL,
-                  n, A, max(1, stride(A, 2)), A,
-                  max(1, stride(A, 2)), C_NULL, ws.αr, ws.αi,
-                  ws.β, ws.vsl, n, ws.vsr,
-                  n, ws.work, -1, C_NULL,
-                  info, 1, 1, 1)
+            if work
+                info  = Ref{BlasInt}()
+                ccall((@blasfunc($gges), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
+                       Ref{BlasInt}, Clong, Clong, Clong),
+                      'V', 'V', 'N', C_NULL,
+                      n, A, max(1, stride(A, 2)), A,
+                      max(1, stride(A, 2)), C_NULL, ws.αr, ws.αi,
+                      ws.β, ws.vsl, n, ws.vsr,
+                      n, ws.work, -1, C_NULL,
+                      info, 1, 1, 1)
 
-            chklapackerror(info[])
-            resize!(ws.work, BlasInt(real(ws.work[1])))
+                chklapackerror(info[])
+                resize!(ws.work, BlasInt(real(ws.work[1])))
+            end
             return ws
         end
         GeneralizedSchurWs(A::AbstractMatrix{$elty}) = 
@@ -311,11 +316,12 @@ for (gges, elty) in ((:dgges_, :Float64),
             if n != m
                 throw(DimensionMismatch("dimensions of A, ($n,$n), and B, ($m,$m), must match"))
             end
-            if n > length(ws)
+            nws = length(ws)
+            if n != nws
                 if resize
-                    resize!(ws, A)
+                    resize!(ws, A; work = n > nws)
                 else
-                    throw(ArgumentError("Allocated workspace has length $(length(ws)), but needs length $n."))
+                    throw(WorkspaceSizeError(nws, n))
                 end
             end
 
@@ -358,8 +364,7 @@ for (gges, elty) in ((:dgges_, :Float64),
             @inbounds for i in axes(A, 1)
                 ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i])
             end
-            return A, B, ws.eigen_values, ws.β, view(ws.vsl, 1:(jobvsl == 'V' ? n : 0), :),
-                   view(ws.vsr, 1:(jobvsr == 'V' ? n : 0), :)
+            return A, B, ws.eigen_values, ws.β, ws.vsl, ws.vsr
         end
     end
 end
