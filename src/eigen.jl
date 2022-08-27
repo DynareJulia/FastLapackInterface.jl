@@ -584,7 +584,8 @@ for (ggev, elty, relty) in
                        A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}; resize=true)
             require_one_based_indexing(A, B)
             chkstride1(A, B)
-            n, m = checksquare(A, B)
+            n = checksquare(A)
+            m = checksquare(B)
             if n != m
                 throw(DimensionMismatch("A has dimensions $(size(A)), and B has dimensions $(size(B)), but A and B must have the same size"))
             end

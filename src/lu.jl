@@ -1,4 +1,4 @@
-import LinearAlgebra.LAPACK: getrf!
+import LinearAlgebra.LAPACK: getrf!, getrs!, chktrans
 """
     LUWs
 
@@ -39,10 +39,10 @@ function Base.resize!(ws::LUWs, A::AbstractMatrix)
     return ws
 end
 
-for (getrf, elty) in ((:dgetrf_, :Float64),
-                      (:sgetrf_, :Float32),
-                      (:zgetrf_, :ComplexF64),
-                      (:cgetrf_, :ComplexF32))
+for (getrf, getrs, elty) in ((:dgetrf_,:dgetrs_, :Float64),
+                             (:sgetrf_,:sgetrs_, :Float32),
+                             (:zgetrf_,:zgetrs_, :ComplexF64),
+                             (:cgetrf_,:cgetrs_, :ComplexF32))
     @eval begin
         function getrf!(ws::LUWs, A::AbstractMatrix{$elty}; resize=true)
             nws = length(ws.ipiv)
@@ -66,6 +66,25 @@ for (getrf, elty) in ((:dgetrf_, :Float64),
             chkargsok(info[])
             return A, ws.ipiv, info[] #Error code is stored in LU factorization type
         end
+        
+        function getrs!(ws::LUWs, trans::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractVecOrMat{$elty})
+            require_one_based_indexing(A, B)
+            chktrans(trans)
+            chkstride1(A, B)
+            n = checksquare(A)
+            @assert n == length(ws.ipiv) WorkspaceSizeError(length(ws.ipiv), n)
+            if n != size(B, 1)
+                throw(DimensionMismatch("B has leading dimension $(size(B,1)), but needs $n"))
+            end
+            nrhs = size(B, 2)
+            info = Ref{BlasInt}()
+            ccall((@blasfunc($getrs), liblapack), Cvoid,
+                  (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                   Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
+                  trans, n, size(B,2), A, max(1,stride(A,2)), ws.ipiv, B, max(1,stride(B,2)), info, 1)
+            chklapackerror(info[])
+            B
+        end
     end
 end
 
@@ -80,3 +99,14 @@ code which indicates success (`info = 0`), a singular value in `U`
 (`info = i`, in which case `U[i,i]` is singular), or an error code (`info < 0`).
 """
 getrf!(ws::LUWs, A::AbstractMatrix; kwargs...)
+
+"""
+    getrs!(ws, trans, A, B)
+
+Solves the linear equation `A * X = B`, `transpose(A) * X = B`, or `adjoint(A) * X = B` for
+square `A`. Modifies the matrix/vector `B` in place with the solution. `A`
+is the `LU` factorization from `getrf!` with the pivoting
+information stored in ws.ipiv. `trans` may be one of `N` (no modification), `T` (transpose),
+or `C` (conjugate transpose).
+"""
+getrs!(ws::LUWs, trans::AbstractChar, A::AbstractMatrix, B::AbstractVecOrMat)

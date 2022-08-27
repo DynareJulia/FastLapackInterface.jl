@@ -37,6 +37,7 @@ LinearAlgebra.LAPACK.gges!(::GeneralizedSchurWs, ::AbstractChar, ::AbstractChar,
 ## LU
 ```@docs
 LinearAlgebra.LAPACK.getrf!(::LUWs, ::AbstractMatrix)
+LinearAlgebra.LAPACK.getrs!(::LUWs, ::AbstractChar, ::AbstractMatrix, ::AbstractMatrix)
 ```
 
 ## Eigen

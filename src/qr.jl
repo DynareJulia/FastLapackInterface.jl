@@ -255,16 +255,17 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRPivotedWs{T<:Number} <: Workspace
+struct QRPivotedWs{T<:Number, RT<:AbstractFloat} <: Workspace
     work::Vector{T}
+    rwork::Vector{RT}
     τ::Vector{T}
     jpvt::Vector{BlasInt}
 end
 
-for (geqp3, elty) in ((:dgeqp3_, :Float64),
-                      (:sgeqp3_, :Float32),
-                      (:zgeqp3_, :ComplexF64),
-                      (:cgeqp3_, :ComplexF32))
+for (geqp3, elty, relty) in ((:dgeqp3_, :Float64, :Float64),
+                             (:sgeqp3_, :Float32, :Float32),
+                             (:zgeqp3_, :ComplexF64, :Float64),
+                             (:cgeqp3_, :ComplexF32, :Float32))
     @eval begin
         function Base.resize!(ws::QRPivotedWs, A::StridedMatrix{$elty}; work=true)
             require_one_based_indexing(A)
@@ -275,17 +276,25 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
             resize!(ws.τ, min(m, n))
             if work
                 info = Ref{BlasInt}()
-                ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
-                      m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, info)
+                if $elty <: Complex
+                    resize!(ws.rwork, 2n)
+                    ccall((@blasfunc($geqp3), liblapack), Cvoid,
+                          (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
+                           Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt}),
+                          m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, ws.rwork, info)
+                else
+                    ccall((@blasfunc($geqp3), liblapack), Cvoid,
+                          (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
+                           Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
+                          m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, info)
+                end
                 chklapackerror(info[])
                 resize!(ws.work, BlasInt(real(ws.work[1])))
             end
             return ws
         end
         QRPivotedWs(A::StridedMatrix{$elty}) =
-            resize!(QRPivotedWs(Vector{$elty}(undef, 1), $elty[], BlasInt[]), A)
+            resize!(QRPivotedWs(Vector{$elty}(undef, 1), $relty[], $elty[], BlasInt[]), A)
 
         function geqp3!(ws::QRPivotedWs{$elty}, A::AbstractMatrix{$elty}; resize=true)
             m, n = size(A)
@@ -303,13 +312,23 @@ for (geqp3, elty) in ((:dgeqp3_, :Float64),
                 return A, ws.τ, ws.jpvt
             end
             info = Ref{BlasInt}()
-            ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                   Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                   Ptr{BlasInt}),
-                  m, n, A, lda,
-                  ws.jpvt, ws.τ, ws.work,
-                  length(ws.work), info)
+            if $elty <: Complex
+                ccall((@blasfunc($geqp3), liblapack), Cvoid,
+                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
+                       Ptr{BlasInt}),
+                      m, n, A, lda,
+                      ws.jpvt, ws.τ, ws.work,
+                      length(ws.work), ws.rwork, info)
+            else
+                ccall((@blasfunc($geqp3), liblapack), Cvoid,
+                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{BlasInt}),
+                      m, n, A, lda,
+                      ws.jpvt, ws.τ, ws.work,
+                      length(ws.work), info)
+            end
             chklapackerror(info[])
             return A, ws.τ, ws.jpvt
         end
