@@ -49,3 +49,8 @@ BunchKaufmanWs
 ```@docs
 CholeskyPivotedWs
 ```
+
+## [LSE](@id LSE-id)
+```@docs
+LSEWs
+```

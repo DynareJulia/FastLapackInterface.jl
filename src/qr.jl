@@ -23,7 +23,7 @@ QRWs{Float64}
 julia> t = QR(LAPACK.geqrf!(ws, A)...)
 QR{Float64, Matrix{Float64}, Vector{Float64}}
 Q factor:
-2×2 QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
+2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
  -0.190022  -0.98178
  -0.98178    0.190022
 R factor:
@@ -127,10 +127,10 @@ QRWYWs{Float64, Matrix{Float64}}
   work: 4-element Vector{Float64}
   T: 2×2 Matrix{Float64}
 
-julia> t = QRCompactWY(LAPACK.geqrt!(ws, A)...)
-QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
+julia> t = LinearAlgebra.QRCompactWY(LAPACK.geqrt!(ws, A)...)
+LinearAlgebra.QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
 Q factor:
-2×2 QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}:
+2×2 LinearAlgebra.QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}:
  -0.190022  -0.98178
  -0.98178    0.190022
 R factor:
@@ -229,15 +229,16 @@ julia> A = [1.2 2.3
  6.2  3.3
 
 julia> ws = QRPivotedWs(A)
-QRPivotedWs{Float64}
+QRPivotedWs{Float64, Float64}
   work: 100-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
   τ: 2-element Vector{Float64}
   jpvt: 2-element Vector{Int64}
 
 julia> t = QRPivoted(LAPACK.geqp3!(ws, A)...)
 QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
 Q factor:
-2×2 QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
+2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
  -0.190022  -0.98178
  -0.98178    0.190022
 R factor:

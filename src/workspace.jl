@@ -60,6 +60,8 @@ Workspace(::typeof(LAPACK.hetrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
 
 Workspace(::typeof(LAPACK.pstrf!), A::AbstractMatrix) = CholeskyPivotedWs(A)
 
+Workspace(::typeof(LAPACK.gglse!), A::AbstractMatrix) = LSEWs(A)
+
 """
     decompose!(ws, args...)
 
@@ -100,6 +102,8 @@ end
 function decompose!(ws::CholeskyPivotedWs, A::Union{Hermitian, Symmetric}, tol=1e-16; kwargs...)
     return LAPACK.pstrf!(ws, A.uplo, A.data, tol; kwargs...)
 end
+
+decompose!(ws::LSEWs, args...; kwargs...) = LAPACK.gglse!(ws, args...; kwargs...)
 
 """
     factorize!(ws, args...)
