@@ -2,6 +2,7 @@ using FastLapackInterface
 using LinearAlgebra
 using Test
 
+include("lse_test.jl")
 include("lu_test.jl")
 include("schur_test.jl")
 include("qr_test.jl")

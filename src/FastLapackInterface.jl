@@ -29,6 +29,8 @@ include("bunch_kaufman.jl")
 export BunchKaufmanWs
 include("cholesky.jl")
 export CholeskyPivotedWs
+include("lse.jl")
+export LSEWs
 
 # Uniform interface
 include("workspace.jl")

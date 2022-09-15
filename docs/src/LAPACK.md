@@ -62,3 +62,9 @@ LinearAlgebra.LAPACK.hetrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMat
 ```@docs
 LinearAlgebra.LAPACK.pstrf!(::CholeskyPivotedWs, ::AbstractChar, ::AbstractMatrix, ::Real)
 ```
+
+## LSE
+```@docs
+LinearAlgebra.LAPACK.gglse!(::LSEWs, ::AbstractMatrix, ::AbstractVector, ::AbstractMatrix, ::AbstractVector)
+```
+
