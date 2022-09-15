@@ -10,7 +10,8 @@ running for some Lapack algorithms:
  - Eigen decomposition
  - Bunch-Kaufman decomposition
  - Cholesky decomposition
-
+ - LSE decomposition
+ 
 The API follows the Base julia `LAPACK` definitions and should thus be very transparent.
 There is also a unified interface which returns the right `Workspace` to be used with a given
 `LAPACK` function.
