@@ -363,27 +363,29 @@ for (gges, elty) in ((:dgges_, :Float64),
             end
             chklapackerror(info[])
             @inbounds for i in axes(A, 1)
-                ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i])
+                ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i])/ws.β[i]
             end
-            return A, B, ws.eigen_values, ws.β, ws.vsl, ws.vsr
+            return A, B, complex.(ws.αr, ws.αi), ws.β, ws.vsl, ws.vsr
         end
     end
 end
 
 """
-    gges!(ws, jobvsl, jobvsr, A, B; select=nothing, resize=true) -> (A, B, ws.eigen_values, ws.β, ws.vsl, ws.vsr)
+    gges!(ws, jobvsl, jobvsr, A, B; select=nothing, resize=true) -> (A, B, ws.α, ws.β, ws.vsl, ws.vsr)
 
 Computes the generalized eigenvalues, generalized Schur form, left Schur
 vectors (`jobsvl = V`), or right Schur vectors (`jobvsr = V`) of `A` and
 `B`, using preallocated [`GeneralizedSchurWs`](@ref) workspace `ws`.
 If `ws` is not of the right size, and `resize==true` it will be resized appropriately.
 
-It is possible to specify `select`, a function used to sort the eigenvalues during the decomposition.
-The function should have the signature `f(αr::T, αi::T, β::T) -> Bool`, where
-`αr` and `αi` are the real and imaginary parts of the eigenvalue, `β` the factor, and `T == eltype(A). 
-
-The generalized eigenvalues are returned in `ws.eigen_values` and `ws.β`. The left Schur
-vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
+It is possible to specify `select`, a function used to sort the eigenvalues to the top left corner of the Schur form.
+The function should have the signature `f(αr::T, αi::T, β::T) -> Bool` where `T == eltype(A)`. 
+An eigenvalue `(αr[j]+αi[j])/β[j]` is selected if `f(αr[j],αi[j],β[j])` is true, 
+i.e. if either one of a complex conjugate pair of eigenvalues is selected,
+then both complex eigenvalues are selected.
+The generalized eigenvalues components are returned in `ws.α` and `ws.β` where `ws.α` is a complex vector and `ẁs.β`, a real vector.
+The generalized eigenvalues (`ws.α./ws.β`) are returned in `ws.eigen_values`, a complex vector. 
+The left Schur vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
 """
 gges!(ws::GeneralizedSchurWs, jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix,
       B::AbstractMatrix)

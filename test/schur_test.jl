@@ -53,24 +53,26 @@ end
         B0 = randn(n, n)
         ws = GeneralizedSchurWs(copy(A0))
 
-        A1, B1, eig1, β1, vsl1, vsr1 = LAPACK.gges!('V', 'V', copy(A0), copy(B0))
-        A2, B2, eig2, β2, vsl2, vsr2 = LAPACK.gges!(ws, 'V', 'V', copy(A0), copy(B0))
+        A1, B1, α1, β1, vsl1, vsr1 = LAPACK.gges!('V', 'V', copy(A0), copy(B0))
+        A2, B2, α2, β2, vsl2, vsr2 = LAPACK.gges!(ws, 'V', 'V', copy(A0), copy(B0))
         @test isapprox(A1, A2)
         @test isapprox(B1, B2)
-        @test isapprox(eig1, eig2)
+        @test isapprox(α1, α2)
         @test isapprox(β1, β2)
         @test isapprox(vsl1, vsl2)
         @test isapprox(vsr1, vsr2)
 
         # Using Workspace, factorize!
         ws = Workspace(LAPACK.gges!, copy(A0))
-        A2, B2, eig2, β2, vsl2, vsr2 = factorize!(ws, 'V', 'V', copy(A0), copy(B0))
+        A2, B2, α2, β2, vsl2, vsr2 = factorize!(ws, 'V', 'V', copy(A0), copy(B0))
         @test isapprox(A1, A2)
         @test isapprox(B1, B2)
-        @test isapprox(eig1, eig2)
+        @test isapprox(α1, α2)
         @test isapprox(β1, β2)
         @test isapprox(vsl1, vsl2)
         @test isapprox(vsr1, vsr2)
+        @test isapprox(sort(abs.(eigen(A0, B0).values)), sort(abs.(ws.eigen_values)))
+
         show(devnull, "text/plain", ws)
 
         for div in (-1,1)
@@ -91,14 +93,16 @@ end
               0.86268 -0.212549 -0.211994]
         ws = GeneralizedSchurWs(copy(A0))
 
-        A0, B0, eig, β, vsl, vsr = LAPACK.gges!(ws, 'V', 'V', copy(A0),
+        A0, B0, α, β, vsl, vsr = LAPACK.gges!(ws, 'V', 'V', copy(A0),
                                                 copy(B0);
                                                 select = (ar, ai, b) -> ar^2 + ai^2 <
                                                                         FastLapackInterface.SCHUR_CRITERIUM *
                                                                         b^2)
         @test ws.sdim[] == 1
-        @test sign(real(eig[1])) == -1
-        @test sign(real(eig[2])) == 1
+        @test (real(α[1])/β[1])^2 < FastLapackInterface.SCHUR_CRITERIUM 
+        @test (real(α[2])/β[2])^2 > FastLapackInterface.SCHUR_CRITERIUM 
+        @test (real(α[3])/β[3])^2 > FastLapackInterface.SCHUR_CRITERIUM 
+        @test isapprox(sort(abs.(eigen(A0, B0).values)), sort(abs.(ws.eigen_values)))
         show(devnull, "text/plain", ws)
     end
 end
