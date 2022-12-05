@@ -28,9 +28,9 @@ QRWYWs{Float64, Matrix{Float64}}
 
 
 julia> LinearAlgebra.QRCompactWY(factorize!(ws, A)...)
-QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
+LinearAlgebra.QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
 Q factor:
-2×2 QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}:
+2×2 LinearAlgebra.QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}:
  -0.190022  -0.98178
  -0.98178    0.190022
 R factor:
