@@ -5,8 +5,11 @@
 
 *.html
 
-docs/Manifest.toml
-
 build/
 
 Manifest.toml
+
+docs/Manifest.toml
+
+test/Manifest.toml
+
