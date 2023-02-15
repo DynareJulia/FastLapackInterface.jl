@@ -4,7 +4,7 @@ import Base.strides
 
 using Base: require_one_based_indexing
 using LinearAlgebra
-using LinearAlgebra: BlasInt, BlasFloat, checksquare, chkstride1
+using LinearAlgebra: BlasInt, BlasFloat, checksquare, chkstride1, libblastrampoline
 using LinearAlgebra.BLAS: @blasfunc
 using LinearAlgebra.LAPACK: chklapackerror, chkargsok, chkstride1, chktrans, chkside
 using LinearAlgebra.LAPACK
@@ -12,7 +12,7 @@ using LinearAlgebra.LAPACK
 @static if VERSION < v"1.7"
     using LinearAlgebra.LAPACK: liblapack
 else
-    const liblapack = "libblastrampoline"
+    const liblapack = libblastrampoline
 end
 
 abstract type Workspace end
