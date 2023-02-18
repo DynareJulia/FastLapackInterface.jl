@@ -1,3 +1,7 @@
+1.2.9
+=====
+- fix link to libblastrampoline for Windows in Julia-1.9
+
 1.2.8
 =====
 - fix generalized Schur ws.eigen_values
