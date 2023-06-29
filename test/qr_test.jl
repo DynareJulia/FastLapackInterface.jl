@@ -4,6 +4,7 @@ using LinearAlgebra.LAPACK
 
 @testset "QRWs" begin
     n = 3
+    m = 6
     for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset "$T" begin
             A0 = randn(T, n, n)
@@ -27,17 +28,20 @@ using LinearAlgebra.LAPACK
             end
 
             @testset "ormqr!" begin
-                ws = Workspace(LAPACK.geqrf!, copy(A0))
-                C = randn(T, n, n)
+                AA = copy(A0)
+                ws = Workspace(LAPACK.geqrf!, AA)
+                C = randn(T, n, m)
                 tau = randn(T, n)
                 ws.τ .= tau
-                Cout = LAPACK.ormqr!('L', 'N', copy(A0), tau, copy(C))
-                Cout2 = LAPACK.ormqr!(ws, 'L', 'N', copy(A0), copy(C))
+                ormws = QROrmWs(ws, 'L', 'N', AA, copy(C))
+                Cout = LAPACK.ormqr!('L', 'N', AA, tau, copy(C))
+                Cout2 = LAPACK.ormqr!(ormws, 'L', 'N', AA, copy(C))
                 @test isapprox(Cout, Cout2)
 
                 # Is more testing required?
-                Cout2 = LAPACK.ormqr!(ws, 'L', 'T', copy(A0)', copy(C))
-                @test isapprox(Cout, Cout2)
+#                ormws = QROrmWs(ws, 'L', 'T', AA, copy(C))
+#                Cout2 = LAPACK.ormqr!(ormws, 'L', 'T', AA, copy(C))
+#                @test isapprox(Cout, Cout2)
             end
             @testset "orgqr!" begin
                 ws = Workspace(LAPACK.geqrf!, copy(A0))

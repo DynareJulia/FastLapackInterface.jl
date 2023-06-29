@@ -351,45 +351,138 @@ and `resize == true` the workspace will be appropriately resized.
 """
 geqp3!(ws::QRPivotedWs, A::AbstractMatrix; kwargs...)
 
+"""
+    QROrmWs
+
+Workspace to be used with the [`LinearAlgebra.LAPACK.ormqr!`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK.ormqr!)
+function. It requires the workspace of a `QR` or a `QRPivoted` previous factorization
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> ws = QRPivotedWs(A)
+QRPivotedWs{Float64, Float64}
+  work: 100-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+  τ: 2-element Vector{Float64}
+  jpvt: 2-element Vector{Int64}
+
+julia> t = QRPivoted(LAPACK.geqp3!(ws, A)...)
+QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
+Q factor:
+2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
+ -0.190022  -0.98178
+ -0.98178    0.190022
+R factor:
+2×2 Matrix{Float64}:
+ -6.31506  -3.67692
+  0.0      -1.63102
+permutation:
+2-element Vector{Int64}:
+ 1
+ 2
+
+julia> Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+```
+"""
+struct QROrmWs{T<:Number} <: Workspace
+    work::Vector{T}
+    τ::Vector{T}
+end
+
 for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
                              (:sormqr_, :sorgqr_, :Float32),
                              (:zunmqr_, :zungqr_, :ComplexF64),
                              (:cunmqr_, :cungqr_, :ComplexF32))
                       
-    @eval function ormqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, side::AbstractChar, trans::AbstractChar,
+    @eval begin
+        function Base.resize!(ormws::QROrmWs, side::AbstractChar, trans::AbstractChar,
+                              A::AbstractMatrix{$elty},
+                              C::AbstractVecOrMat{$elty};
+                              work = true)
+            require_one_based_indexing(A, C)
+            chktrans(trans)
+            chkside(side)
+            chkstride1(A, C)
+            m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
+            mA   = size(A, 1)
+            k    = length(ormws.τ)
+            if side == 'L' && m != mA
+                throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
+            end
+            if side == 'R' && n != mA
+                throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
+            end
+            if side == 'L' && k > m
+                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
+            end
+            if side == 'R' && k > n
+                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
+            end
+            if work
+                info = Ref{BlasInt}()
+                ccall((@blasfunc($ormqr), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                       Ref{BlasInt}, Clong, Clong),
+                      side, trans, m, n,
+                      k, A, max(1, stride(A, 2)), ormws.τ,
+                      C, max(1, stride(C, 2)), ormws.work, -1,
+                      info, 1, 1)
+                chklapackerror(info[])
+                resize!(ormws.work, BlasInt(real(ormws.work[1])))
+            end
+            return ormws
+        end
+
+        QROrmWs(ws::Union{QRWs, QRPivotedWs}, side::AbstractChar, trans::AbstractChar,
+                A::AbstractMatrix{$elty},
+                C::AbstractVecOrMat{$elty}) = resize!(QROrmWs(Vector{$elty}(undef, 1), ws.τ), side, trans,
+                                                      A, C)
+        function ormqr!(ws::QROrmWs{$elty}, side::AbstractChar, trans::AbstractChar,
                           A::AbstractMatrix{$elty},
                           C::AbstractVecOrMat{$elty})
-        require_one_based_indexing(A, C)
-        chktrans(trans)
-        chkside(side)
-        chkstride1(A, C)
-        m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
-        mA   = size(A, 1)
-        k    = length(ws.τ)
-        if side == 'L' && m != mA
-            throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
+            require_one_based_indexing(A, C)
+            chktrans(trans)
+            chkside(side)
+            chkstride1(A, C)
+            m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
+            mA   = size(A, 1)
+            k    = length(ws.τ)
+            if side == 'L' && m != mA
+                throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
+            end
+            if side == 'R' && n != mA
+                throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
+            end
+            if side == 'L' && k > m
+                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
+            end
+            if side == 'R' && k > n
+                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
+            end
+            info = Ref{BlasInt}()
+            ccall((@blasfunc($ormqr), liblapack), Cvoid,
+                  (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                   Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                   Ref{BlasInt}, Clong, Clong),
+                  side, trans, m, n,
+                  k, A, max(1, stride(A, 2)), ws.τ,
+                  C, max(1, stride(C, 2)), ws.work, length(ws.work),
+                  info, 1, 1)
+            chklapackerror(info[])
+            return C
         end
-        if side == 'R' && n != mA
-            throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
-        end
-        if side == 'L' && k > m
-            throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
-        end
-        if side == 'R' && k > n
-            throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
-        end
-        info = Ref{BlasInt}()
-        ccall((@blasfunc($ormqr), liblapack), Cvoid,
-              (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-               Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-               Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-               Ref{BlasInt}, Clong, Clong),
-              side, trans, m, n,
-              k, A, max(1, stride(A, 2)), ws.τ,
-              C, max(1, stride(C, 2)), ws.work, length(ws.work),
-              info, 1, 1)
-        chklapackerror(info[])
-        return C
     end
 
     for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),

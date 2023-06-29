@@ -42,7 +42,7 @@ R factor:
 Workspace(::typeof(LAPACK.getrf!), A::AbstractMatrix) = LUWs(A)
 
 Workspace(::typeof(LAPACK.geqrf!), A::AbstractMatrix) = QRWs(A)
-Workspace(::typeof(LAPACK.ormqr!), A::AbstractMatrix) = QRWs(A)
+Workspace(::typeof(LAPACK.ormqr!), A::AbstractMatrix) = QROrmWs(A)
 Workspace(::typeof(LAPACK.geqrt!), A::AbstractMatrix) = QRWYWs(A)
 Workspace(::typeof(LAPACK.geqp3!), A::AbstractMatrix) = QRPivotedWs(A)
 
@@ -72,6 +72,7 @@ decompose!(ws::LUWs, args...; kwargs...) = LAPACK.getrf!(ws, args...; kwargs...)
 decompose!(ws::QRWs, args...; kwargs...)   = LAPACK.geqrf!(ws, args...; kwargs...)
 decompose!(ws::QRWYWs, args...; kwargs...) = LAPACK.geqrt!(ws, args...; kwargs...)
 decompose!(ws::QRPivotedWs, args...; kwargs...)  = LAPACK.geqp3!(ws, args...; kwargs...)
+decompose!(ws::QROrmWs, args...; kwargs...)  = LAPACK.ormqr!(ws, args...; kwargs...)
 
 decompose!(ws::SchurWs, args...; kwargs...)            = LAPACK.gees!(ws, args...; kwargs...)
 decompose!(ws::GeneralizedSchurWs, args...; kwargs...) = LAPACK.gges!(ws, args...; kwargs...)
