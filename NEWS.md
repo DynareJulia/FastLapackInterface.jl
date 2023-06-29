@@ -1,3 +1,8 @@
+2.0.0
+=====
+- add MKL compatibility for ormqr!()
+- add QROrmWs now required for ormqr! [breaking change]
+
 1.2.9
 =====
 - fix link to libblastrampoline for Windows in Julia-1.9
