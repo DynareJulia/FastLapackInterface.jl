@@ -24,7 +24,7 @@ factorize!
 LinearAlgebra.LAPACK.geqrf!(::QRWs, ::AbstractMatrix)
 LinearAlgebra.LAPACK.geqrt!(::QRWYWs, ::AbstractMatrix)
 LinearAlgebra.LAPACK.geqp3!(::QRPivotedWs, ::AbstractMatrix)
-LinearAlgebra.LAPACK.ormqr!(::QRWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractVecOrMat)
+LinearAlgebra.LAPACK.ormqr!(::QROrmWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractVecOrMat)
 LinearAlgebra.LAPACK.orgqr!(::QRWs, ::AbstractMatrix, ::Integer)
 ```
 
