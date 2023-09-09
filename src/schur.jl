@@ -6,7 +6,7 @@ import LinearAlgebra.LAPACK: gees!, gges!
 # SELECT functions
 # gees
 # Original default
-gees_default_select() = (wr, wi) -> wr^2 + wi^2 >= 1.0
+gees_default_select(wr, wi) = wr^2 + wi^2 >= 1.0
 schurselect(wr_::Ptr, wi_::Ptr) = schurselect(gees_default_select, wr_, wi_)
 
 # Generic
@@ -20,7 +20,7 @@ end
 const SCHUR_CRITERIUM = 1 + 1e-6
 
 # Original default
-gges_default_select() = (αr, αi, β) -> αr^2 + αi^2 < SCHUR_CRITERIUM * β^2
+gges_default_select(αr, αi, β) = αr^2 + αi^2 < SCHUR_CRITERIUM * β^2
 schurselect(αr_::Ptr, αi_::Ptr, β_::Ptr) = schurselect(gges_default_select, αr_, αi_, β_)
 
 # Generic
@@ -141,8 +141,8 @@ for (gees, elty) in ((:dgees_, :Float64),
             ldvs = max(size(ws.vs, 1), 1)
             lwork = length(ws.work)
             if select !== nothing
-                sfunc(wr, wi) = schurselect(select, wr, wi)
-                sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
+                #              sfunc(wr, wi) = schurselect(select, wr, wi)
+                sel_func = @cfunction(schurselect, Cint,
                                       (Ptr{Cdouble}, Ptr{Cdouble}))
                 ccall((@blasfunc($gees), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
@@ -330,8 +330,8 @@ for (gges, elty) in ((:dgges_, :Float64),
             ldvsl = size(ws.vsl, 1)
             ldvsr = size(ws.vsr, 1)
             if select !== nothing
-                sfunc(αr, αi, β) = schurselect(select, αr, αi, β)
-                sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
+#                sfunc(αr, αi, β) = schurselect(select, αr, αi, β)
+                sel_func = @cfunction(schurselect, Cint,
                                       (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
                 ccall((@blasfunc($gges), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
