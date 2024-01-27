@@ -25,7 +25,7 @@ decompose!(ws, A)
 A similar API exists for the above decompositions. For more information and examples please see the [documentation](https://dynarejulia.github.io/FastLapackInterface.jl/dev/).
 
 ## Compatibility with MKL
-- some functions are not yet compatible with MKL (work in progress).
+- this package works also with MKL
 - OpenBlas and MKL don't compute the required workspace size of some
   functions the same way. 
 
