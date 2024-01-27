@@ -1,3 +1,8 @@
+2.0.1
+=====
+- fix bug in resize!() for real eigenvalues
+- increase size of test matrices
+
 2.0.0
 =====
 - add MKL compatibility for ormqr!()
