@@ -3,7 +3,7 @@ using FastLapackInterface
 using LinearAlgebra.LAPACK
 
 @testset "SchurWs" begin
-    n = 3
+    n = 10
     @testset "Real, square" begin
         A0 = randn(n, n)
         ws = SchurWs(copy(A0))
@@ -47,7 +47,7 @@ using LinearAlgebra.LAPACK
 end
 
 @testset "GeneralizedSchurWs" begin
-    n = 3
+    n = 10
     @testset "Real, square" begin
         A0 = randn(n, n)
         B0 = randn(n, n)

@@ -3,9 +3,9 @@ using FastLapackInterface
 using LinearAlgebra.LAPACK
 
 @testset "LSEWs" begin
-    n = 8
-    m = 4
-    p = 6 
+    n = 16
+    m = 8
+    p = 10 
     for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset "$T" begin
             A0 = rand(T, m, n)

@@ -3,7 +3,7 @@ using FastLapackInterface
 using LinearAlgebra.LAPACK
 
 @testset "EigenWs" begin
-    n = 3
+    n = 10
     @testset "Real, square" begin
         A0 = randn(n, n)
         ws = EigenWs(copy(A0); lvecs = true, sense = true)
@@ -150,7 +150,7 @@ end
     end
 end
 @testset "GeneralizedEigenWs" begin
-    n = 3
+    n = 10
     @testset "Real, square" begin
         A0 = randn(n, n)
         B0 = randn(n, n)

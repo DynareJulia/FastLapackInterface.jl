@@ -3,7 +3,7 @@ using FastLapackInterface
 using LinearAlgebra.LAPACK
 
 @testset "BunchKaufmanWs" begin
-    n = 3
+    n = 10
     for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset "$(T) sytrf!" begin
             A = rand(T, n, n)

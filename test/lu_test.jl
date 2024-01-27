@@ -1,7 +1,7 @@
 using LinearAlgebra
 using LinearAlgebra.LAPACK
-n = 3
-m = 2
+n = 10
+m = 8
 
 @testset "LU" begin
     for elty in (Float32, Float64, ComplexF32, ComplexF64)

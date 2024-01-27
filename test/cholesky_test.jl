@@ -3,10 +3,10 @@ using FastLapackInterface
 using LinearAlgebra.LAPACK
 
 @testset "CholeskyPivotedWs" begin
-    n = 3
     for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset "$(T) pstrf!" begin
-            A = T[1 0 0;0 3.1 0.1; 2.0 0.0 5.0]
+            A = T[1 0 0 0 0;0 3.1 0.1 0 0; 2.0 0.0 5.0 0 0; 0 0 0 1 0; 0 0 0 0 1]
+            n = size(A, 1)
             A = (A .+ A') ./ 2
             ws = CholeskyPivotedWs(copy(A))
             
@@ -27,10 +27,11 @@ using LinearAlgebra.LAPACK
             @test ipiv1 == ipiv2
             @test rank1 == rank2
 
-            A = T[1 0 0 0;0 3.1 0.1 0; 0.0 0.0 5.0 0.0; 0.1 0.0 0.3 1.0]
+            A = T[1 0 0 0 0;0 3.1 0.1 0 0; 2.0 0.0 5.0 0 0; 0 0 0 1 0; 0 0 0 0 1]
+            n = size(A, 1)
             A = (A .+ A') ./ 2
             decompose!(ws,'U', A, 1e-16)
-            @test length(ws.piv) == n+1
+            @test length(ws.piv) == n
         end
     end
 end

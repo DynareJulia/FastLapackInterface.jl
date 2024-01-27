@@ -3,8 +3,8 @@ using FastLapackInterface
 using LinearAlgebra.LAPACK
 
 @testset "QRWs" begin
-    n = 3
-    m = 6
+    n = 6
+    m = 12
     for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset "$T" begin
             A0 = randn(T, n, n)
@@ -86,7 +86,7 @@ end
 end
 
 @testset "QRPivotedWs" begin
-    n = 3
+    n = 10
     for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset "$T" begin
             A0 = randn(T, n, n)
