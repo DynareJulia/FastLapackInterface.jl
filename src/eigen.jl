@@ -120,7 +120,7 @@ for (geevx, elty, relty) in
                        Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ptr{$elty},
                        Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt},
                        Clong, Clong, Clong, Clong),
-                      'N', jobvl, jobvr, 'N',
+                      'N', jobvl, jobvr, S,
                       n, A, max(1, stride(A, 2)), ws.W,
                       ws.rwork, ws.VL, n, ws.VR,
                       n, ilo, ihi, ws.scale,
