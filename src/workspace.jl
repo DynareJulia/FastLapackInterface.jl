@@ -39,7 +39,6 @@ R factor:
 Workspace(::typeof(LAPACK.getrf!), A::AbstractMatrix) = LUWs(A)
 
 Workspace(::typeof(LAPACK.geqrf!), A::AbstractMatrix) = QRWs(A)
-Workspace(::typeof(LAPACK.ormqr!), A::AbstractMatrix) = QROrmWs(A)
 Workspace(::typeof(LAPACK.geqrt!), A::AbstractMatrix) = QRWYWs(A)
 Workspace(::typeof(LAPACK.geqp3!), A::AbstractMatrix) = QRPivotedWs(A)
 
