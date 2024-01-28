@@ -386,7 +386,7 @@ struct QROrmWs{T<:Number} <: Workspace
     τ::Vector{T}
 end
 
-for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
+for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
                              (:sormqr_, :sorgqr_, :Float32),
                              (:zunmqr_, :zungqr_, :ComplexF64),
                              (:cunmqr_, :cungqr_, :ComplexF32))
@@ -404,10 +404,10 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
             mA   = size(A, 1)
             k    = length(ormws.τ)
             if side == 'L' && m != mA
-                throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
+                throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the first dimension of A, $mA"))
             end
             if side == 'R' && n != mA
-                throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
+                throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $n, must equal the first dimension of A, $mA"))
             end
             if side == 'L' && k > m
                 throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
@@ -447,10 +447,10 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
             mA   = size(A, 1)
             k    = length(ws.τ)
             if side == 'L' && m != mA
-                throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
+                throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the first dimension of A, $mA"))
             end
             if side == 'R' && n != mA
-                throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
+                throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $n, must equal the first dimension of A, $mA"))
             end
             if side == 'L' && k > m
                 throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
@@ -475,7 +475,7 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
 
     for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),
                   eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
-        @eval function ormqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, side::AbstractChar, trans::AbstractChar,
+        @eval function ormqr!(ws::QROrmWs, side::AbstractChar, trans::AbstractChar,
                               A::$elty2,
                               C::StridedMatrix{$elty})
             chktrans(trans)
@@ -513,12 +513,11 @@ end
 
 Computes `Q * C` (`trans = N`), `transpose(Q) * C` (`trans = T`), `adjoint(Q) * C`
 (`trans = C`) for `side = L` or the equivalent right-sided multiplication
-for `side = R` using `Q` from a `QR` factorization of `A` computed using
-[`geqrf!`](@ref) in the case where `ws` is a [`QRWs`](@ref) or [`geqp3!`](@ref) when `ws` is a [`QRPivotedWs`](@ref).
-Uses preallocated workspace `ws` and the factors are assumed to be stored in `ws.τ`.
+for `side = R` using `Q` from a `QR` factorization of `A`.
+Uses preallocated workspace `ws::QROrmWs` and the factors are assumed to be stored in `ws.τ`.
 `C` is overwritten.
 """
-ormqr!(ws::Union{QRWs,QRPivotedWs}, side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
+ormqr!(ws::QROrmWs, side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
        C::AbstractVecOrMat)
 
 """
