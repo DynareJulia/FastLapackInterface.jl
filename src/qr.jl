@@ -22,10 +22,7 @@ QRWs{Float64}
 
 julia> t = QR(LAPACK.geqrf!(ws, A)...)
 QR{Float64, Matrix{Float64}, Vector{Float64}}
-Q factor:
-2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
- -0.190022  -0.98178
- -0.98178    0.190022
+Q factor: 2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}
 R factor:
 2×2 Matrix{Float64}:
  -6.31506  -3.67692
@@ -129,10 +126,7 @@ QRWYWs{Float64, Matrix{Float64}}
 
 julia> t = LinearAlgebra.QRCompactWY(LAPACK.geqrt!(ws, A)...)
 LinearAlgebra.QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
-Q factor:
-2×2 LinearAlgebra.QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}:
- -0.190022  -0.98178
- -0.98178    0.190022
+Q factor: 2×2 LinearAlgebra.QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}
 R factor:
 2×2 Matrix{Float64}:
  -6.31506  -3.67692
@@ -237,10 +231,7 @@ QRPivotedWs{Float64, Float64}
 
 julia> t = QRPivoted(LAPACK.geqp3!(ws, A)...)
 QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
-Q factor:
-2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
- -0.190022  -0.98178
- -0.98178    0.190022
+Q factor: 2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}
 R factor:
 2×2 Matrix{Float64}:
  -6.31506  -3.67692
@@ -374,10 +365,7 @@ QRPivotedWs{Float64, Float64}
 
 julia> t = QRPivoted(LAPACK.geqp3!(ws, A)...)
 QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
-Q factor:
-2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}:
- -0.190022  -0.98178
- -0.98178    0.190022
+Q factor: 2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}
 R factor:
 2×2 Matrix{Float64}:
  -6.31506  -3.67692
