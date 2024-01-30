@@ -379,6 +379,43 @@ struct QROrmWs{T<:Number} <: Workspace
     τ::Vector{T}
 end
 
+"""
+    QROrgWs
+
+Workspace to be used with the [`LinearAlgebra.LAPACK.orgqr!`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK.orgqr!)
+function. It requires the workspace of a `QR` or a `QRPivoted` previous factorization
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> ws = QRPivotedWs(A)
+QRPivotedWs{Float64, Float64}
+  work: 100-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+  τ: 2-element Vector{Float64}
+  jpvt: 2-element Vector{Int64}
+
+julia> C=[1 0.5; 2 1]
+2×2 Matrix{Float64}:
+ 1.0  0.5
+ 2.0  1.0
+
+julia> orgws =  QROrgWs(ws, 'L', 'N', A, C)
+QROrgWs{Float64}
+  work: 4224-element Vector{Float64}
+  τ: 2-element Vector{Float64}
+
+"""
+struct QROrgWs{T<:Number} <: Workspace
+    work::Vector{T}
+    τ::Vector{T}
+end
+
 for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
                              (:sormqr_, :sorgqr_, :Float32),
                              (:zunmqr_, :zungqr_, :ComplexF64),
@@ -429,6 +466,29 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
                 A::AbstractMatrix{$elty},
                 C::AbstractVecOrMat{$elty}) = resize!(QROrmWs(Vector{$elty}(undef, 1), ws.τ), side, trans,
                                                       A, C)
+        function Base.resize!(orgws::QROrgWs, A::AbstractMatrix{$elty}; k::Integer = size(A, 2))
+            require_one_based_indexing(A, ws.τ)
+            chkstride1(A, ws.τ)
+            m = size(A, 1)
+            n = min(m, size(A, 2))
+            if k > n
+                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
+            end
+            info  = Ref{BlasInt}()
+            ccall((@blasfunc($orgqr), liblapack), Cvoid,
+                  (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                   Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                  m, n, k, A,
+                  max(1,stride(A,2)), ws.τ, ws.work, -1,
+                  info)
+            chklapackerror(info[])
+            resize!(orgws.work, BlasInt(real(orgws.work[1])))
+            return orgws
+        end
+
+        QROrgWs(ws::Union{QRWs, QRPivotedWs}, A::AbstractMatrix{$elty}; k::Integer = size(A, 2)) =
+            resize!(QROrgWs(Vector{$elty}(undef, 1), ws.τ), A, k)
+        
         function ormqr!(ws::QROrmWs{$elty}, side::AbstractChar, trans::AbstractChar,
                           A::AbstractMatrix{$elty},
                           C::AbstractVecOrMat{$elty})
@@ -477,6 +537,7 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
             return LAPACK.ormqr!(ws, side, trans, A.parent, C)
         end
     end
+    
     @eval function orgqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, A::AbstractMatrix{$elty}, k::Integer = size(A, 2))
         require_one_based_indexing(A, ws.τ)
         chkstride1(A, ws.τ)
