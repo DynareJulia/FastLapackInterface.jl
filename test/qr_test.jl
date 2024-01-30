@@ -38,10 +38,23 @@ using LinearAlgebra.LAPACK
                 Cout2 = LAPACK.ormqr!(ormws, 'L', 'N', AA, copy(C))
                 @test isapprox(Cout, Cout2)
 
-                # Is more testing required?
-#                ormws = QROrmWs(ws, 'L', 'T', AA, copy(C))
-#                Cout2 = LAPACK.ormqr!(ormws, 'L', 'T', AA, copy(C))
-#                @test isapprox(Cout, Cout2)
+                trans = T <: Complex ? 'C' : 'T'
+                ormws = QROrmWs(ws, 'L', trans, AA, copy(C))
+                Cout = LAPACK.ormqr!('L', trans, AA, tau, copy(C))
+                Cout2 = LAPACK.ormqr!(ormws, 'L', trans, AA, copy(C))
+                @test isapprox(Cout, Cout2)
+
+                C = randn(T, m, n)
+                ormws = QROrmWs(ws, 'R', 'N', AA, copy(C))
+                Cout = LAPACK.ormqr!('R', 'N', AA, tau, copy(C))
+                Cout2 = LAPACK.ormqr!(ormws, 'R', 'N', AA, copy(C))
+                @test isapprox(Cout, Cout2)
+
+                trans = T <: Complex ? 'C' : 'T'
+                ormws = QROrmWs(ws, 'R', trans, AA, copy(C))
+                Cout = LAPACK.ormqr!('R', trans, AA, tau, copy(C))
+                Cout2 = LAPACK.ormqr!(ormws, 'R', trans, AA, copy(C))
+                @test isapprox(Cout, Cout2)
             end
             @testset "orgqr!" begin
                 ws = Workspace(LAPACK.geqrf!, copy(A0))
