@@ -41,6 +41,10 @@ Workspace(::typeof(LAPACK.getrf!), A::AbstractMatrix) = LUWs(A)
 Workspace(::typeof(LAPACK.geqrf!), A::AbstractMatrix) = QRWs(A)
 Workspace(::typeof(LAPACK.geqrt!), A::AbstractMatrix) = QRWYWs(A)
 Workspace(::typeof(LAPACK.geqp3!), A::AbstractMatrix) = QRPivotedWs(A)
+Workspace(::typeof(LAPACK.ormqr!), ws::Union{QRWs, QRPivotedWs}, side::AbstractChar, trans::AbstractChar,
+          A::AbstractMatrix, C::AbstractVecOrMat) = QROrmWs(ws, side, trans, A, C)
+Workspace(::typeof(LAPACK.orgqr!), ws::Union{QRWs, QRPivotedWs}, A::AbstractMatrix; k::Integer = size(A, 2)) =
+    QROrgWs(ws, A, k)
 
 Workspace(::typeof(LAPACK.gees!), A::AbstractMatrix) = SchurWs(A)
 Workspace(::typeof(LAPACK.gges!), A::AbstractMatrix) = GeneralizedSchurWs(A)
