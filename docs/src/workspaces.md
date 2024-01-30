@@ -14,16 +14,15 @@ resize!(::Workspace, ::AbstractMatrix; kwargs...)
 ```
 
 ## [QR](@id QR-id)
-
 ```@docs
 QRWs
 QRWYWs
 QRPivotedWs
 QROrmWs
+QROrgWs
 ```
 
 ## [Schur](@id Schur-id)
-
 ```@docs
 SchurWs
 GeneralizedSchurWs

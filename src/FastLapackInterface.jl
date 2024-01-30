@@ -22,7 +22,7 @@ include("exceptions.jl")
 include("lu.jl")
 export LUWs
 include("qr.jl")
-export QRWs, QRWYWs, QRPivotedWs, QROrmWs
+export QRWs, QRWYWs, QRPivotedWs, QROrmWs, QROrgWs
 include("schur.jl")
 export SchurWs, GeneralizedSchurWs
 include("eigen.jl")
