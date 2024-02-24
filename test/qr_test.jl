@@ -65,6 +65,18 @@ using LinearAlgebra.LAPACK
                 Cout2 = LAPACK.orgqr!(ws, copy(A0))
                 @test isapprox(Cout, Cout2)
             end
+            @testset "zero matrix" begin
+                for d in [(4, 0), (0, 4), (0, 0)]
+                    A = randn(T, d)
+                    ws = QRWs(A)
+                    @test size(ws.work) == (1,)
+                    @test length(ws.τ) == 0
+
+                    F = LAPACK.geqrf!(ws, A)
+                    @test size(ws.work) == (1,)
+                    @test length(ws.τ) == 0
+                end
+            end
             show(devnull, "text/plain", ws)
         end
     end

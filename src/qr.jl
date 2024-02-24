@@ -48,9 +48,10 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
     @eval begin
         function Base.resize!(ws::QRWs, A::StridedMatrix{$elty}; work=true)
             m, n = size(A)
+            minmn = min(m, n)
             lda = max(1, stride(A, 2))
-            resize!(ws.τ, min(m, n))
-            if work
+            resize!(ws.τ, minmn)
+            if work && minmn > 0
                 info = Ref{BlasInt}()
                 ccall((@blasfunc($geqrf), liblapack), Cvoid,
                       (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
@@ -69,22 +70,24 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
             chkstride1(A)
             m, n = size(A)
             nws = length(ws)
-            minn = min(m, n)
-            if nws != minn 
+            minmn = min(m, n)
+            if nws != minmn 
                 if resize
-                    resize!(ws, A; work = minn > nws)
+                    resize!(ws, A; work = minmn > nws)
                 else
-                    throw(WorkspaceSizeError(nws, minn))
+                    throw(WorkspaceSizeError(nws, minmn))
                 end
             end
             lda = max(1, stride(A, 2))
-            lwork = length(ws.work)
+            lwork = max(1,length(ws.work))
             info = Ref{BlasInt}() # This actually doesn't cause allocations
-            ccall((@blasfunc($geqrf), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-                  m, n, A, lda, ws.τ, ws.work, lwork, info)
-            chklapackerror(info[])
+            if minmn > 0
+                ccall((@blasfunc($geqrf), liblapack), Cvoid,
+                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                      m, n, A, lda, ws.τ, ws.work, lwork, info)
+                chklapackerror(info[])
+            end
             return A, ws.τ
         end
     end
@@ -147,7 +150,6 @@ function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize=36, work=true)
     require_one_based_indexing(A)
     chkstride1(A)
     m, n = BlasInt.(size(A))
-    @assert n > 0 ArgumentError("Not a Matrix")
     m1 = min(m, n)
     nb = min(m1, blocksize)
     ws.T = similar(ws.T,  nb, m1)
