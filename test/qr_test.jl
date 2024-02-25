@@ -67,14 +67,28 @@ using LinearAlgebra.LAPACK
             end
             @testset "zero matrix" begin
                 for d in [(4, 0), (0, 4), (0, 0)]
-                    A = randn(T, d)
-                    ws = QRWs(A)
+                    A0 = randn(T, d)
+                    ws = QRWs(copy(A0))
                     @test size(ws.work) == (1,)
                     @test length(ws.τ) == 0
 
-                    F = LAPACK.geqrf!(ws, A)
+                    F = LAPACK.geqrf!(ws, copy(A0))
                     @test size(ws.work) == (1,)
                     @test length(ws.τ) == 0
+
+                    C0 =rand(T, d[1], d[1])
+                    ormws = QROrmWs(ws, 'L', 'N', copy(A0), copy(C0))
+                    @test size(ormws.work) == (1,)
+                    @test length(ormws.τ) == 0
+                    
+                    LAPACK.ormqr!(ormws, 'L', 'N', copy(A0), copy(C0))
+                    @test size(ormws.work) == (1,)
+                    @test length(ormws.τ) == 0
+
+                    LAPACK.orgqr!(ws, copy(A0))
+                    @test size(ws.work) == (1,)
+                    @test length(ws.τ) == 0
+
                 end
             end
             show(devnull, "text/plain", ws)
@@ -106,7 +120,18 @@ end
                     @test size(ws.T , 1) == n+div
                 end
             end
-       end 
+
+            @testset "zero matrix" begin
+                for d in [(4, 0), (0, 4), (0, 0)]
+                    A0 = randn(T, d)
+                    ws = QRWYWs(copy(A0))
+                    @test size(ws.work) == (0,)
+
+                    LAPACK.geqrt!(ws, copy(A0))
+                    @test size(ws.work) == (0,)
+                end
+            end
+        end
     end
 end
 
@@ -145,6 +170,22 @@ end
                 Cout = LAPACK.orgqr!(copy(A0), tau)
                 Cout2 = LAPACK.orgqr!(ws, copy(A0))
                 @test isapprox(Cout, Cout2)
+            end
+            @testset "zero matrix" begin
+                for d in [(4, 0), (0, 4), (0, 0)]
+                    A0 = randn(T, d)
+                    ws = QRPivotedWs(copy(A0))
+                    @test size(ws.work) == (1,)
+                    @test length(ws.τ) == 0
+
+                    LAPACK.geqp3!(ws, copy(A0))
+                    @test size(ws.work) == (1,)
+                    @test length(ws.τ) == 0
+
+                    LAPACK.orgqr!(ws, copy(A0))
+                    @test size(ws.work) == (1,)
+                    @test length(ws.τ) == 0
+                end
             end
         end
     end

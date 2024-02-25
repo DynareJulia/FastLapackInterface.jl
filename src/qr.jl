@@ -141,7 +141,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-mutable struct QRWYWs{R<:Number,MT<:StridedMatrix{R}} <: Workspace
+mutable struct QRWYWs{R<:Number, MT<:StridedMatrix{R}} <: Workspace
     work::Vector{R}
     T::MT
 end
@@ -150,9 +150,9 @@ function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize=36, work=true)
     require_one_based_indexing(A)
     chkstride1(A)
     m, n = BlasInt.(size(A))
-    m1 = min(m, n)
-    nb = min(m1, blocksize)
-    ws.T = similar(ws.T,  nb, m1)
+    minmn = min(m, n)
+    nb = min(minmn, blocksize)
+    ws.T = similar(ws.T,  nb, minmn)
     if work
         resize!(ws.work, nb*n)
     end
@@ -184,14 +184,16 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
         lda = max(1, stride(A, 2))
         work = ws.work
         info = Ref{BlasInt}()
-        ccall((@blasfunc($geqrt), liblapack), Cvoid,
-                (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                Ptr{BlasInt}),
-                m, n, nb, A,
-                lda, ws.T, max(1, stride(ws.T, 2)), ws.work,
-                info)
-        chklapackerror(info[])
+        if minmn > 0
+            ccall((@blasfunc($geqrt), liblapack), Cvoid,
+                  (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                   Ptr{BlasInt}),
+                  m, n, nb, A,
+                  lda, ws.T, max(1, stride(ws.T, 2)), ws.work,
+                  info)
+            chklapackerror(info[])
+        end
         return A, ws.T
     end
 end
@@ -265,10 +267,11 @@ for (geqp3, elty, relty) in ((:dgeqp3_, :Float64, :Float64),
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
+            minmn = min(m, n)
             RldA = max(1, stride(A, 2))
             resize!(ws.jpvt, n)
             resize!(ws.τ, min(m, n))
-            if work
+            if work && minmn > 0
                 info = Ref{BlasInt}()
                 if $elty <: Complex
                     resize!(ws.rwork, 2n)
@@ -293,37 +296,36 @@ for (geqp3, elty, relty) in ((:dgeqp3_, :Float64, :Float64),
         function geqp3!(ws::QRPivotedWs{$elty}, A::AbstractMatrix{$elty}; resize=true)
             m, n = size(A)
             nws = length(ws.jpvt)
-            minn =  min(m, n)
-            if nws != n || minn != length(ws.τ)
+            minmn =  min(m, n)
+            if nws != n || minmn != length(ws.τ)
                 if resize
                     resize!(ws, A; work = n > nws)
                 else
-                    throw(WorkspaceSizeError(nws, minn))
+                    throw(WorkspaceSizeError(nws, minmn))
                 end
             end
             lda = stride(A, 2)
-            if lda == 0 # Early exit
-                return A, ws.τ, ws.jpvt
-            end
             info = Ref{BlasInt}()
-            if $elty <: Complex
-                ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
-                       Ptr{BlasInt}),
-                      m, n, A, lda,
-                      ws.jpvt, ws.τ, ws.work,
-                      length(ws.work), ws.rwork, info)
-            else
-                ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{BlasInt}),
-                      m, n, A, lda,
-                      ws.jpvt, ws.τ, ws.work,
-                      length(ws.work), info)
+            if minmn > 0
+                if $elty <: Complex
+                    ccall((@blasfunc($geqp3), liblapack), Cvoid,
+                          (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                           Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
+                           Ptr{BlasInt}),
+                          m, n, A, lda,
+                          ws.jpvt, ws.τ, ws.work,
+                          length(ws.work), ws.rwork, info)
+                else
+                    ccall((@blasfunc($geqp3), liblapack), Cvoid,
+                          (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                           Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                           Ptr{BlasInt}),
+                          m, n, A, lda,
+                          ws.jpvt, ws.τ, ws.work,
+                          length(ws.work), info)
+                end
+                chklapackerror(info[])
             end
-            chklapackerror(info[])
             return A, ws.τ, ws.jpvt
         end
     end
@@ -433,7 +435,8 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
             chkside(side)
             chkstride1(A, C)
             m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
-            mA   = size(A, 1)
+            mA, nA   = size(A)
+            minmn = min(mA, nA)
             k    = length(ormws.τ)
             if side == 'L' && m != mA
                 throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the first dimension of A, $mA"))
@@ -447,7 +450,7 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
             if side == 'R' && k > n
                 throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
             end
-            if work
+            if work && minmn > 0
                 info = Ref{BlasInt}()
                 ccall((@blasfunc($ormqr), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
@@ -471,20 +474,22 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
         function Base.resize!(orgws::QROrgWs, A::AbstractMatrix{$elty}; k::Integer = size(A, 2))
             require_one_based_indexing(A, ws.τ)
             chkstride1(A, ws.τ)
-            m = size(A, 1)
-            n = min(m, size(A, 2))
-            if k > n
-                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
+            m, n = size(A)
+            minmn = min(m, n)
+            if minmn > 0
+                if k > minmn
+                    throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $minmn"))
+                end
+                info  = Ref{BlasInt}()
+                ccall((@blasfunc($orgqr), liblapack), Cvoid,
+                      (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                      m, n, k, A,
+                      max(1,stride(A,2)), ws.τ, ws.work, -1,
+                      info)
+                chklapackerror(info[])
+                resize!(orgws.work, BlasInt(real(orgws.work[1])))
             end
-            info  = Ref{BlasInt}()
-            ccall((@blasfunc($orgqr), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-                  m, n, k, A,
-                  max(1,stride(A,2)), ws.τ, ws.work, -1,
-                  info)
-            chklapackerror(info[])
-            resize!(orgws.work, BlasInt(real(orgws.work[1])))
             return orgws
         end
 
@@ -499,7 +504,8 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
             chkside(side)
             chkstride1(A, C)
             m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
-            mA   = size(A, 1)
+            mA, nA   = size(A)
+            minmn = min(mA, nA)
             k    = length(ws.τ)
             if side == 'L' && m != mA
                 throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the first dimension of A, $mA"))
@@ -514,16 +520,18 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
                 throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
             end
             info = Ref{BlasInt}()
-            ccall((@blasfunc($ormqr), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                   Ref{BlasInt}, Clong, Clong),
-                  side, trans, m, n,
-                  k, A, max(1, stride(A, 2)), ws.τ,
-                  C, max(1, stride(C, 2)), ws.work, length(ws.work),
-                  info, 1, 1)
-            chklapackerror(info[])
+            if minmn > 0
+                ccall((@blasfunc($ormqr), liblapack), Cvoid,
+                (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                 Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                 Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                 Ref{BlasInt}, Clong, Clong),
+                side, trans, m, n,
+                k, A, max(1, stride(A, 2)), ws.τ,
+                C, max(1, stride(C, 2)), ws.work, length(ws.work),
+                info, 1, 1)
+                chklapackerror(info[])
+            end
             return C
         end
     end
@@ -543,21 +551,23 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
     @eval function orgqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, A::AbstractMatrix{$elty}, k::Integer = size(A, 2))
         require_one_based_indexing(A, ws.τ)
         chkstride1(A, ws.τ)
-        m = size(A, 1)
-        n = min(m, size(A, 2))
-        if k > n
-            throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
-        end
-        info  = Ref{BlasInt}()
-        ccall((@blasfunc($orgqr), liblapack), Cvoid,
-              (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-               Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-              m, n, k, A,
-              max(1,stride(A,2)), ws.τ, ws.work, length(ws.work),
-              info)
+        m, n = size(A)
+        minmn = min(m, n)
+        if minmn > 0
+            if k > minmn
+                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $minmn"))
+            end
+            info  = Ref{BlasInt}()
+            ccall((@blasfunc($orgqr), liblapack), Cvoid,
+            (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+             Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+            m, n, k, A,
+            max(1,stride(A,2)), ws.τ, ws.work, length(ws.work),
+            info)
             chklapackerror(info[])
-        if n < size(A,2)
-            return A[:, 1:n]
+        end
+        if minmn < size(A,2)
+            return A[:, 1:minmn]
         else
             return A
         end
