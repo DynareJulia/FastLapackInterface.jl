@@ -1,3 +1,7 @@
+2.0.2
+=====
+- permits zero matrix in all QR functions
+
 2.0.1
 =====
 - fix bug in resize!() for real eigenvalues
