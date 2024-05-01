@@ -16,6 +16,13 @@ function schurselect(f::Function, wr_::Ptr, wi_::Ptr)
     return convert(Cint, f(wr, wi) ? 1 : 0)
 end
 
+function make_geesselect(f::Function)
+    function sfunc(wr, wi)::Cint
+        return schurselect(f, wr, wi)
+    end
+    return sfunc
+end
+
 # gges
 const SCHUR_CRITERIUM = 1 + 1e-6
 
@@ -29,6 +36,13 @@ function schurselect(f::Function, αr_::Ptr, αi_::Ptr, β_::Ptr)
     αi = unsafe_load(αi_)
     β  = unsafe_load(β_)
     return convert(Cint, f(αr, αi, β) ? 1 : 0)
+end
+
+function make_ggesselect(f::Function)
+    function sfunc(αr, αi, β)::Cint
+        return schurselect(f, αr, αi, β)
+    end
+    return sfunc
 end
 
 """
@@ -141,7 +155,7 @@ for (gees, elty) in ((:dgees_, :Float64),
             ldvs = max(size(ws.vs, 1), 1)
             lwork = length(ws.work)
             if select !== nothing
-                sfunc(wr, wi) = schurselect(select, wr, wi)
+                sfunc = make_geesselect(select)
                 sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
                                       (Ptr{Cdouble}, Ptr{Cdouble}))
                 ccall((@blasfunc($gees), liblapack), Cvoid,
@@ -330,7 +344,7 @@ for (gges, elty) in ((:dgges_, :Float64),
             ldvsl = size(ws.vsl, 1)
             ldvsr = size(ws.vsr, 1)
             if select !== nothing
-                sfunc(αr, αi, β) = schurselect(select, αr, αi, β)
+                sfunc = make_ggesselect(select)
                 sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
                                       (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
                 ccall((@blasfunc($gges), liblapack), Cvoid,
