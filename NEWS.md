@@ -1,3 +1,7 @@
+2.0.3
+=====
+- removes cfunction closure
+
 2.0.2
 =====
 - permits zero matrix in all QR functions
