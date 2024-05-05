@@ -4,6 +4,24 @@ import LinearAlgebra.LAPACK: gees!, gges!
 # TODO: See if SELECT functions can be optimized.
 
 # SELECT functions
+"""
+   enum SCHURORDER lhpm lhpp rhpm rhpp udim udip udom udop
+# Keywords
+    - `lhpm`: Left-half plane (abs(eigenvalue)^2 < -ϵ)
+    - `lhpp`: Left-half plane (abs(eigenvalue)^2 < ϵ)
+    - `rhpm`: Right-half plane (abs(eigenvalue)^2 >= -ϵ)
+    - `rhpp`: Right-half plane (abs(eigenvalue)^2 >= ϵ)
+    - `udim`: Interior of unit disk (abs(eigenvalue)^2 < 1 - ϵ) 
+    - `udip`: Interior of unit disk (abs(eigenvalue)^2 < 1 + ϵ) 
+    - `udom`: Exterior of unit disk (abs(eigenvalue)^2 >= 1 - ϵ) 
+    - `udop`: Exterior of unit disk (abs(eigenvalue)^2 >= 1 + ϵ) 
+
+# Note
+    - ϵ is used to make the ordering robust to numerical error in computing repeated eigenvalues
+    - ϵ is set by FastLapackInterface.SCHUR_CRITERIUM (default: 1e-6)
+"""
+@enum SCHURORDER lhpm lhpp rhpm rhpp udim udip udom udop
+
 # gees
 # Original default
 gees_default_select() = (wr, wi) -> wr^2 + wi^2 >= 1.0
@@ -25,6 +43,7 @@ end
 
 # gges
 const SCHUR_CRITERIUM = 1 + 1e-6
+const SCHUR_EPSILON = 1e-6
 
 # Original default
 gges_default_select() = (αr, αi, β) -> αr^2 + αi^2 < SCHUR_CRITERIUM * β^2
@@ -36,6 +55,168 @@ function schurselect(f::Function, αr_::Ptr, αi_::Ptr, β_::Ptr)
     αi = unsafe_load(αi_)
     β  = unsafe_load(β_)
     return convert(Cint, f(αr, αi, β) ? 1 : 0)
+end
+
+function lhpmselect(wr_::Ptr, wi_::Ptr)::Cint
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return (wr^2 + wi^2 < -SCHUR_EPSILON)
+end
+    
+function lhppselect(wr_::Ptr, wi_::Ptr)::Cint
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return (wr^2 + wi^2 < SCHUR_EPSILON)
+end
+    
+function rhpmselect(wr_::Ptr, wi_::Ptr)::Cint
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return (wr^2 + wi^2 >= -SCHUR_EPSILON)
+end
+    
+function rhppselect(wr_::Ptr, wi_::Ptr)::Cint
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return (wr^2 + wi^2 >= SCHUR_EPSILON)
+end
+    
+function udimselect(wr_::Ptr, wi_::Ptr)::Cint
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return (wr^2 + wi^2 < (1 - SCHUR_EPSILON))
+end
+    
+function udipselect(wr_::Ptr, wi_::Ptr)::Cint
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return (wr^2 + wi^2 < (1 + SCHUR_EPSILON))
+end
+    
+function udomselect(wr_::Ptr, wi_::Ptr)::Cint
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return (wr^2 + wi^2 >= (1 - SCHUR_EPSILON))
+end
+    
+function udopselect(wr_::Ptr, wi_::Ptr)::Cint
+    wr = unsafe_load(wr_)
+    wi = unsafe_load(wi_)
+    return (wr^2 + wi^2 >= (1 + SCHUR_EPSILON))
+end
+
+function lhpmselect(αr_::Ptr, αi_::Ptr, β_::Ptr)::Cint
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return (αr^2 + αi^2 < -SCHUR_EPSILON*β^2)
+end
+    
+function lhppselect(αr_::Ptr, αi_::Ptr, β_::Ptr)::Cint
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return (αr^2 + αi^2 < SCHUR_EPSILON*β^2)
+end
+    
+function rhpmselect(αr_::Ptr, αi_::Ptr, β_::Ptr)::Cint
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return (αr^2 + αi^2 >= -SCHUR_EPSILON*β^2)
+end
+    
+function rhppselect(αr_::Ptr, αi_::Ptr, β_::Ptr)::Cint
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return (αr^2 + αi^2 >= SCHUR_EPSILON*β^2)
+end
+    
+function udimselect(αr_::Ptr, αi_::Ptr, β_::Ptr)::Cint
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return (αr^2 + αi^2 < (1 - SCHUR_EPSILON)*β^2)
+end
+    
+function udipselect(αr_::Ptr, αi_::Ptr, β_::Ptr)::Cint
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return (αr^2 + αi^2 < (1 + SCHUR_EPSILON)*β^2)
+end
+    
+function udomselect(αr_::Ptr, αi_::Ptr, β_::Ptr)::Cint
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return (αr^2 + αi^2 >= (1 - SCHUR_EPSILON)*β^2)
+end
+    
+function udopselect(αr_::Ptr, αi_::Ptr, β_::Ptr)::Cint
+    αr = unsafe_load(αr_)
+    αi = unsafe_load(αi_)
+    β  = unsafe_load(β_)
+    return (αr^2 + αi^2 >= (1 + SCHUR_EPSILON)*β^2)
+end
+    
+function selectorder2(so::SCHURORDER)
+    if so ==  lhpm
+        return @cfunction(lhpmselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  lhpp
+        return @cfunction(lhppselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  rhpm
+        return @cfunction(rhpmselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  rhpp
+        return @cfunction(rhppselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so == udim
+        return @cfunction(udimselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  udip
+        return @cfunction(udipselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  udom
+        return @cfunction(udomselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  udop
+        return @cfunction(udopselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}))
+        error("Unknown SCHURDORDER keyword: $so")
+    end
+end
+
+function selectorder3(so::SCHURORDER)
+    if so ==  lhpm
+        return @cfunction(lhpmselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  lhpp
+        return @cfunction(lhppselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  rhpm
+        return @cfunction(rhpmselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  rhpp
+        return @cfunction(rhppselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so == udim
+        return @cfunction(udimselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  udip
+        return @cfunction(udipselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  udom
+        return @cfunction(udomselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+    elseif so ==  udop
+        return @cfunction(udopselect, Cint,
+                          (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+        error("Unknown SCHURDORDER keyword: $so")
+    end
 end
 
 function make_ggesselect(f::Function)
@@ -138,7 +319,7 @@ for (gees, elty) in ((:dgees_, :Float64),
 
         function gees!(ws::SchurWs{$elty}, jobvs::AbstractChar,
                        A::AbstractMatrix{$elty};
-                       select::Union{Nothing,Function} = nothing,
+                       select::Union{Nothing,Function,SCHURORDER} = nothing,
                        resize=true)
             require_one_based_indexing(A)
             chkstride1(A)
@@ -154,10 +335,21 @@ for (gees, elty) in ((:dgees_, :Float64),
             info = Ref{BlasInt}()
             ldvs = max(size(ws.vs, 1), 1)
             lwork = length(ws.work)
-            if select !== nothing
+            if select isa Function
                 sfunc = make_geesselect(select)
                 sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
                                       (Ptr{Cdouble}, Ptr{Cdouble}))
+                ccall((@blasfunc($gees), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
+                      jobvs, 'S', sel_func, n,
+                      A, max(1, stride(A, 2)), ws.sdim, ws.wr,
+                      ws.wi, ws.vs, ldvs, ws.work,
+                      lwork, ws.bwork, info)
+            elseif select isa SCHURORDER
+                sel_func = selectorder2(select)
                 ccall((@blasfunc($gees), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid}, Ref{BlasInt},
                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
@@ -323,7 +515,7 @@ for (gges, elty) in ((:dgges_, :Float64),
         function gges!(ws::GeneralizedSchurWs, jobvsl::AbstractChar,
                        jobvsr::AbstractChar,
                        A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty};
-                       select::Union{Nothing,Function} = nothing,
+                       select::Union{Nothing,Function,SCHURORDER} = nothing,
                        resize=true)
             chkstride1(A, B)
             n = checksquare(A)
@@ -343,10 +535,25 @@ for (gges, elty) in ((:dgges_, :Float64),
             info = Ref{BlasInt}()
             ldvsl = size(ws.vsl, 1)
             ldvsr = size(ws.vsr, 1)
-            if select !== nothing
+            if select isa Function
                 sfunc = make_ggesselect(select)
                 sel_func = @cfunction($(Expr(:$, :sfunc)), Cint,
                                       (Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}))
+                ccall((@blasfunc($gges), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
+                       Ref{BlasInt}, Clong, Clong, Clong),
+                      jobvsl, jobvsr, 'S', sel_func,
+                      n, A, max(1, stride(A, 2)), B,
+                      max(1, stride(B, 2)), ws.sdim, ws.αr, ws.αi,
+                      ws.β, ws.vsl, ldvsl, ws.vsr,
+                      ldvsr, ws.work, length(ws.work), ws.bwork,
+                      info, 1, 1, 1)
+            elseif select isa SCHURORDER
+                sel_func = selectorder3(select)
                 ccall((@blasfunc($gges), liblapack), Cvoid,
                       (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
