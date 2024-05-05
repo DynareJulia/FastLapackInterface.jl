@@ -379,7 +379,7 @@ for (gees, elty) in ((:dgees_, :Float64),
                 @inbounds for i in axes(A, 1)
                     ws.eigen_values[i] = complex(ws.wr[i], ws.wi[i])
                 end
-                return A, ws.vs, iszero(ws.wi) ? ws.wr : ws.eigen_values
+                return A, ws.vs, ws.eigen_values
             end
         end
     end
