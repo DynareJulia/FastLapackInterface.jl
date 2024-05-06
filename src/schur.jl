@@ -18,7 +18,7 @@ import LinearAlgebra.LAPACK: gees!, gges!
 
 # Note
     - ϵ is used to make the ordering robust to numerical error in computing repeated eigenvalues
-    - ϵ is set by FastLapackInterface.SCHUR_CRITERIUM (default: 1e-6)
+    - ϵ is set by FastLapackInterface.SCHUR_EPSILON (default: 1e-6)
 """
 @enum SCHURORDER lhpm lhpp rhpm rhpp udim udip udom udop
 
