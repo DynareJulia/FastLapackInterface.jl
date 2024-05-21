@@ -61,22 +61,14 @@ end
         n = 10
         A0, nunstable = make_matrix(n)
         ws = SchurWs(copy(A0))
-        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.lhpm)
-        @test count(abs.(ws.eigen_values) .< -FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.lhpp)
-        @test count(abs.(ws.eigen_values) .< FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.rhpm)
-        @test count(abs.(ws.eigen_values) .>=-FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.rhpp)
-        @test count(abs.(ws.eigen_values) .>= FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.udim)
-        @test count(abs.(ws.eigen_values) .< 1 - FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.udip)
-        @test count(abs.(ws.eigen_values) .< 1 + FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.udom)
-        @test count(abs.(ws.eigen_values) .>= 1 - FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.udop)
-        @test count(abs.(ws.eigen_values) .>= 1 + FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
+        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.lp, criterium = -1e-6)
+        @test count(real(ws.eigen_values) .< -1e-6) == ws.sdim[]
+        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.rp, criterium = -1e-6)
+        @test count(real(ws.eigen_values) .>= -1e-6) == ws.sdim[]
+        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.id, criterium = 1 + 1e-6)
+        @test count(abs.(ws.eigen_values) .< 1 + 1e-6) == ws.sdim[]
+        LAPACK.gees!(ws, 'V', copy(A0), select = FastLapackInterface.ed, criterium = 1 + 1e-6)
+        @test count(abs.(ws.eigen_values) .>= 1 + 1e-6) == ws.sdim[]
     end
 end
 
@@ -127,18 +119,21 @@ end
               0.86268 -0.212549 -0.211994]
         ws = GeneralizedSchurWs(copy(A0))
 
+        CRITERIUM = 1 + 1e-6
+        
         A0, B0, α, β, vsl, vsr = LAPACK.gges!(ws, 'V', 'V', copy(A0),
                                                 copy(B0);
                                                 select = (ar, ai, b) -> ar^2 + ai^2 <
-                                                                        FastLapackInterface.SCHUR_CRITERIUM *
+                                                                        CRITERIUM *
                                                                         b^2)
         A0, B0, α, β, vsl, vsr = LAPACK.gges!(ws, 'V', 'V', copy(A0),
-                                                copy(B0);
-                                                select = FastLapackInterface.udim)
+                                              copy(B0);
+                                              select = FastLapackInterface.id,
+                                              criterium = CRITERIUM)
         @test ws.sdim[] == 1
-        @test (real(α[1])/β[1])^2 < FastLapackInterface.SCHUR_CRITERIUM 
-        @test (real(α[2])/β[2])^2 > FastLapackInterface.SCHUR_CRITERIUM 
-        @test (real(α[3])/β[3])^2 > FastLapackInterface.SCHUR_CRITERIUM 
+        @test (real(α[1])/β[1])^2 < CRITERIUM 
+        @test (real(α[2])/β[2])^2 > CRITERIUM 
+        @test (real(α[3])/β[3])^2 > CRITERIUM
         @test isapprox(sort(abs.(eigen(A0, B0).values)), sort(abs.(ws.eigen_values)))
         show(devnull, "text/plain", ws)
     end
@@ -147,29 +142,23 @@ end
         n = 10
         A0, nunstable = make_matrix(n)
         ws = GeneralizedSchurWs(copy(A0))
+
+        CRITERIUM = -1e-6
         LAPACK.gges!(ws, 'V', 'V', copy(A0), Matrix(1.0*I(n));
-                                            select = FastLapackInterface.lhpm)
-        @test count(abs.(ws.eigen_values) .< -FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
+                     select = FastLapackInterface.lp,
+                     criterium = CRITERIUM)
+        @test count(real(ws.eigen_values) .< CRITERIUM) == ws.sdim[]
         LAPACK.gges!(ws, 'V', 'V', copy(A0), Matrix(1.0*I(n));
-                                            select = FastLapackInterface.lhpp)
-        @test count(abs.(ws.eigen_values) .< FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
+                     select = FastLapackInterface.rp,
+                     criterium = CRITERIUM)
+        CRITERIUM = 1 - 1e-6
         LAPACK.gges!(ws, 'V', 'V', copy(A0), Matrix(1.0*I(n));
-                                            select = FastLapackInterface.rhpm)
-        @test count(abs.(ws.eigen_values) .>=-FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
+                     select = FastLapackInterface.id,
+                     criterium = CRITERIUM)
+        @test count(abs.(ws.eigen_values) .< CRITERIUM) == ws.sdim[]
         LAPACK.gges!(ws, 'V', 'V', copy(A0), Matrix(1.0*I(n));
-                                            select = FastLapackInterface.rhpp)
-        @test count(abs.(ws.eigen_values) .>= FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gges!(ws, 'V', 'V', copy(A0), Matrix(1.0*I(n));
-                                            select = FastLapackInterface.udim)
-        @test count(abs.(ws.eigen_values) .< 1 - FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gges!(ws, 'V', 'V', copy(A0), Matrix(1.0*I(n));
-                                            select = FastLapackInterface.udip)
-        @test count(abs.(ws.eigen_values) .< 1 + FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gges!(ws, 'V', 'V', copy(A0), Matrix(1.0*I(n));
-                                            select = FastLapackInterface.udom)
-        @test count(abs.(ws.eigen_values) .>= 1 - FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
-        LAPACK.gges!(ws, 'V', 'V', copy(A0), Matrix(1.0*I(n));
-                                            select = FastLapackInterface.udop)
-        @test count(abs.(ws.eigen_values) .>= 1 + FastLapackInterface.SCHUR_EPSILON) == ws.sdim[]
+                     select = FastLapackInterface.ed,
+                     criterium = CRITERIUM)
+        @test count(abs.(ws.eigen_values) .>= CRITERIUM) == ws.sdim[]
     end
 end
