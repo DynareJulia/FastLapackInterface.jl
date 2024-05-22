@@ -1,3 +1,7 @@
+2.0.4
+=====
+- add  preset selection functions for Schur decomposition. This avoids the cfunction closure that doesn´t work on all plateforms
+
 2.0.3
 =====
 - removes cfunction closure
