@@ -303,14 +303,14 @@ Computes the eigenvalues (`jobvs = N`) or the eigenvalues and Schur
 vectors (`jobvs = V`) of matrix `A`, using the preallocated [`SchurWs`](@ref) worspace `ws`. If `ws` is not of the appropriate size and `resize==true` it will be resized for `A`. 
 `A` is overwritten by its Schur form, and `ws.eigen_values` is overwritten with the eigenvalues.
 
-It is possible to select the eigenvalues appearing in the top left corner of the Schur form.
-Either by setting the `select` option to one of 
+It is possible to select the eigenvalues appearing in the top left corner of the Schur form:
+- by setting the `select` option to one of 
     - `lp`: Left plane (real(eigenvalue) < criterium)
     - `rp`: Right plane (real(eigenvalue) >= criterium)
     - `id`: Interior of disk (abs(eigenvalue)^2 < criterium) 
     - `ed`: Exterior of disk (abs(eigenvalue)^2 >= criterium)
- and setting `criterium`.
-Or by setting `select` equal to a function used to sort the eigenvalues during the decomponsition.
+  and setting `criterium`.
+- by setting `select` equal to a function used to sort the eigenvalues during the decomponsition. In this case, the `criterium` keyword isn't used.
 The function should have the signature `f(wr::T, wi::T) -> Bool`, where
 `wr` and `wi` are the real and imaginary parts of the eigenvalue, and `T == eltype(A)`. 
 
@@ -520,14 +520,14 @@ vectors (`jobsvl = V`), or right Schur vectors (`jobvsr = V`) of `A` and
 `B`, using preallocated [`GeneralizedSchurWs`](@ref) workspace `ws`.
 If `ws` is not of the right size, and `resize==true` it will be resized appropriately.
 
-It is possible to select the eigenvalues appearing in the top left corner of the Schur form.
-Either by setting the `select` option to one of 
+It is possible to select the eigenvalues appearing in the top left corner of the Schur form:
+- by setting the `select` option to one of 
     - `lp`: Left plane (real(eigenvalue) < criterium)
     - `rp`: Right plane (real(eigenvalue) >= criterium)
     - `id`: Interior of disk (abs(eigenvalue)^2 < criterium) 
     - `ed`: Exterior of disk (abs(eigenvalue)^2 >= criterium)
- and setting `criterium`.
-Or by setting `select` equal to a function used to sort the eigenvalues during the decomposition.
+  and setting `criterium`.
+- by setting `select` equal to a function used to sort the eigenvalues during the decomposition. In this case, the `criterium` keyword isn't used.
 The function should have the signature `f(αr::T, αi::T, β::T) -> Bool` where `T == eltype(A)`. 
 An eigenvalue `(αr[j]+αi[j])/β[j]` is selected if `f(αr[j],αi[j],β[j])` is true, 
 i.e. if either one of a complex conjugate pair of eigenvalues is selected,

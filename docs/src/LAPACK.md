@@ -32,6 +32,7 @@ LinearAlgebra.LAPACK.orgqr!(::QRWs, ::AbstractMatrix, ::Integer)
 ```@docs
 LinearAlgebra.LAPACK.gees!(::SchurWs, ::AbstractChar, ::AbstractMatrix)
 LinearAlgebra.LAPACK.gges!(::GeneralizedSchurWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractMatrix)
+FastLapackInterface.SCHURORDER
 ```
 
 ## LU
