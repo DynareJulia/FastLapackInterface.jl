@@ -39,15 +39,15 @@ function Base.resize!(ws::LUWs, A::AbstractMatrix)
     return ws
 end
 
-for (getrf, getrs, elty) in ((:dgetrf_,:dgetrs_, :Float64),
-                             (:sgetrf_,:sgetrs_, :Float32),
-                             (:zgetrf_,:zgetrs_, :ComplexF64),
-                             (:cgetrf_,:cgetrs_, :ComplexF32))
+for (getrf, getrs, elty) in ((:dgetrf_, :dgetrs_, :Float64),
+    (:sgetrf_, :sgetrs_, :Float32),
+    (:zgetrf_, :zgetrs_, :ComplexF64),
+    (:cgetrf_, :cgetrs_, :ComplexF32))
     @eval begin
-        function getrf!(ws::LUWs, A::AbstractMatrix{$elty}; resize=true)
+        function getrf!(ws::LUWs, A::AbstractMatrix{$elty}; resize = true)
             nws = length(ws.ipiv)
             n = min(size(A)...)
-            if n != nws 
+            if n != nws
                 if resize
                     resize!(ws, A)
                 else
@@ -57,31 +57,33 @@ for (getrf, getrs, elty) in ((:dgetrf_,:dgetrs_, :Float64),
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
-            lda  = max(1, stride(A, 2))
+            lda = max(1, stride(A, 2))
             info = Ref{BlasInt}()
             ccall((@blasfunc($getrf), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
-                  m, n, A, lda, ws.ipiv, info)
+                (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                    Ref{BlasInt}, Ptr{BlasInt}, Ptr{BlasInt}),
+                m, n, A, lda, ws.ipiv, info)
             chkargsok(info[])
             return A, ws.ipiv, info[] #Error code is stored in LU factorization type
         end
-        
-        function getrs!(ws::LUWs, trans::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractVecOrMat{$elty})
+
+        function getrs!(ws::LUWs, trans::AbstractChar,
+                A::AbstractMatrix{$elty}, B::AbstractVecOrMat{$elty})
             require_one_based_indexing(A, B)
             chktrans(trans)
             chkstride1(A, B)
             n = checksquare(A)
-            @assert n == length(ws.ipiv) WorkspaceSizeError(length(ws.ipiv), n)
+            @assert n==length(ws.ipiv) WorkspaceSizeError(length(ws.ipiv), n)
             if n != size(B, 1)
                 throw(DimensionMismatch("B has leading dimension $(size(B,1)), but needs $n"))
             end
             nrhs = size(B, 2)
             info = Ref{BlasInt}()
             ccall((@blasfunc($getrs), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                   Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
-                  trans, n, size(B,2), A, max(1,stride(A,2)), ws.ipiv, B, max(1,stride(B,2)), info, 1)
+                (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                    Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
+                trans, n, size(B, 2), A, max(1, stride(A, 2)),
+                ws.ipiv, B, max(1, stride(B, 2)), info, 1)
             chklapackerror(info[])
             B
         end

@@ -1,4 +1,4 @@
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::T) where {T<:Workspace}
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, ws::T) where {T <: Workspace}
     summary(io, ws)
     println(io)
     for f in fieldnames(T)
@@ -41,17 +41,26 @@ Workspace(::typeof(LAPACK.getrf!), A::AbstractMatrix) = LUWs(A)
 Workspace(::typeof(LAPACK.geqrf!), A::AbstractMatrix) = QRWs(A)
 Workspace(::typeof(LAPACK.geqrt!), A::AbstractMatrix) = QRWYWs(A)
 Workspace(::typeof(LAPACK.geqp3!), A::AbstractMatrix) = QRPivotedWs(A)
-Workspace(::typeof(LAPACK.ormqr!), ws::Union{QRWs, QRPivotedWs}, side::AbstractChar, trans::AbstractChar,
-          A::AbstractMatrix, C::AbstractVecOrMat) = QROrmWs(ws, side, trans, A, C)
-Workspace(::typeof(LAPACK.orgqr!), ws::Union{QRWs, QRPivotedWs}, A::AbstractMatrix; k::Integer = size(A, 2)) =
+function Workspace(::typeof(LAPACK.ormqr!), ws::Union{QRWs, QRPivotedWs},
+        side::AbstractChar, trans::AbstractChar,
+        A::AbstractMatrix, C::AbstractVecOrMat)
+    QROrmWs(ws, side, trans, A, C)
+end
+function Workspace(::typeof(LAPACK.orgqr!), ws::Union{QRWs, QRPivotedWs},
+        A::AbstractMatrix; k::Integer = size(A, 2))
     QROrgWs(ws, A, k)
+end
 
 Workspace(::typeof(LAPACK.gees!), A::AbstractMatrix) = SchurWs(A)
 Workspace(::typeof(LAPACK.gges!), A::AbstractMatrix) = GeneralizedSchurWs(A)
 
 Workspace(::typeof(LAPACK.geevx!), A::AbstractMatrix; kwargs...) = EigenWs(A; kwargs...)
-Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...) = HermitianEigenWs(A; kwargs...)
-Workspace(::typeof(LAPACK.ggev!), A::AbstractMatrix; kwargs...) = GeneralizedEigenWs(A; kwargs...)
+function Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...)
+    HermitianEigenWs(A; kwargs...)
+end
+function Workspace(::typeof(LAPACK.ggev!), A::AbstractMatrix; kwargs...)
+    GeneralizedEigenWs(A; kwargs...)
+end
 
 Workspace(::typeof(LAPACK.sytrf!), A::AbstractMatrix) = BunchKaufmanWs(A)
 Workspace(::typeof(LAPACK.sytrf_rook!), A::AbstractMatrix) = BunchKaufmanWs(A)
@@ -64,7 +73,10 @@ Workspace(::typeof(LAPACK.gglse!), A::AbstractMatrix) = LSEWs(A)
 
 Workspace(::typeof(LAPACK.gesdd!), A::AbstractMatrix; kwargs...) = SVDsddWs(A; kwargs...)
 Workspace(::typeof(LAPACK.gesvd!), A::AbstractMatrix; kwargs...) = SVDsvdWs(A; kwargs...)
-Workspace(::typeof(LAPACK.ggsvd3!), A::AbstractMatrix, B::AbstractMatrix; kwargs...) = GeneralizedSVDWs(A, B; kwargs...)
+function Workspace(
+        ::typeof(LAPACK.ggsvd3!), A::AbstractMatrix, B::AbstractMatrix; kwargs...)
+    GeneralizedSVDWs(A, B; kwargs...)
+end
 
 """
     decompose!(ws, args...)
@@ -73,48 +85,62 @@ Will use the previously created [`Workspace`](@ref WorkSpaces) `ws` to dispatch 
 """
 decompose!(ws::LUWs, args...; kwargs...) = LAPACK.getrf!(ws, args...; kwargs...)
 
-decompose!(ws::QRWs, args...; kwargs...)   = LAPACK.geqrf!(ws, args...; kwargs...)
+decompose!(ws::QRWs, args...; kwargs...) = LAPACK.geqrf!(ws, args...; kwargs...)
 decompose!(ws::QRWYWs, args...; kwargs...) = LAPACK.geqrt!(ws, args...; kwargs...)
-decompose!(ws::QRPivotedWs, args...; kwargs...)  = LAPACK.geqp3!(ws, args...; kwargs...)
-decompose!(ws::QROrmWs, args...; kwargs...)  = LAPACK.ormqr!(ws, args...; kwargs...)
+decompose!(ws::QRPivotedWs, args...; kwargs...) = LAPACK.geqp3!(ws, args...; kwargs...)
+decompose!(ws::QROrmWs, args...; kwargs...) = LAPACK.ormqr!(ws, args...; kwargs...)
 
-decompose!(ws::SchurWs, args...; kwargs...)            = LAPACK.gees!(ws, args...; kwargs...)
-decompose!(ws::GeneralizedSchurWs, args...; kwargs...) = LAPACK.gges!(ws, args...; kwargs...)
+decompose!(ws::SchurWs, args...; kwargs...) = LAPACK.gees!(ws, args...; kwargs...)
+function decompose!(ws::GeneralizedSchurWs, args...; kwargs...)
+    LAPACK.gges!(ws, args...; kwargs...)
+end
 
 decompose!(ws::EigenWs, args...; kwargs...) = LAPACK.geevx!(ws, args...; kwargs...)
 decompose!(ws::HermitianEigenWs, args...; kwargs...) = LAPACK.syevr!(ws, args...; kwargs...)
-decompose!(ws::GeneralizedEigenWs, args...; kwargs...) = LAPACK.ggev!(ws, args...; kwargs...)
+function decompose!(ws::GeneralizedEigenWs, args...; kwargs...)
+    LAPACK.ggev!(ws, args...; kwargs...)
+end
 
-function decompose!(ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; rook=false, kwargs...)
+function decompose!(
+        ws::BunchKaufmanWs, uplo::AbstractChar, A::AbstractMatrix; rook = false, kwargs...)
     if issymmetric(A)
-        return rook ? LAPACK.sytrf_rook!(ws, uplo, A; kwargs...) : LAPACK.sytrf!(ws, uplo, A; kwargs...)
+        return rook ? LAPACK.sytrf_rook!(ws, uplo, A; kwargs...) :
+               LAPACK.sytrf!(ws, uplo, A; kwargs...)
     else
-        return rook ? LAPACK.hetrf_rook!(ws, uplo, A; kwargs...) : LAPACK.hetrf!(ws, uplo, A; kwargs...)
+        return rook ? LAPACK.hetrf_rook!(ws, uplo, A; kwargs...) :
+               LAPACK.hetrf!(ws, uplo, A; kwargs...)
     end
 end
 
-function decompose!(ws::BunchKaufmanWs, A::Hermitian; rook=false, kwargs...)
-    return rook ? LAPACK.hetrf_rook!(ws, A.uplo, A.data; kwargs...) : LAPACK.hetrf!(ws, A.uplo, A.data; kwargs...)
+function decompose!(ws::BunchKaufmanWs, A::Hermitian; rook = false, kwargs...)
+    return rook ? LAPACK.hetrf_rook!(ws, A.uplo, A.data; kwargs...) :
+           LAPACK.hetrf!(ws, A.uplo, A.data; kwargs...)
 end
-function decompose!(ws::BunchKaufmanWs, A::Symmetric; rook=false, kwargs...)
-    return rook ? LAPACK.sytrf_rook!(ws, A.uplo, A.data; kwargs...) : LAPACK.sytrf!(ws, A.uplo, A.data; kwargs...)
+function decompose!(ws::BunchKaufmanWs, A::Symmetric; rook = false, kwargs...)
+    return rook ? LAPACK.sytrf_rook!(ws, A.uplo, A.data; kwargs...) :
+           LAPACK.sytrf!(ws, A.uplo, A.data; kwargs...)
 end
 
-function decompose!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix, tol=1e-16; kwargs...)
+function decompose!(ws::CholeskyPivotedWs, uplo::AbstractChar,
+        A::AbstractMatrix, tol = 1e-16; kwargs...)
     return LAPACK.pstrf!(ws, uplo, A, tol; kwargs...)
 end
 
-function decompose!(ws::CholeskyPivotedWs, A::Union{Hermitian, Symmetric}, tol=1e-16; kwargs...)
+function decompose!(
+        ws::CholeskyPivotedWs, A::Union{Hermitian, Symmetric}, tol = 1e-16; kwargs...)
     return LAPACK.pstrf!(ws, A.uplo, A.data, tol; kwargs...)
 end
 
 decompose!(ws::LSEWs, args...; kwargs...) = LAPACK.gglse!(ws, args...; kwargs...)
 
 decompose!(sw::SVDsddWs, A::AbstractMatrix; job = 'A') = LAPACK.gesdd!(ws, job, A)
-decompose!(sw::SVDsvdWs, A::AbstractMatrix; jobu = 'A', jobvt = 'A') =
+function decompose!(sw::SVDsvdWs, A::AbstractMatrix; jobu = 'A', jobvt = 'A')
     LAPACK.gesdd!(ws, jobu, jobvt, A)
-decompose!(sw::GeneralizedSVDWs, A::AbstractMatrix, B::AbstractMatrix; jobu = 'U', jobv = 'V', jobq = 'Q') =
-    LAPACK.ggsvd3!(ws, jobu, jobv, jobq,  A, B)
+end
+function decompose!(sw::GeneralizedSVDWs, A::AbstractMatrix,
+        B::AbstractMatrix; jobu = 'U', jobv = 'V', jobq = 'Q')
+    LAPACK.ggsvd3!(ws, jobu, jobv, jobq, A, B)
+end
 
 """
     factorize!(ws, args...)

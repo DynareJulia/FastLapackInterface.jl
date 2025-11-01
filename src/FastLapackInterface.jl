@@ -42,4 +42,3 @@ export Workspace
 export decompose!, factorize!
 
 end #module
-

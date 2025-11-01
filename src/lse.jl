@@ -47,27 +47,30 @@ struct LSEWs{T} <: Workspace
 end
 
 LSEWs(A::AbstractMatrix) = LSEWs(A, A)
-LSEWs(A::AbstractMatrix, B::AbstractMatrix) = resize!(LSEWs(Vector{eltype(A)}(undef, 1), Vector{eltype(A)}(undef, size(A,2))), A, B)
+function LSEWs(A::AbstractMatrix, B::AbstractMatrix)
+    resize!(LSEWs(Vector{eltype(A)}(undef, 1), Vector{eltype(A)}(undef, size(A, 2))), A, B)
+end
 for (gglse, elty) in ((:dgglse_, :Float64),
-                      (:sgglse_, :Float32),
-                      (:zgglse_, :ComplexF64),
-                      (:cgglse_, :ComplexF32))
+    (:sgglse_, :Float32),
+    (:zgglse_, :ComplexF64),
+    (:cgglse_, :ComplexF32))
     @eval begin
-        function Base.resize!(ws::LSEWs, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}; work=true, blocksize=32)
+        function Base.resize!(ws::LSEWs, A::AbstractMatrix{$elty},
+                B::AbstractMatrix{$elty}; work = true, blocksize = 32)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
-            p = size(B,1)
+            p = size(B, 1)
             resize!(ws.X, n)
             if work
-                resize!(ws.work, p + min(m, n) + max(m,n)*blocksize)
+                resize!(ws.work, p + min(m, n) + max(m, n) * blocksize)
             end
             return ws
-            
         end
 
-        function gglse!(ws::LSEWs{$elty}, A::AbstractMatrix{$elty}, c::AbstractVector{$elty},
-                        B::AbstractMatrix{$elty}, d::AbstractVector{$elty}; resize=true, blocksize=32)
+        function gglse!(
+                ws::LSEWs{$elty}, A::AbstractMatrix{$elty}, c::AbstractVector{$elty},
+                B::AbstractMatrix{$elty}, d::AbstractVector{$elty}; resize = true, blocksize = 32)
             require_one_based_indexing(A, c, B, d)
             chkstride1(A, c, B, d)
             m, n = size(A)
@@ -81,14 +84,14 @@ for (gglse, elty) in ((:dgglse_, :Float64),
             if length(d) != p
                 throw(DimensionMismatch("d has length $(length(d)), needs $p"))
             end
-            if n > m + p 
+            if n > m + p
                 throw(DimensionMismatch("Rows of A + rows of B needs to be larger than columns of A and B."))
             end
             nws = length(ws.X)
             if nws != n
                 if resize
                     resize!(ws.X, n)
-                    worksize = p + min(m, n) + max(m,n)*blocksize
+                    worksize = p + min(m, n) + max(m, n) * blocksize
                     if length(ws.work) < worksize
                         resize!(ws.work, worksize)
                     end
@@ -96,17 +99,17 @@ for (gglse, elty) in ((:dgglse_, :Float64),
                     throw(WorkspaceSizeError(nws, n))
                 end
             end
-                
-            info  = Ref{BlasInt}()
+
+            info = Ref{BlasInt}()
             ccall((@blasfunc($gglse), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                   Ptr{BlasInt}),
-                  m, n, p, A, max(1,stride(A,2)), B, max(1,stride(B,2)), c, d, ws.X,
-                  ws.work, length(ws.work), info)
-                chklapackerror(info[])
-            ws.X, dot(view(c, n - p + 1:m), view(c, n - p + 1:m))
+                (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                    Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                    Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                    Ptr{BlasInt}),
+                m, n, p, A, max(1, stride(A, 2)), B, max(1, stride(B, 2)), c, d, ws.X,
+                ws.work, length(ws.work), info)
+            chklapackerror(info[])
+            ws.X, dot(view(c, (n - p + 1):m), view(c, (n - p + 1):m))
         end
     end
 end
@@ -119,4 +122,5 @@ constraint `B * x = d`. Uses the formula `||c - A*x||^2 = 0` to solve.
 Uses preallocated [`LSEWs`](@ref) to store `X` and work buffers. 
 Returns `ws.X` and the residual sum-of-squares.
 """
-gglse!(ws::LSEWs, A::AbstractMatrix, c::AbstractVector, B::AbstractMatrix, d::AbstractVector)
+gglse!(
+    ws::LSEWs, A::AbstractMatrix, c::AbstractVector, B::AbstractMatrix, d::AbstractVector)

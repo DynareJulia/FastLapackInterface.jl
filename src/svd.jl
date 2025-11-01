@@ -63,7 +63,7 @@ Vt factor:
 
 ```
 """
-mutable struct SVDsddWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: Workspace
+mutable struct SVDsddWs{T, MT <: AbstractMatrix{T}, RT <: AbstractFloat} <: Workspace
     U::MT
     VT::MT
     work::Vector{T}
@@ -72,60 +72,63 @@ mutable struct SVDsddWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: Workspac
     iwork::Vector{BlasInt}
 end
 
-
 # (GE) general matrices ingular value decomposition
-for (gesdd, elty, relty) in
-    ((:dgesdd_,:Float64,:Float64),
-     (:sgesdd_,:Float32,:Float32),
-     (:zgesdd_,:ComplexF64,:Float64),
-     (:cgesdd_,:ComplexF32,:Float32))
+for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
+    (:sgesdd_, :Float32, :Float32),
+    (:zgesdd_, :ComplexF64, :Float64),
+    (:cgesdd_, :ComplexF32, :Float32))
     @eval begin
-        function Base.resize!(ws::SVDsddWs, A::AbstractMatrix{$elty}; job::AbstractChar = 'A')
+        function Base.resize!(
+                ws::SVDsddWs, A::AbstractMatrix{$elty}; job::AbstractChar = 'A')
             require_one_based_indexing(A)
             chkstride1(A)
             if VERSION >= v"1.11"
                 @chkvalidparam 2 job ('A', 'S', 'O', 'N')
             end
-            m, n   = size(A)
-            minmn  = min(m, n)
+            m, n = size(A)
+            minmn = min(m, n)
             if job == 'A'
-                ws.U  = similar(A, $elty, (m, m))
+                ws.U = similar(A, $elty, (m, m))
                 ws.VT = similar(A, $elty, (n, n))
             elseif job == 'S'
-                ws.U  = similar(A, $elty, (m, minmn))
+                ws.U = similar(A, $elty, (m, minmn))
                 ws.VT = similar(A, $elty, (minmn, n))
             elseif job == 'O'
-                ws.U  = similar(A, $elty, (m, m >= n ? 0 : m))
+                ws.U = similar(A, $elty, (m, m >= n ? 0 : m))
                 ws.VT = similar(A, $elty, (n, m >= n ? n : 0))
             else
-                ws.U  = similar(A, $elty, (m, 0))
+                ws.U = similar(A, $elty, (m, 0))
                 ws.VT = similar(A, $elty, (n, 0))
             end
-            ws.work   = Vector{$elty}(undef, 1)
-            lwork  = BlasInt(-1)
-            ws.S      = similar(A, $relty, minmn)
-            cmplx  = eltype(A)<:Complex
+            ws.work = Vector{$elty}(undef, 1)
+            lwork = BlasInt(-1)
+            ws.S = similar(A, $relty, minmn)
+            cmplx = eltype(A) <: Complex
             if cmplx
-                ws.rwork = Vector{$relty}(undef, job == 'N' ? 7*minmn : minmn*max(5*minmn+7, 2*max(m,n)+2*minmn+1))
+                ws.rwork = Vector{$relty}(undef,
+                    job == 'N' ? 7 * minmn :
+                    minmn * max(5 * minmn + 7, 2 * max(m, n) + 2 * minmn + 1))
             end
-            ws.iwork  = Vector{BlasInt}(undef, 8*minmn)
-            info   = Ref{BlasInt}()
+            ws.iwork = Vector{BlasInt}(undef, 8 * minmn)
+            info = Ref{BlasInt}()
             if cmplx
                 ccall((@blasfunc($gesdd), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$relty}, Ptr{BlasInt}, Ref{BlasInt}, Clong),
-                      job, m, n, A, max(1,stride(A,2)), ws.S, ws.U, max(1,stride(ws.U,2)), ws.VT, max(1,stride(ws.VT,2)),
-                      ws.work, lwork, ws.rwork, ws.iwork, info, 1)
+                    (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$relty}, Ptr{BlasInt}, Ref{BlasInt}, Clong),
+                    job, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
+                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
+                    ws.work, lwork, ws.rwork, ws.iwork, info, 1)
             else
                 ccall((@blasfunc($gesdd), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{BlasInt}, Ref{BlasInt}, Clong),
-                      job, m, n, A, max(1,stride(A,2)), ws.S, ws.U, max(1,stride(ws.U,2)), ws.VT, max(1,stride(ws.VT,2)),
-                      ws.work, lwork, ws.iwork, info, 1)
+                    (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{BlasInt}, Ref{BlasInt}, Clong),
+                    job, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
+                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
+                    ws.work, lwork, ws.iwork, info, 1)
             end
             chklapackerror(info[])
             # Work around issue with truncated Float32 representation of lwork in
@@ -138,9 +141,12 @@ for (gesdd, elty, relty) in
             return ws
         end
 
-        SVDsddWs(A::AbstractMatrix{$elty}; kwargs...) =
-            Base.resize!(SVDsddWs(similar(A, 0, 0), similar(A, 0, 0), Vector{$elty}(undef, 1),
-                                  Vector{$relty}(undef, 0), Vector{$relty}(undef, 0), Vector{BlasInt}(undef, 0)), A; kwargs...)
+        SVDsddWs(A::AbstractMatrix{$elty}; kwargs...) = Base.resize!(
+            SVDsddWs(similar(A, 0, 0), similar(A, 0, 0), Vector{$elty}(undef, 1),
+                Vector{$relty}(undef, 0), Vector{$relty}(undef, 0), Vector{BlasInt}(
+                    undef, 0)),
+            A;
+            kwargs...)
         #    SUBROUTINE DGESDD( JOBZ, M, N, A, LDA, S, U, LDU, VT, LDVT, WORK,
         #                   LWORK, IWORK, INFO )
         #*     .. Scalar Arguments ..
@@ -157,26 +163,28 @@ for (gesdd, elty, relty) in
             if VERSION >= v"1.11"
                 @chkvalidparam 1 job ('A', 'S', 'O', 'N')
             end
-            m, n   = size(A)
-            minmn  = min(m, n)
-            cmplx  = eltype(A)<:Complex
-            info   = Ref{BlasInt}()
+            m, n = size(A)
+            minmn = min(m, n)
+            cmplx = eltype(A) <: Complex
+            info = Ref{BlasInt}()
             if cmplx
                 ccall((@blasfunc($gesdd), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$relty}, Ptr{BlasInt}, Ref{BlasInt}, Clong),
-                      job, m, n, A, max(1,stride(A,2)), ws.S, ws.U, max(1,stride(ws.U,2)), ws.VT, max(1,stride(ws.VT,2)),
-                      ws.work, length(ws.work), ws.rwork, ws.iwork, info, 1)
+                    (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$relty}, Ptr{BlasInt}, Ref{BlasInt}, Clong),
+                    job, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
+                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
+                    ws.work, length(ws.work), ws.rwork, ws.iwork, info, 1)
             else
                 ccall((@blasfunc($gesdd), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{BlasInt}, Ref{BlasInt}, Clong),
-                      job, m, n, A, max(1,stride(A,2)), ws.S, ws.U, max(1,stride(ws.U,2)), ws.VT, max(1,stride(ws.VT,2)),
-                      ws.work, length(ws.work), ws.iwork, info, 1)
+                    (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{BlasInt}, Ref{BlasInt}, Clong),
+                    job, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
+                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
+                    ws.work, length(ws.work), ws.iwork, info, 1)
             end
             chklapackerror(info[])
             if job == 'O'
@@ -244,7 +252,7 @@ Vt factor:
   0.522224  -0.852808
 ```
 """
-mutable struct SVDsvdWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: Workspace
+mutable struct SVDsvdWs{T, MT <: AbstractMatrix{T}, RT <: AbstractFloat} <: Workspace
     U::MT
     VT::MT
     work::Vector{T}
@@ -252,49 +260,53 @@ mutable struct SVDsvdWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: Workspac
     rwork::Vector{RT} # Can be rwork if T <: Complex or WI if T <: Float64
 end
 
-
 # (GE) general matrices ingular value decomposition
-for (gesvd, elty, relty) in
-    ((:dgesvd_,:Float64,:Float64),
-     (:sgesvd_,:Float32,:Float32),
-     (:zgesvd_,:ComplexF64,:Float64),
-     (:cgesvd_,:ComplexF32,:Float32))
+for (gesvd, elty, relty) in ((:dgesvd_, :Float64, :Float64),
+    (:sgesvd_, :Float32, :Float32),
+    (:zgesvd_, :ComplexF64, :Float64),
+    (:cgesvd_, :ComplexF32, :Float32))
     @eval begin
-        function Base.resize!(ws::SVDsvdWs, A::AbstractMatrix{$elty}; jobu::AbstractChar = 'A', jobvt::AbstractChar = 'A' )
+        function Base.resize!(ws::SVDsvdWs, A::AbstractMatrix{$elty};
+                jobu::AbstractChar = 'A', jobvt::AbstractChar = 'A')
             require_one_based_indexing(A)
             chkstride1(A)
             if VERSION >= v"1.11"
                 @chkvalidparam 2 jobu ('A', 'S', 'O', 'N')
                 @chkvalidparam 3 jobvt ('A', 'S', 'O', 'N')
             end
-            m, n   = size(A)
-            minmn  = min(m, n)
-            (jobu == jobvt == 'O') && throw(ArgumentError("jobu and jobvt cannot both be O"))
-            ws.S      = similar(A, $relty, minmn)
-            ws.U      = similar(A, $elty, jobu  == 'A' ? (m, m) : (jobu  == 'S' ? (m, minmn) : (m, 0)))
-            ws.VT     = similar(A, $elty, jobvt == 'A' ? (n, n) : (jobvt == 'S' ? (minmn, n) : (n, 0)))
-            cmplx  = eltype(A) <: Complex
+            m, n = size(A)
+            minmn = min(m, n)
+            (jobu == jobvt == 'O') &&
+                throw(ArgumentError("jobu and jobvt cannot both be O"))
+            ws.S = similar(A, $relty, minmn)
+            ws.U = similar(
+                A, $elty, jobu == 'A' ? (m, m) : (jobu == 'S' ? (m, minmn) : (m, 0)))
+            ws.VT = similar(
+                A, $elty, jobvt == 'A' ? (n, n) : (jobvt == 'S' ? (minmn, n) : (n, 0)))
+            cmplx = eltype(A) <: Complex
             if cmplx
                 ws.rwork = Vector{$relty}(undef, 5minmn)
             end
-            lwork  = BlasInt(-1)
-            info   = Ref{BlasInt}()
+            lwork = BlasInt(-1)
+            info = Ref{BlasInt}()
             if cmplx
                 ccall((@blasfunc($gesvd), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt}, Clong, Clong),
-                      jobu, jobvt, m, n, A, max(1,stride(A,2)), ws.S, ws.U, max(1,stride(ws.U,2)), ws.VT, max(1,stride(ws.VT,2)),
-                      ws.work, lwork, ws.rwork, info, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt}, Clong, Clong),
+                    jobu, jobvt, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
+                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
+                    ws.work, lwork, ws.rwork, info, 1, 1)
             else
                 ccall((@blasfunc($gesvd), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ref{BlasInt}, Clong, Clong),
-                      jobu, jobvt, m, n, A, max(1,stride(A,2)), ws.S, ws.U, max(1,stride(ws.U,2)), ws.VT, max(1,stride(ws.VT,2)),
-                      ws.work, lwork, info, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ref{BlasInt}, Clong, Clong),
+                    jobu, jobvt, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
+                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
+                    ws.work, lwork, info, 1, 1)
             end
             chklapackerror(info[])
             # Work around issue with truncated Float32 representation of lwork in
@@ -306,10 +318,12 @@ for (gesvd, elty, relty) in
             Base.resize!(ws.work, lwork)
             return ws
         end
-        SVDsvdWs(A::AbstractMatrix{$elty}; kwargs...) =
-            Base.resize!(SVDsvdWs(similar(A, 0, 0), similar(A, 0, 0), Vector{$elty}(undef, 1),
-                                  Vector{$relty}(undef, 0), Vector{$relty}(undef, 0)), A; kwargs...)
-        
+        SVDsvdWs(A::AbstractMatrix{$elty}; kwargs...) = Base.resize!(
+            SVDsvdWs(similar(A, 0, 0), similar(A, 0, 0), Vector{$elty}(undef, 1),
+                Vector{$relty}(undef, 0), Vector{$relty}(undef, 0)),
+            A;
+            kwargs...)
+
         # SUBROUTINE DGESVD( JOBU, JOBVT, M, N, A, LDA, S, U, LDU, VT, LDVT, WORK, LWORK, INFO )
         # *     .. Scalar Arguments ..
         #       CHARACTER          JOBU, JOBVT
@@ -317,41 +331,45 @@ for (gesvd, elty, relty) in
         # *     .. Array Arguments ..
         #       DOUBLE PRECISION   A( LDA, * ), S( * ), U( LDU, * ),
         #                          VT( LDVT, * ), WORK( * )
-        function gesvd!(ws::SVDsvdWs, jobu::AbstractChar, jobvt::AbstractChar, A::AbstractMatrix{$elty})
+        function gesvd!(ws::SVDsvdWs, jobu::AbstractChar,
+                jobvt::AbstractChar, A::AbstractMatrix{$elty})
             require_one_based_indexing(A)
             chkstride1(A)
             if VERSION >= v"1.11"
                 @chkvalidparam 2 jobu ('A', 'S', 'O', 'N')
                 @chkvalidparam 3 jobvt ('A', 'S', 'O', 'N')
             end
-            (jobu == jobvt == 'O') && throw(ArgumentError("jobu and jobvt cannot both be O"))
-            m, n   = size(A)
-            minmn  = min(m, n)
-            cmplx  = eltype(A) <: Complex
-            info   = Ref{BlasInt}()
+            (jobu == jobvt == 'O') &&
+                throw(ArgumentError("jobu and jobvt cannot both be O"))
+            m, n = size(A)
+            minmn = min(m, n)
+            cmplx = eltype(A) <: Complex
+            info = Ref{BlasInt}()
             if cmplx
                 ccall((@blasfunc($gesvd), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt}, Clong, Clong),
-                      jobu, jobvt, m, n, A, max(1,stride(A,2)), ws.S, ws.U, max(1,stride(ws.U,2)), ws.VT, max(1,stride(ws.VT,2)),
-                      ws.work, length(ws.work), ws.rwork, info, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt}, Clong, Clong),
+                    jobu, jobvt, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
+                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
+                    ws.work, length(ws.work), ws.rwork, info, 1, 1)
             else
                 ccall((@blasfunc($gesvd), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ref{BlasInt}, Clong, Clong),
-                      jobu, jobvt, m, n, A, max(1,stride(A,2)), ws.S, ws.U, max(1,stride(ws.U,2)), ws.VT, max(1,stride(ws.VT,2)),
-                      ws.work, length(ws.work), info, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ref{BlasInt}, Clong, Clong),
+                    jobu, jobvt, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
+                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
+                    ws.work, length(ws.work), info, 1, 1)
             end
             chklapackerror(info[])
             if jobu == 'O'
                 return (A, ws.S, ws.VT)
             elseif jobvt == 'O'
                 return (ws.U, ws.S, A)
-            else                  
+            else
                 return (ws.U, ws.S, ws.VT)
             end
         end
@@ -437,7 +455,8 @@ R0 factor:
  0.0      8.57328
 ```
 """
-mutable struct GeneralizedSVDWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: Workspace
+mutable struct GeneralizedSVDWs{T, MT <: AbstractMatrix{T}, RT <: AbstractFloat} <:
+               Workspace
     alpha::Vector{RT}
     beta::Vector{RT}
     U::MT
@@ -450,13 +469,14 @@ mutable struct GeneralizedSVDWs{T, MT<:AbstractMatrix{T}, RT<:AbstractFloat} <: 
 end
 
 # (GE) general matrices generalized singular value decomposition
-for (ggsvd3, elty, relty) in
-    ((:dggsvd3_,:Float64,:Float64),
-     (:sggsvd3_,:Float32,:Float32),
-     (:zggsvd3_,:ComplexF64,:Float64),
-     (:cggsvd3_,:ComplexF32,:Float32))
+for (ggsvd3, elty, relty) in ((:dggsvd3_, :Float64, :Float64),
+    (:sggsvd3_, :Float32, :Float32),
+    (:zggsvd3_, :ComplexF64, :Float64),
+    (:cggsvd3_, :ComplexF32, :Float32))
     @eval begin
-        function Base.resize!(ws::GeneralizedSVDWs, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}; jobu::AbstractChar = 'U', jobv::AbstractChar = 'V', jobq::AbstractChar = 'Q')
+        function Base.resize!(ws::GeneralizedSVDWs, A::AbstractMatrix{$elty},
+                B::AbstractMatrix{$elty}; jobu::AbstractChar = 'U',
+                jobv::AbstractChar = 'V', jobq::AbstractChar = 'Q')
             require_one_based_indexing(A, B)
             chkstride1(A, B)
             if VERSION >= v"1.11"
@@ -471,8 +491,8 @@ for (ggsvd3, elty, relty) in
             p = size(B, 1)
             k = Ref{BlasInt}()
             l = Ref{BlasInt}()
-            lda = max(1,stride(A, 2))
-            ldb = max(1,stride(B, 2))
+            lda = max(1, stride(A, 2))
+            ldb = max(1, stride(B, 2))
             ws.alpha = similar(A, $relty, n)
             ws.beta = similar(A, $relty, n)
             ldu = max(1, m)
@@ -490,12 +510,12 @@ for (ggsvd3, elty, relty) in
                 ws.rwork = Vector{$relty}(undef, 2n)
                 ccall((@blasfunc($ggsvd3), liblapack), Cvoid,
                     (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
-                    Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
-                    Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                    Ptr{$relty}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
-                    Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                    Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{BlasInt},
-                    Ref{BlasInt}, Clong, Clong, Clong),
+                        Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$relty}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{BlasInt},
+                        Ref{BlasInt}, Clong, Clong, Clong),
                     jobu, jobv, jobq, m,
                     n, p, k, l,
                     A, lda, B, ldb,
@@ -505,28 +525,33 @@ for (ggsvd3, elty, relty) in
                     info, 1, 1, 1)
             else
                 ccall((@blasfunc($ggsvd3), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
-                       Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
-                       Clong, Clong, Clong),
-                      jobu, jobv, jobq, m,
-                      n, p, k, l,
-                      A, lda, B, ldb,
-                      ws.alpha, ws.beta, ws.U, ldu,
-                      ws.V, ldv, ws.Q, ldq,
-                      ws.work, lwork, ws.iwork, info,
-                      1, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
+                        Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
+                        Clong, Clong, Clong),
+                    jobu, jobv, jobq, m,
+                    n, p, k, l,
+                    A, lda, B, ldb,
+                    ws.alpha, ws.beta, ws.U, ldu,
+                    ws.V, ldv, ws.Q, ldq,
+                    ws.work, lwork, ws.iwork, info,
+                    1, 1, 1)
             end
             lwork = BlasInt(ws.work[1])
             resize!(ws.work, lwork)
             return ws
-        end        
-        GeneralizedSVDWs(A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}; kwargs...) =
-            Base.resize!(GeneralizedSVDWs(Vector{$relty}(undef, 0), Vector{$relty}(undef, 0),  similar(A, 0, 0), similar(A, 0, 0), similar(A, 0, 0),
-                                          Vector{$elty}(undef, 0), Vector{$relty}(undef, 0), Vector{BlasInt}(undef, 0)), A, B; kwargs...)
+        end
+        GeneralizedSVDWs(A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty}; kwargs...) = Base.resize!(
+            GeneralizedSVDWs(Vector{$relty}(undef, 0), Vector{$relty}(undef, 0),
+                similar(A, 0, 0), similar(A, 0, 0), similar(A, 0, 0),
+                Vector{$elty}(undef, 0), Vector{$relty}(undef, 0), Vector{BlasInt}(
+                    undef, 0)),
+            A,
+            B;
+            kwargs...)
         #       SUBROUTINE ZGGSVD( JOBU, JOBV, JOBQ, M, N, P, K, L, A, LDA, B,
         #      $                   LDB, ALPHA, BETA, U, LDU, V, LDV, Q, LDQ, WORK,
         #      $                   RWORK, IWORK, INFO )
@@ -539,7 +564,8 @@ for (ggsvd3, elty, relty) in
         #       DOUBLE PRECISION   ALPHA( * ), BETA( * ), RWORK( * )
         #       COMPLEX*16         A( LDA, * ), B( LDB, * ), Q( LDQ, * ),
         #      $                   U( LDU, * ), V( LDV, * ), WORK( * )
-        function ggsvd3!(ws::GeneralizedSVDWs, jobu::AbstractChar, jobv::AbstractChar, jobq::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty})
+        function ggsvd3!(ws::GeneralizedSVDWs, jobu::AbstractChar, jobv::AbstractChar,
+                jobq::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty})
             require_one_based_indexing(A, B)
             chkstride1(A, B)
             if VERSION >= v"1.11"
@@ -554,8 +580,8 @@ for (ggsvd3, elty, relty) in
             p = size(B, 1)
             k = Ref{BlasInt}()
             l = Ref{BlasInt}()
-            lda = max(1,stride(A, 2))
-            ldb = max(1,stride(B, 2))
+            lda = max(1, stride(A, 2))
+            ldb = max(1, stride(B, 2))
             ldu = max(1, m)
             ldv = max(1, p)
             ldq = max(1, n)
@@ -563,42 +589,43 @@ for (ggsvd3, elty, relty) in
             info = Ref{BlasInt}()
             if cmplx
                 ccall((@blasfunc($ggsvd3), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
-                       Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$relty}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{BlasInt},
-                       Ptr{BlasInt}, Clong, Clong, Clong),
-                      jobu, jobv, jobq, m,
-                      n, p, k, l,
-                      A, lda, B, ldb,
-                      ws.alpha, ws.beta, ws.U, ldu,
-                      ws.V, ldv, ws.Q, ldq,
-                      ws.work, length(ws.work), ws.rwork, ws.iwork,
-                      info, 1, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
+                        Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$relty}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{BlasInt},
+                        Ptr{BlasInt}, Clong, Clong, Clong),
+                    jobu, jobv, jobq, m,
+                    n, p, k, l,
+                    A, lda, B, ldb,
+                    ws.alpha, ws.beta, ws.U, ldu,
+                    ws.V, ldv, ws.Q, ldq,
+                    ws.work, length(ws.work), ws.rwork, ws.iwork,
+                    info, 1, 1, 1)
             else
                 ccall((@blasfunc($ggsvd3), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
-                       Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$relty}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                       Ptr{BlasInt}, Clong, Clong, Clong),
-                      jobu, jobv, jobq, m,
-                      n, p, k, l,
-                      A, lda, B, ldb,
-                      ws.alpha, ws.beta, ws.U, ldu,
-                      ws.V, ldv, ws.Q, ldq,
-                      ws.work, length(ws.work), ws.iwork,
-                      info, 1, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
+                        Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$relty}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
+                        Ptr{BlasInt}, Clong, Clong, Clong),
+                    jobu, jobv, jobq, m,
+                    n, p, k, l,
+                    A, lda, B, ldb,
+                    ws.alpha, ws.beta, ws.U, ldu,
+                    ws.V, ldv, ws.Q, ldq,
+                    ws.work, length(ws.work), ws.iwork,
+                    info, 1, 1, 1)
             end
             chklapackerror(info[])
             if m - k[] - l[] >= 0
-                R = triu(A[1:k[] + l[],n - k[] - l[] + 1:n])
+                R = triu(A[1:(k[] + l[]), (n - k[] - l[] + 1):n])
             else
-                R = triu([A[1:m, n - k[] - l[] + 1:n]; B[m - k[] + 1:l[], n - k[] - l[] + 1:n]])
+                R = triu([A[1:m, (n - k[] - l[] + 1):n];
+                          B[(m - k[] + 1):l[], (n - k[] - l[] + 1):n]])
             end
             return ws.U, ws.V, ws.Q, ws.alpha, ws.beta, k[], l[], R
         end
@@ -617,4 +644,4 @@ the orthogonal/unitary matrix `Q` is computed. If `jobu`, `jobv`, or `jobq` is
 `N`, that matrix is not computed. This function requires LAPACK 3.6.0.
 """
 ggsvd3!(ws::GeneralizedSVDWs, jobu::AbstractChar, jobv::AbstractChar, jobq::AbstractChar,
-        A::AbstractMatrix, B::AbstractMatrix)
+    A::AbstractMatrix, B::AbstractMatrix)
