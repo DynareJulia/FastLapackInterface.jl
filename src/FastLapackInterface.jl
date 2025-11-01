@@ -33,6 +33,8 @@ include("cholesky.jl")
 export CholeskyPivotedWs
 include("lse.jl")
 export LSEWs
+include("svd.jl")
+export SVDsddWs, SVDsvdWs, GeneralizedSVDWs
 
 # Uniform interface
 include("workspace.jl")
@@ -40,4 +42,4 @@ export Workspace
 export decompose!, factorize!
 
 end #module
-#import LinearAlgebra: USE_BLAS64, LAPACKException
+

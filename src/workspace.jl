@@ -62,6 +62,10 @@ Workspace(::typeof(LAPACK.pstrf!), A::AbstractMatrix) = CholeskyPivotedWs(A)
 
 Workspace(::typeof(LAPACK.gglse!), A::AbstractMatrix) = LSEWs(A)
 
+Workspace(::typeof(LAPACK.gesdd!), A::AbstractMatrix; kwargs...) = SVDsddWs(A; kwargs...)
+Workspace(::typeof(LAPACK.gesvd!), A::AbstractMatrix; kwargs...) = SVDsvdWs(A; kwargs...)
+Workspace(::typeof(LAPACK.ggsvd3!), A::AbstractMatrix, B::AbstractMatrix; kwargs...) = GeneralizedSVDWs(A, B; kwargs...)
+
 """
     decompose!(ws, args...)
 
@@ -105,6 +109,12 @@ function decompose!(ws::CholeskyPivotedWs, A::Union{Hermitian, Symmetric}, tol=1
 end
 
 decompose!(ws::LSEWs, args...; kwargs...) = LAPACK.gglse!(ws, args...; kwargs...)
+
+decompose!(sw::SVDsddWs, A::AbstractMatrix; job = 'A') = LAPACK.gesdd!(ws, job, A)
+decompose!(sw::SVDsvdWs, A::AbstractMatrix; jobu = 'A', jobvt = 'A') =
+    LAPACK.gesdd!(ws, jobu, jobvt, A)
+decompose!(sw::GeneralizedSVDWs, A::AbstractMatrix, B::AbstractMatrix; jobu = 'U', jobv = 'V', jobq = 'Q') =
+    LAPACK.ggsvd3!(ws, jobu, jobv, jobq,  A, B)
 
 """
     factorize!(ws, args...)

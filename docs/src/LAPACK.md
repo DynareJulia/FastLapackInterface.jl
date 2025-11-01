@@ -19,6 +19,40 @@ decompose!
 factorize!
 ```
 
+## BunchKaufman
+```@docs
+LinearAlgebra.LAPACK.sytrf!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.sytrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.hetrf!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.hetrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
+```
+
+## Cholesky
+```@docs
+LinearAlgebra.LAPACK.pstrf!(::CholeskyPivotedWs, ::AbstractChar, ::AbstractMatrix, ::Real)
+```
+
+## Eigen
+```@docs
+LinearAlgebra.LAPACK.geevx!(::EigenWs, ::AbstractChar, ::AbstractChar, ::AbstractChar, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.syevr!(::HermitianEigenWs, ::AbstractChar, ::AbstractChar,
+       ::AbstractChar, ::AbstractMatrix, ::AbstractFloat, ::AbstractFloat, ::Integer, ::Integer,
+       ::AbstractFloat)
+LinearAlgebra.LAPACK.ggev!(::GeneralizedEigenWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix,
+      ::AbstractMatrix)
+```
+
+## LSE
+```@docs
+LinearAlgebra.LAPACK.gglse!(::LSEWs, ::AbstractMatrix, ::AbstractVector, ::AbstractMatrix, ::AbstractVector)
+```
+
+## LU
+```@docs
+LinearAlgebra.LAPACK.getrf!(::LUWs, ::AbstractMatrix)
+LinearAlgebra.LAPACK.getrs!(::LUWs, ::AbstractChar, ::AbstractMatrix, ::AbstractMatrix)
+```
+
 ## QR
 ```@docs
 LinearAlgebra.LAPACK.geqrf!(::QRWs, ::AbstractMatrix)
@@ -35,37 +69,9 @@ LinearAlgebra.LAPACK.gges!(::GeneralizedSchurWs, ::AbstractChar, ::AbstractChar,
 FastLapackInterface.SCHURORDER
 ```
 
-## LU
+## SVD
 ```@docs
-LinearAlgebra.LAPACK.getrf!(::LUWs, ::AbstractMatrix)
-LinearAlgebra.LAPACK.getrs!(::LUWs, ::AbstractChar, ::AbstractMatrix, ::AbstractMatrix)
+LinearAlgebra.LAPACK.gesdd!(::SVDsddWs, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.gesvd!(::SVDsvdWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix)
+LinearAlgebra.LAPACK.ggsvd3!(::GeneralizedSVDWs, ::AbstractChar, ::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractMatrix)
 ```
-
-## Eigen
-```@docs
-LinearAlgebra.LAPACK.geevx!(::EigenWs, ::AbstractChar, ::AbstractChar, ::AbstractChar, ::AbstractChar, ::AbstractMatrix)
-LinearAlgebra.LAPACK.syevr!(::HermitianEigenWs, ::AbstractChar, ::AbstractChar,
-       ::AbstractChar, ::AbstractMatrix, ::AbstractFloat, ::AbstractFloat, ::Integer, ::Integer,
-       ::AbstractFloat)
-LinearAlgebra.LAPACK.ggev!(::GeneralizedEigenWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix,
-      ::AbstractMatrix)
-```
-
-## BunchKaufman
-```@docs
-LinearAlgebra.LAPACK.sytrf!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
-LinearAlgebra.LAPACK.sytrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
-LinearAlgebra.LAPACK.hetrf!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
-LinearAlgebra.LAPACK.hetrf_rook!(::BunchKaufmanWs, ::AbstractChar, ::AbstractMatrix)
-```
-
-## Cholesky
-```@docs
-LinearAlgebra.LAPACK.pstrf!(::CholeskyPivotedWs, ::AbstractChar, ::AbstractMatrix, ::Real)
-```
-
-## LSE
-```@docs
-LinearAlgebra.LAPACK.gglse!(::LSEWs, ::AbstractMatrix, ::AbstractVector, ::AbstractMatrix, ::AbstractVector)
-```
-
