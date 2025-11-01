@@ -1,3 +1,7 @@
+2.1.0
+=====
+- add SVD decomposition
+
 2.0.4
 =====
 - add  preset selection functions for Schur decomposition. This avoids the cfunction closure that doesn´t work on all plateforms
