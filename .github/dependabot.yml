@@ -3,8 +3,8 @@ version: 2
 updates:
   - package-ecosystem: "github-actions"
     directories:
-        "/"
-        "/docs/"
-        "/test/"
+      - "/"
+      - "/docs/"
+      - "/test/"
     schedule:
       interval: "monthly"
