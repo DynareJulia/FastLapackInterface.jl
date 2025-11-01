@@ -13,6 +13,33 @@ Each [`Workspace`](@ref) also has a function to [`resize!`](@ref) to allow for i
 resize!(::Workspace, ::AbstractMatrix; kwargs...)
 ```
 
+## [BunchKaufman](@id BunchKaufman-id)
+```@docs
+BunchKaufmanWs
+```
+
+## [Cholesky](@id Cholesky-id)
+```@docs
+CholeskyPivotedWs
+```
+
+## [Eigen](@id Eigen-id)
+```@docs
+EigenWs
+HermitianEigenWs
+GeneralizedEigenWs
+```
+
+## [LSE](@id LSE-id)
+```@docs
+LSEWs
+```
+
+## [LU](@id LU-id)
+```@docs
+LUWs
+```
+
 ## [QR](@id QR-id)
 ```@docs
 QRWs
@@ -28,29 +55,11 @@ SchurWs
 GeneralizedSchurWs
 ```
 
-## [LU](@id LU-id)
+## [SVD](@id SVD-id)
 ```@docs
-LUWs
+SVDsddWs
+SVDsvdWs
+GeneralizedSVDWs
 ```
 
-## [Eigen](@id Eigen-id)
-```@docs
-EigenWs
-HermitianEigenWs
-GeneralizedEigenWs
-```
 
-## [BunchKaufman](@id BunchKaufman-id)
-```@docs
-BunchKaufmanWs
-```
-
-## [Cholesky](@id Cholesky-id)
-```@docs
-CholeskyPivotedWs
-```
-
-## [LSE](@id LSE-id)
-```@docs
-LSEWs
-```

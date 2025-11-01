@@ -75,12 +75,10 @@ struct BunchKaufmanWs{T} <: Workspace
     ipiv::Vector{BlasInt}
 end
 
-for (sytrfs,  elty) in
-    (((:dsytrf_,:dsytrf_rook_),:Float64),
-     ((:ssytrf_,:ssytrf_rook_),:Float32),
-     ((:zsytrf_,:zsytrf_rook_, :zhetrf_,:zhetrf_rook_),:ComplexF64),
-     ((:csytrf_,:csytrf_rook_, :chetrf_,:chetrf_rook_),:ComplexF32))
-    
+for (sytrfs, elty) in (((:dsytrf_, :dsytrf_rook_), :Float64),
+    ((:ssytrf_, :ssytrf_rook_), :Float32),
+    ((:zsytrf_, :zsytrf_rook_, :zhetrf_, :zhetrf_rook_), :ComplexF64),
+    ((:csytrf_, :csytrf_rook_, :chetrf_, :chetrf_rook_), :ComplexF32))
     @eval begin
         function Base.resize!(ws::BunchKaufmanWs, A::AbstractMatrix{$elty}; work = true)
             chkstride1(A)
@@ -90,11 +88,11 @@ for (sytrfs,  elty) in
             end
             resize!(ws.ipiv, n)
             if work
-                info  = Ref{BlasInt}()
+                info = Ref{BlasInt}()
                 ccall((@blasfunc($(sytrfs[1])), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
-                      'U', n, A, stride(A,2), ws.ipiv, ws.work, -1, info, 1)
+                    (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
+                    'U', n, A, stride(A, 2), ws.ipiv, ws.work, -1, info, 1)
                 chkargsok(info[])
                 resize!(ws.work, BlasInt(real(ws.work[1])))
             end
@@ -105,7 +103,8 @@ for (sytrfs,  elty) in
         end
     end
     for (sytrf, fn) in zip(sytrfs, (:sytrf!, :sytrf_rook!, :hetrf!, :hetrf_rook!))
-        @eval function $fn(ws::BunchKaufmanWs{$elty}, uplo::AbstractChar, A::AbstractMatrix{$elty}; resize=true)
+        @eval function $fn(ws::BunchKaufmanWs{$elty}, uplo::AbstractChar,
+                A::AbstractMatrix{$elty}; resize = true)
             chkstride1(A)
             n = checksquare(A)
             if n == 0
@@ -113,18 +112,18 @@ for (sytrfs,  elty) in
             end
             chkuplo(uplo)
             nws = length(ws.ipiv)
-            if n != nws 
+            if n != nws
                 if resize
-                    resize!(ws, A, work=nws<n)
+                    resize!(ws, A, work = nws < n)
                 else
                     throw(WorkspaceSizeError(nws, n))
                 end
             end
-            info  = Ref{BlasInt}()
+            info = Ref{BlasInt}()
             ccall((@blasfunc($sytrf), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                   Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
-                  uplo, n, A, stride(A,2), ws.ipiv, ws.work, length(ws.work), info, 1)
+                (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                    Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong),
+                uplo, n, A, stride(A, 2), ws.ipiv, ws.work, length(ws.work), info, 1)
             chkargsok(info[])
             return A, ws.ipiv, info[]
         end

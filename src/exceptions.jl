@@ -10,4 +10,7 @@ struct WorkspaceSizeError <: Exception
     nws::Int
     n::Int
 end
-Base.showerror(io::IO, e::WorkspaceSizeError) = print(io, "Workspace has the wrong size: expected $(e.n), got $(e.nws).\nUse resize!(ws, A).")
+function Base.showerror(io::IO, e::WorkspaceSizeError)
+    print(io,
+        "Workspace has the wrong size: expected $(e.n), got $(e.nws).\nUse resize!(ws, A).")
+end

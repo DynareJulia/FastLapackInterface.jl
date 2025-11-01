@@ -39,11 +39,10 @@ struct CholeskyPivotedWs{T} <: Workspace
     piv::Vector{BlasInt}
 end
 
-for (pstrf, elty, rtyp) in
-    ((:dpstrf_,:Float64,:Float64),
-     (:spstrf_,:Float32,:Float32),
-     (:zpstrf_,:ComplexF64,:Float64),
-     (:cpstrf_,:ComplexF32,:Float32))
+for (pstrf, elty, rtyp) in ((:dpstrf_, :Float64, :Float64),
+    (:spstrf_, :Float32, :Float32),
+    (:zpstrf_, :ComplexF64, :Float64),
+    (:cpstrf_, :ComplexF32, :Float32))
     @eval begin
         function Base.resize!(ws::CholeskyPivotedWs, A::AbstractMatrix{$elty}; work = true)
             n = checksquare(A)
@@ -57,7 +56,8 @@ for (pstrf, elty, rtyp) in
             return resize!(CholeskyPivotedWs($rtyp[], BlasInt[]), A)
         end
 
-        function pstrf!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix{$elty}, tol::Real; resize=true)
+        function pstrf!(ws::CholeskyPivotedWs, uplo::AbstractChar,
+                A::AbstractMatrix{$elty}, tol::Real; resize = true)
             chkstride1(A)
             n = checksquare(A)
             chkuplo(uplo)
@@ -71,11 +71,11 @@ for (pstrf, elty, rtyp) in
                     throw(WorkspaceSizeError(nws, n))
                 end
             end
-                
+
             ccall((@blasfunc($pstrf), liblapack), Cvoid,
-                  (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                   Ptr{BlasInt}, Ref{$rtyp}, Ptr{$rtyp}, Ptr{BlasInt}, Clong),
-                  uplo, n, A, max(1,stride(A,2)), ws.piv, rank, tol, ws.work, info, 1)
+                (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
+                    Ptr{BlasInt}, Ref{$rtyp}, Ptr{$rtyp}, Ptr{BlasInt}, Clong),
+                uplo, n, A, max(1, stride(A, 2)), ws.piv, rank, tol, ws.work, info, 1)
             chkargsok(info[])
             A, ws.piv, rank[], info[]
         end
@@ -96,4 +96,3 @@ the factorization succeeded. If `info = i > 0 `, then `A` is indefinite or
 rank-deficient.
 """
 pstrf!(ws::CholeskyPivotedWs, uplo::AbstractChar, A::AbstractMatrix, tol::Real; kwargs...)
-

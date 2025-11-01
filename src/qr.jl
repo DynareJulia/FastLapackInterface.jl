@@ -34,7 +34,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRWs{T<:Number} <: Workspace
+struct QRWs{T <: Number} <: Workspace
     work::Vector{T}
     τ::Vector{T}
 end
@@ -42,11 +42,11 @@ end
 Base.length(ws::QRWs) = length(ws.τ)
 
 for (geqrf, elty) in ((:dgeqrf_, :Float64),
-                      (:sgeqrf_, :Float32),
-                      (:zgeqrf_, :ComplexF64),
-                      (:cgeqrf_, :ComplexF32))
+    (:sgeqrf_, :Float32),
+    (:zgeqrf_, :ComplexF64),
+    (:cgeqrf_, :ComplexF32))
     @eval begin
-        function Base.resize!(ws::QRWs, A::StridedMatrix{$elty}; work=true)
+        function Base.resize!(ws::QRWs, A::StridedMatrix{$elty}; work = true)
             m, n = size(A)
             minmn = min(m, n)
             lda = max(1, stride(A, 2))
@@ -54,24 +54,24 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
             if work && minmn > 0
                 info = Ref{BlasInt}()
                 ccall((@blasfunc($geqrf), liblapack), Cvoid,
-                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-                      m, n, A, lda, ws.τ, ws.work, -1, info)
+                    (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                    m, n, A, lda, ws.τ, ws.work, -1, info)
                 chklapackerror(info[])
                 resize!(ws.work, BlasInt(real(ws.work[1])))
             end
             return ws
         end
-        QRWs(A::StridedMatrix{$elty}) =
-            resize!(QRWs(Vector{$elty}(undef, 1), Vector{$elty}(undef, 1)), A)
+        QRWs(A::StridedMatrix{$elty}) = resize!(
+            QRWs(Vector{$elty}(undef, 1), Vector{$elty}(undef, 1)), A)
 
-        function geqrf!(ws::QRWs, A::AbstractMatrix{$elty}; resize=true)
+        function geqrf!(ws::QRWs, A::AbstractMatrix{$elty}; resize = true)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
             nws = length(ws)
             minmn = min(m, n)
-            if nws != minmn 
+            if nws != minmn
                 if resize
                     resize!(ws, A; work = minmn > nws)
                 else
@@ -79,13 +79,13 @@ for (geqrf, elty) in ((:dgeqrf_, :Float64),
                 end
             end
             lda = max(1, stride(A, 2))
-            lwork = max(1,length(ws.work))
+            lwork = max(1, length(ws.work))
             info = Ref{BlasInt}() # This actually doesn't cause allocations
             if minmn > 0
                 ccall((@blasfunc($geqrf), liblapack), Cvoid,
-                      (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-                      m, n, A, lda, ws.τ, ws.work, lwork, info)
+                    (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                    m, n, A, lda, ws.τ, ws.work, lwork, info)
                 chklapackerror(info[])
             end
             return A, ws.τ
@@ -104,7 +104,6 @@ resized to the appropriate size.
 `A` and `ws.τ` modified in-place.
 """
 geqrf!(ws::QRWs, A::AbstractMatrix; kwargs...)
-
 
 """
     QRWYWs
@@ -141,32 +140,33 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-mutable struct QRWYWs{R<:Number, MT<:StridedMatrix{R}} <: Workspace
+mutable struct QRWYWs{R <: Number, MT <: StridedMatrix{R}} <: Workspace
     work::Vector{R}
     T::MT
 end
 
-function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize=36, work=true)
+function Base.resize!(ws::QRWYWs, A::StridedMatrix; blocksize = 36, work = true)
     require_one_based_indexing(A)
     chkstride1(A)
     m, n = BlasInt.(size(A))
     minmn = min(m, n)
     nb = min(minmn, blocksize)
-    ws.T = similar(ws.T,  nb, minmn)
+    ws.T = similar(ws.T, nb, minmn)
     if work
-        resize!(ws.work, nb*n)
+        resize!(ws.work, nb * n)
     end
     return ws
 end
 
-QRWYWs(A::StridedMatrix{T}; kwargs...) where {T <: LinearAlgebra.BlasFloat} =
+function QRWYWs(A::StridedMatrix{T}; kwargs...) where {T <: LinearAlgebra.BlasFloat}
     resize!(QRWYWs(T[], Matrix{T}(undef, 0, 0)), A; kwargs...)
+end
 
 for (geqrt, elty) in ((:dgeqrt_, :Float64),
-                      (:sgeqrt_, :Float32),
-                      (:zgeqrt_, :ComplexF64),
-                      (:cgeqrt_, :ComplexF32))
-    @eval function geqrt!(ws::QRWYWs, A::AbstractMatrix{$elty}; resize=true)
+    (:sgeqrt_, :Float32),
+    (:zgeqrt_, :ComplexF64),
+    (:cgeqrt_, :ComplexF32))
+    @eval function geqrt!(ws::QRWYWs, A::AbstractMatrix{$elty}; resize = true)
         require_one_based_indexing(A)
         chkstride1(A)
         m, n = size(A)
@@ -186,12 +186,12 @@ for (geqrt, elty) in ((:dgeqrt_, :Float64),
         info = Ref{BlasInt}()
         if minmn > 0
             ccall((@blasfunc($geqrt), liblapack), Cvoid,
-                  (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                   Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                   Ptr{BlasInt}),
-                  m, n, nb, A,
-                  lda, ws.T, max(1, stride(ws.T, 2)), ws.work,
-                  info)
+                (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                    Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                    Ptr{BlasInt}),
+                m, n, nb, A,
+                lda, ws.T, max(1, stride(ws.T, 2)), ws.work,
+                info)
             chklapackerror(info[])
         end
         return A, ws.T
@@ -251,7 +251,7 @@ julia> Matrix(t)
  6.2  3.3
 ```
 """
-struct QRPivotedWs{T<:Number, RT<:AbstractFloat} <: Workspace
+struct QRPivotedWs{T <: Number, RT <: AbstractFloat} <: Workspace
     work::Vector{T}
     rwork::Vector{RT}
     τ::Vector{T}
@@ -259,11 +259,11 @@ struct QRPivotedWs{T<:Number, RT<:AbstractFloat} <: Workspace
 end
 
 for (geqp3, elty, relty) in ((:dgeqp3_, :Float64, :Float64),
-                             (:sgeqp3_, :Float32, :Float32),
-                             (:zgeqp3_, :ComplexF64, :Float64),
-                             (:cgeqp3_, :ComplexF32, :Float32))
+    (:sgeqp3_, :Float32, :Float32),
+    (:zgeqp3_, :ComplexF64, :Float64),
+    (:cgeqp3_, :ComplexF32, :Float32))
     @eval begin
-        function Base.resize!(ws::QRPivotedWs, A::StridedMatrix{$elty}; work=true)
+        function Base.resize!(ws::QRPivotedWs, A::StridedMatrix{$elty}; work = true)
             require_one_based_indexing(A)
             chkstride1(A)
             m, n = size(A)
@@ -276,27 +276,29 @@ for (geqp3, elty, relty) in ((:dgeqp3_, :Float64, :Float64),
                 if $elty <: Complex
                     resize!(ws.rwork, 2n)
                     ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                          (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                           Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt}),
-                          m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, ws.rwork, info)
+                        (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                            Ref{BlasInt}, Ptr{BlasInt},
+                            Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ref{BlasInt}),
+                        m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, ws.rwork, info)
                 else
                     ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                          (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt},
-                           Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
-                          m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, info)
+                        (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                            Ref{BlasInt}, Ptr{BlasInt},
+                            Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{BlasInt}),
+                        m, n, A, RldA, ws.jpvt, ws.τ, ws.work, -1, info)
                 end
                 chklapackerror(info[])
                 resize!(ws.work, BlasInt(real(ws.work[1])))
             end
             return ws
         end
-        QRPivotedWs(A::StridedMatrix{$elty}) =
-            resize!(QRPivotedWs(Vector{$elty}(undef, 1), $relty[], $elty[], BlasInt[]), A)
+        QRPivotedWs(A::StridedMatrix{$elty}) = resize!(
+            QRPivotedWs(Vector{$elty}(undef, 1), $relty[], $elty[], BlasInt[]), A)
 
-        function geqp3!(ws::QRPivotedWs{$elty}, A::AbstractMatrix{$elty}; resize=true)
+        function geqp3!(ws::QRPivotedWs{$elty}, A::AbstractMatrix{$elty}; resize = true)
             m, n = size(A)
             nws = length(ws.jpvt)
-            minmn =  min(m, n)
+            minmn = min(m, n)
             if nws != n || minmn != length(ws.τ)
                 if resize
                     resize!(ws, A; work = n > nws)
@@ -309,20 +311,20 @@ for (geqp3, elty, relty) in ((:dgeqp3_, :Float64, :Float64),
             if minmn > 0
                 if $elty <: Complex
                     ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                          (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                           Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
-                           Ptr{BlasInt}),
-                          m, n, A, lda,
-                          ws.jpvt, ws.τ, ws.work,
-                          length(ws.work), ws.rwork, info)
+                        (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                            Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$relty},
+                            Ptr{BlasInt}),
+                        m, n, A, lda,
+                        ws.jpvt, ws.τ, ws.work,
+                        length(ws.work), ws.rwork, info)
                 else
                     ccall((@blasfunc($geqp3), liblapack), Cvoid,
-                          (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                           Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                           Ptr{BlasInt}),
-                          m, n, A, lda,
-                          ws.jpvt, ws.τ, ws.work,
-                          length(ws.work), info)
+                        (Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                            Ptr{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                            Ptr{BlasInt}),
+                        m, n, A, lda,
+                        ws.jpvt, ws.τ, ws.work,
+                        length(ws.work), info)
                 end
                 chklapackerror(info[])
             end
@@ -378,7 +380,7 @@ QROrmWs{Float64}
   τ: 2-element Vector{Float64}
 
 """
-struct QROrmWs{T<:Number} <: Workspace
+struct QROrmWs{T <: Number} <: Workspace
     work::Vector{T}
     τ::Vector{T}
 end
@@ -415,29 +417,28 @@ QROrgWs{Float64}
   τ: 2-element Vector{Float64}
 
 """
-struct QROrgWs{T<:Number} <: Workspace
+struct QROrgWs{T <: Number} <: Workspace
     work::Vector{T}
     τ::Vector{T}
 end
 
 for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
-                             (:sormqr_, :sorgqr_, :Float32),
-                             (:zunmqr_, :zungqr_, :ComplexF64),
-                             (:cunmqr_, :cungqr_, :ComplexF32))
-                      
+    (:sormqr_, :sorgqr_, :Float32),
+    (:zunmqr_, :zungqr_, :ComplexF64),
+    (:cunmqr_, :cungqr_, :ComplexF32))
     @eval begin
         function Base.resize!(ormws::QROrmWs, side::AbstractChar, trans::AbstractChar,
-                              A::AbstractMatrix{$elty},
-                              C::AbstractVecOrMat{$elty};
-                              work = true)
+                A::AbstractMatrix{$elty},
+                C::AbstractVecOrMat{$elty};
+                work = true)
             require_one_based_indexing(A, C)
             chktrans(trans)
             chkside(side)
             chkstride1(A, C)
             m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
-            mA, nA   = size(A)
+            mA, nA = size(A)
             minmn = min(mA, nA)
-            k    = length(ormws.τ)
+            k = length(ormws.τ)
             if side == 'L' && m != mA
                 throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the first dimension of A, $mA"))
             end
@@ -453,14 +454,14 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
             if work && minmn > 0
                 info = Ref{BlasInt}()
                 ccall((@blasfunc($ormqr), liblapack), Cvoid,
-                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-                       Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                       Ref{BlasInt}, Clong, Clong),
-                      side, trans, m, n,
-                      k, A, max(1, stride(A, 2)), ormws.τ,
-                      C, max(1, stride(C, 2)), ormws.work, -1,
-                      info, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ref{BlasInt}, Clong, Clong),
+                    side, trans, m, n,
+                    k, A, max(1, stride(A, 2)), ormws.τ,
+                    C, max(1, stride(C, 2)), ormws.work, -1,
+                    info, 1, 1)
                 chklapackerror(info[])
                 resize!(ormws.work, BlasInt(real(ormws.work[1])))
             end
@@ -468,10 +469,12 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
         end
 
         QROrmWs(ws::Union{QRWs, QRPivotedWs}, side::AbstractChar, trans::AbstractChar,
-                A::AbstractMatrix{$elty},
-                C::AbstractVecOrMat{$elty}) = resize!(QROrmWs(Vector{$elty}(undef, 1), ws.τ), side, trans,
-                                                      A, C)
-        function Base.resize!(orgws::QROrgWs, A::AbstractMatrix{$elty}; k::Integer = size(A, 2))
+        A::AbstractMatrix{$elty},
+        C::AbstractVecOrMat{$elty}) = resize!(
+            QROrmWs(Vector{$elty}(undef, 1), ws.τ), side, trans,
+            A, C)
+        function Base.resize!(
+                orgws::QROrgWs, A::AbstractMatrix{$elty}; k::Integer = size(A, 2))
             require_one_based_indexing(A, ws.τ)
             chkstride1(A, ws.τ)
             m, n = size(A)
@@ -480,33 +483,33 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
                 if k > minmn
                     throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $minmn"))
                 end
-                info  = Ref{BlasInt}()
+                info = Ref{BlasInt}()
                 ccall((@blasfunc($orgqr), liblapack), Cvoid,
-                      (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-                       Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-                      m, n, k, A,
-                      max(1,stride(A,2)), ws.τ, ws.work, -1,
-                      info)
+                    (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                    m, n, k, A,
+                    max(1, stride(A, 2)), ws.τ, ws.work, -1,
+                    info)
                 chklapackerror(info[])
                 resize!(orgws.work, BlasInt(real(orgws.work[1])))
             end
             return orgws
         end
 
-        QROrgWs(ws::Union{QRWs, QRPivotedWs}, A::AbstractMatrix{$elty}; k::Integer = size(A, 2)) =
-            resize!(QROrgWs(Vector{$elty}(undef, 1), ws.τ), A, k)
-        
+        QROrgWs(ws::Union{QRWs, QRPivotedWs}, A::AbstractMatrix{$elty}; k::Integer = size(A, 2)) = resize!(
+            QROrgWs(Vector{$elty}(undef, 1), ws.τ), A, k)
+
         function ormqr!(ws::QROrmWs{$elty}, side::AbstractChar, trans::AbstractChar,
-                          A::AbstractMatrix{$elty},
-                          C::AbstractVecOrMat{$elty})
+                A::AbstractMatrix{$elty},
+                C::AbstractVecOrMat{$elty})
             require_one_based_indexing(A, C)
             chktrans(trans)
             chkside(side)
             chkstride1(A, C)
             m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
-            mA, nA   = size(A)
+            mA, nA = size(A)
             minmn = min(mA, nA)
-            k    = length(ws.τ)
+            k = length(ws.τ)
             if side == 'L' && m != mA
                 throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the first dimension of A, $mA"))
             end
@@ -522,33 +525,34 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
             info = Ref{BlasInt}()
             if minmn > 0
                 ccall((@blasfunc($ormqr), liblapack), Cvoid,
-                (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
-                 Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                 Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                 Ref{BlasInt}, Clong, Clong),
-                side, trans, m, n,
-                k, A, max(1, stride(A, 2)), ws.τ,
-                C, max(1, stride(C, 2)), ws.work, length(ws.work),
-                info, 1, 1)
+                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ref{BlasInt}, Clong, Clong),
+                    side, trans, m, n,
+                    k, A, max(1, stride(A, 2)), ws.τ,
+                    C, max(1, stride(C, 2)), ws.work, length(ws.work),
+                    info, 1, 1)
                 chklapackerror(info[])
             end
             return C
         end
     end
 
-    for elty2 in (eval(:(Transpose{$elty,<:StridedMatrix{$elty}})),
-                  eval(:(Adjoint{$elty,<:StridedMatrix{$elty}})))
+    for elty2 in (eval(:(Transpose{$elty, <:StridedMatrix{$elty}})),
+        eval(:(Adjoint{$elty, <:StridedMatrix{$elty}})))
         @eval function ormqr!(ws::QROrmWs, side::AbstractChar, trans::AbstractChar,
-                              A::$elty2,
-                              C::StridedMatrix{$elty})
+                A::$elty2,
+                C::StridedMatrix{$elty})
             chktrans(trans)
             chkside(side)
             trans = trans == 'T' ? 'N' : 'T'
             return LAPACK.ormqr!(ws, side, trans, A.parent, C)
         end
     end
-    
-    @eval function orgqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, A::AbstractMatrix{$elty}, k::Integer = size(A, 2))
+
+    @eval function orgqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}},
+            A::AbstractMatrix{$elty}, k::Integer = size(A, 2))
         require_one_based_indexing(A, ws.τ)
         chkstride1(A, ws.τ)
         m, n = size(A)
@@ -557,16 +561,16 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_, :Float64),
             if k > minmn
                 throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $minmn"))
             end
-            info  = Ref{BlasInt}()
+            info = Ref{BlasInt}()
             ccall((@blasfunc($orgqr), liblapack), Cvoid,
-            (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
-             Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
-            m, n, k, A,
-            max(1,stride(A,2)), ws.τ, ws.work, length(ws.work),
-            info)
+                (Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty},
+                    Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}),
+                m, n, k, A,
+                max(1, stride(A, 2)), ws.τ, ws.work, length(ws.work),
+                info)
             chklapackerror(info[])
         end
-        if minmn < size(A,2)
+        if minmn < size(A, 2)
             return A[:, 1:minmn]
         else
             return A
@@ -584,7 +588,7 @@ Uses preallocated workspace `ws::QROrmWs` and the factors are assumed to be stor
 `C` is overwritten.
 """
 ormqr!(ws::QROrmWs, side::AbstractChar, trans::AbstractChar, A::AbstractMatrix,
-       C::AbstractVecOrMat)
+    C::AbstractVecOrMat)
 
 """
     orgqr!(ws, A, k = length(tau))
@@ -595,4 +599,3 @@ factors stored in `ws.τ`, that were generated from calling
 `A` is overwritten by `Q`.
 """
 orgqr!(ws::Union{QRWs, QRPivotedWs}, A::AbstractMatrix, k::Integer = size(A, 2))
-
