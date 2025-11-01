@@ -74,6 +74,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using TestPkg
+          using FastLapackInterface
           DocMeta.setdocmeta!(FastLapackInterface, :DocTestSetup, :(using FastLapackInterface, LinearAlgebra); recursive=true)
           doctest(TestPkg)
