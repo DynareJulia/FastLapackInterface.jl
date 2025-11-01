@@ -76,4 +76,4 @@ jobs:
           using Documenter: DocMeta, doctest
           using FastLapackInterface
           DocMeta.setdocmeta!(FastLapackInterface, :DocTestSetup, :(using FastLapackInterface, LinearAlgebra); recursive=true)
-          doctest(TestPkg)
+          doctest(FastLapackInterface)
