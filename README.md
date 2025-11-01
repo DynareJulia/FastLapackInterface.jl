@@ -4,13 +4,14 @@
 ``FastLapackInterface`` separates workspace allocation and actual
 running for some Lapack algorithms:
  
+ - Bunch-Kaufman decomposition
+ - Cholesky decomposition
+ - Eigen decomposition
+ - LSE decomposition
  - LU factorization
  - QR factorization
  - Schur factorization
- - Eigen decomposition
- - Bunch-Kaufman decomposition
- - Cholesky decomposition
- - LSE decomposition
+ - SVD decomposition
  
 The API follows the Base julia `LAPACK` definitions and should thus be very transparent.
 There is also a unified interface which returns the right `Workspace` to be used with a given
@@ -30,4 +31,4 @@ A similar API exists for the above decompositions. For more information and exam
   functions the same way. 
 
 ## Package version
--   v1.x: works only with Julia >= 1.6.3
+-   v1.x: works only with Julia >= 1.10.7
