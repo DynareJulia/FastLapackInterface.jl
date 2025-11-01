@@ -79,7 +79,7 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
     (:cgesdd_, :ComplexF32, :Float32))
     @eval begin
         function Base.resize!(
-                ws::SVDsddWs, A::AbstractMatrix{$elty}; job::AbstractChar = 'A')
+            ws::SVDsddWs, A::AbstractMatrix{$elty}; job::AbstractChar = 'A')
             require_one_based_indexing(A)
             chkstride1(A)
             if VERSION >= v"1.11"
@@ -157,7 +157,7 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
         #      INTEGER            IWORK( * )
         #      DOUBLE PRECISION   A( LDA, * ), S( * ), U( LDU, * ),
         #                        VT( LDVT, * ), WORK( * )
-        function gesdd!(ws::SVDsddWs, job::AbstractChar, A::AbstractMatrix{$elty})
+        function gesdd!(ws::SVDsddWs, job::AbstractChar, A::AbstractMatrix{$elty}; resize = true)
             require_one_based_indexing(A)
             chkstride1(A)
             if VERSION >= v"1.11"
@@ -165,6 +165,41 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
             end
             m, n = size(A)
             minmn = min(m, n)
+            if job == 'A'
+                if size(ws.U) != (m, n) || size(ws.VT) != (n, n)
+                    if resize
+                        resize!(ws, A, job = job)
+                    else
+                        throw(ArgumentError("Workspace has wrong size, use resize!(ws, A)."))
+                    end
+                end
+            elseif job == 'S'
+                if size(ws.U) != (m, minmn) || size(ws.VT) != (minmn, n)
+                    if resize
+                        resize!(ws, A, job = job)
+                    else
+                        throw(ArgumentError("Workspace has wrong size, use resize!(ws, A, job = 'S')."))
+                    end
+                end
+            elseif job == 'O'
+                if m >= n
+                    if size(ws.U, 1) != m || size(ws.VT) != (n, n)
+                        if resize
+                            resize!(ws, A, job = job)
+                        else
+                            throw(ArgumentError("Workspace has wrong size, use resize!(ws, A, job = 'O')."))
+                        end
+                    end
+                else
+                    if size(ws.U) != (m, m) || size(ws.VT, 1) != n
+                        if resize
+                            resize!(ws, A, job = job)
+                        else
+                            throw(ArgumentError("Workspace has wrong size, use resize!(ws, A, job = 'O')."))
+                        end
+                    end
+                end
+            end
             cmplx = eltype(A) <: Complex
             info = Ref{BlasInt}()
             if cmplx
@@ -200,7 +235,7 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
 end
 
 """
-    gesdd!(ws, job, A) -> (U, S, VT)
+    gesdd!(ws, job, A; resize = true) -> (U, S, VT)
 
 Finds the singular value decomposition of `A`, `A = U * S * V'`,
 using a divide and conquer approachusing a preallocated [`SVDsddWs`](@ref).
@@ -209,6 +244,8 @@ the rows of `V'` are computed. If `job = N`, no columns of `U` or rows of `V'`
 are computed. If `job = O`, `A` is overwritten with the columns of (thin) `U`
 and the rows of (thin) `V'`. If `job = S`, the columns of (thin) `U` and the
 rows of (thin) `V'` are computed and returned separately.
+If `ws` does not have the appropriate size for `A` and the work to be done,
+if `resize=true`, it will be automatically resized accordingly. 
 """
 gesdd!(ws::SVDsddWs, job::AbstractChar, A::AbstractMatrix)
 
@@ -332,7 +369,7 @@ for (gesvd, elty, relty) in ((:dgesvd_, :Float64, :Float64),
         #       DOUBLE PRECISION   A( LDA, * ), S( * ), U( LDU, * ),
         #                          VT( LDVT, * ), WORK( * )
         function gesvd!(ws::SVDsvdWs, jobu::AbstractChar,
-                jobvt::AbstractChar, A::AbstractMatrix{$elty})
+                jobvt::AbstractChar, A::AbstractMatrix{$elty}; resize = true)
             require_one_based_indexing(A)
             chkstride1(A)
             if VERSION >= v"1.11"
@@ -343,6 +380,68 @@ for (gesvd, elty, relty) in ((:dgesvd_, :Float64, :Float64),
                 throw(ArgumentError("jobu and jobvt cannot both be O"))
             m, n = size(A)
             minmn = min(m, n)
+            if jobu == 'A' && size(ws.U) != (m, n)
+                if resize
+                    resize!(ws, A, jobu = jobu, jobvt = jobvt)
+                else
+                    throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                end
+            elseif jobu == 'S' && size(ws.U) != (m, minmn)
+                if resize
+                    resize!(ws, A, jobu = jobu, jobvt = jobvt)
+                else
+                    throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                end
+            elseif jobu == 'O'
+                if m >= n
+                    if size(ws.U, 1) != m
+                        if resize
+                            resize!(ws, A, jobu = jobu, jobvt = jobvt)
+                        else
+                            throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                        end
+                    end
+                else
+                    if size(ws.U) != (m, m)
+                        if resize
+                            resize!(ws, A, jobu = jobu, jobvt = jobvt)
+                        else
+                            throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                        end
+                    end
+                end
+            end
+            if jobvt == 'A' && size(ws.VT) != (n, n)
+                if resize
+                    resize!(ws, A, jobu = jobu, jobvt = jobvt)
+                else
+                    throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                end
+            elseif jobvt == 'S' && size(ws.VT) != (minmn, n)
+                if resize
+                    resize!(ws, A, jobu = jobu, jobvt = jobvt)
+                else
+                    throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                end
+            elseif jobvt == 'O'
+                if m >= n
+                    if size(ws.VT) != (n, n)
+                        if resize
+                            resize!(ws, A, jobu = jobu, jobvt = jobvt)
+                        else
+                            throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                        end
+                    end
+                else
+                    if size(ws.VT, 1) != n
+                        if resize
+                            resize!(ws, A, jobu = jobu, jobvt = jobvt)
+                        else
+                            throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                        end
+                    end
+                end
+            end
             cmplx = eltype(A) <: Complex
             info = Ref{BlasInt}()
             if cmplx
@@ -377,7 +476,7 @@ for (gesvd, elty, relty) in ((:dgesvd_, :Float64, :Float64),
 end
 
 """
-    gesvd!(ws, jobu, jobvt, A) -> (U, S, VT)
+    gesvd!(ws, jobu, jobvt, A; resize = true) -> (U, S, VT)
 
 Finds the singular value decomposition of `A`, `A = U * S * V'`
 using a preallocated [`SVDsvdWs`](@ref).
@@ -390,6 +489,8 @@ and returned separately. If `jobvt = S` the rows of (thin) `V'` are
 computed and returned separately. `jobu` and `jobvt` can't both be `O`.
 
 Returns `U`, `S`, and `Vt`, where `S` are the singular values of `A`.
+If `ws` does not have the appropriate size for `A` and the work to be done,
+if `resize=true`, it will be automatically resized accordingly. 
 """
 gesvd!(ws::SVDsvdWs, jobu::AbstractChar, jobvt::AbstractChar, A::AbstractMatrix)
 
@@ -565,7 +666,8 @@ for (ggsvd3, elty, relty) in ((:dggsvd3_, :Float64, :Float64),
         #       COMPLEX*16         A( LDA, * ), B( LDB, * ), Q( LDQ, * ),
         #      $                   U( LDU, * ), V( LDV, * ), WORK( * )
         function ggsvd3!(ws::GeneralizedSVDWs, jobu::AbstractChar, jobv::AbstractChar,
-                jobq::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty})
+                         jobq::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
+                         resize = true)
             require_one_based_indexing(A, B)
             chkstride1(A, B)
             if VERSION >= v"1.11"
@@ -585,6 +687,27 @@ for (ggsvd3, elty, relty) in ((:dggsvd3_, :Float64, :Float64),
             ldu = max(1, m)
             ldv = max(1, p)
             ldq = max(1, n)
+            if jobu == 'U' && size(ws.U) != (ldu, m)
+                if resize
+                    resize!(ws, A, jobu = jobu, jobv = jobv, jobq = jobq)
+                else
+                    throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                end
+            end                
+            if jobv == 'V' && size(ws.V) != (ldv, p)
+                if resize
+                    resize!(ws, A, jobu = jobu, jobv = jobv, jobq = jobq)
+                else
+                    throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                end
+            end                
+            if jobq == 'Q' && size(ws.Q) != (ldq, n)
+                if resize
+                    resize!(ws, A, jobu = jobu, jobv = jobv, jobq = jobq)
+                else
+                    throw(ArgumentError("Workspace has wrong size, use resize!()."))
+                end
+            end                
             cmplx = eltype(A) <: Complex
             info = Ref{BlasInt}()
             if cmplx
@@ -633,7 +756,7 @@ for (ggsvd3, elty, relty) in ((:dggsvd3_, :Float64, :Float64),
 end
 
 """
-    ggsvd3!(ws, jobu, jobv, jobq, A, B) -> (U, V, Q, alpha, beta, k, l, R)
+    ggsvd3!(ws, jobu, jobv, jobq, A, B; rezise = true) -> (U, V, Q, alpha, beta, k, l, R)
 
 Finds the generalized singular value decomposition of `A` and `B`, `U'*A*Q = D1*R`
 and `V'*B*Q = D2*R`, using a preallocated [`GeneralizedSVDWs`](@ref).
@@ -642,6 +765,8 @@ diagonal. If `jobu = U`, the orthogonal/unitary matrix `U` is computed. If
 `jobv = V` the orthogonal/unitary matrix `V` is computed. If `jobq = Q`,
 the orthogonal/unitary matrix `Q` is computed. If `jobu`, `jobv`, or `jobq` is
 `N`, that matrix is not computed. This function requires LAPACK 3.6.0.
+If `ws` does not have the appropriate size for `A`, `B`, and the work to be done,
+if `resize=true`, it will be automatically resized accordingly. 
 """
 ggsvd3!(ws::GeneralizedSVDWs, jobu::AbstractChar, jobv::AbstractChar, jobq::AbstractChar,
-    A::AbstractMatrix, B::AbstractMatrix)
+    A::AbstractMatrix, B::AbstractMatrix; resize = true)
