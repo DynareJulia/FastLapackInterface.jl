@@ -314,10 +314,7 @@ It is possible to select the eigenvalues appearing in the top left corner of the
     - `id`: Interior of disk (abs(eigenvalue)^2 < criterium) 
     - `ed`: Exterior of disk (abs(eigenvalue)^2 >= criterium)
   and setting `criterium`.
-- by setting `select` equal to a function used to sort the eigenvalues during the decomponsition. In this case, the `criterium` keyword isn't used.
-The function should have the signature `f(wr::T, wi::T) -> Bool`, where
-`wr` and `wi` are the real and imaginary parts of the eigenvalue, and `T == eltype(A)`. 
-This is not available on aarch64 architecture.
+- by setting `select` equal to a function used to sort the eigenvalues during the decomponsition. In this case, the `criterium` keyword isn't used. The function should have the signature `f(wr::T, wi::T) -> Bool`, where `wr` and `wi` are the real and imaginary parts of the eigenvalue, and `T == eltype(A)`. This is not available on aarch64 architecture.
 
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 
@@ -538,10 +535,7 @@ It is possible to select the eigenvalues appearing in the top left corner of the
     - `id`: Interior of disk (abs(eigenvalue)^2 < criterium) 
     - `ed`: Exterior of disk (abs(eigenvalue)^2 >= criterium)
   and setting `criterium`.
-- by setting `select` equal to a function used to sort the eigenvalues during the decomposition. In this case, the `criterium` keyword isn't used. The function should have the signature `f(αr::T, αi::T, β::T) -> Bool` where `T == eltype(A)`.  
-An eigenvalue `(αr[j]+αi[j])/β[j]` is selected if `f(αr[j],αi[j],β[j])` is true, 
-i.e. if either one of a complex conjugate pair of eigenvalues is selected,
-then both complex eigenvalues are selected. This is not available on aarch64 architecture.
+- by setting `select` equal to a function used to sort the eigenvalues during the decomposition. In this case, the `criterium` keyword isn't used. The function should have the signature `f(αr::T, αi::T, β::T) -> Bool` where `T == eltype(A)`. An eigenvalue `(αr[j]+αi[j])/β[j]` is selected if `f(αr[j],αi[j],β[j])` is true, i.e. if either one of a complex conjugate pair of eigenvalues is selected, then both complex eigenvalues are selected. This is not available on aarch64 architecture.
 The generalized eigenvalues components are returned in `ws.α` and `ws.β` where `ws.α` is a complex vector and `ẁs.β`, a real vector.
 The generalized eigenvalues (`ws.α./ws.β`) are returned in `ws.eigen_values`, a complex vector. 
 The left Schur vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
