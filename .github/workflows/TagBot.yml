@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: JuliaRegistries/TagBot@v1
         with:
-          token: ${{ secrets.WORKFLOW_TOKEN }}
+          ssh: ${{ secrets.DOCUMENTER_TOKEN }}
