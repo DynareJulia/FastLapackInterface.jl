@@ -41,7 +41,7 @@ end
         
     end
 
-    if Sys.ARCH != "aarch64"
+    if Sys.ARCH != :aarch64
         @testset "Real, square, select" begin
             A0 = [0.689816 0.173898 -0.489104
                   -1.48437 1.06514 2.19973
@@ -112,7 +112,7 @@ end
 
     #TODO: This should be tested with something realistic
     @show Sys.ARCH
-    if Sys.ARCH != "aarch64"
+    if Sys.ARCH != :aarch64
         @testset "Real, square, select" begin
             A0 = [-1.1189 -1.1333 -0.985796
                   1.32901 0.628691 0.651912
