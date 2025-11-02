@@ -317,7 +317,7 @@ The function should have the signature `f(wr::T, wi::T) -> Bool`, where
 
 Returns `A`, `vs` containing the Schur vectors, and `ws.eigen_values`.
 
-See also FastLapackInterface.SCHURODER
+See also FastLapackInterface.SCHURORDER
 """
 gees!(ws::SchurWs, jobvs::AbstractChar, A::AbstractMatrix; kwargs...)
 
@@ -540,7 +540,7 @@ The generalized eigenvalues components are returned in `ws.α` and `ws.β` where
 The generalized eigenvalues (`ws.α./ws.β`) are returned in `ws.eigen_values`, a complex vector. 
 The left Schur vectors are returned in `ws.vsl` and the right Schur vectors are returned in `ws.vsr`.
 
-See also FastLapackInterface.SCHURODER
+See also FastLapackInterface.SCHURORDER
 """
 gges!(
     ws::GeneralizedSchurWs, jobvsl::AbstractChar, jobvsr::AbstractChar, A::AbstractMatrix,
