@@ -111,6 +111,7 @@ end
     end
 
     #TODO: This should be tested with something realistic
+    @show Sys.ARCH
     if Sys.ARCH != "aarch64"
         @testset "Real, square, select" begin
             A0 = [-1.1189 -1.1333 -0.985796
