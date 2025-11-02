@@ -6,6 +6,7 @@ Eliminating most of the allocations not only improves the computation time of th
 DocTestSetup = quote
     using LinearAlgebra, FastLapackInterface
     using LinearAlgebra: LAPACK
+DocTestFilters = r"(\d*)\.(\d{15})\d+" => s"\1.\2"
 end
 ```
 
