@@ -58,8 +58,11 @@ GeneralizedSchurWs
 ## [SVD](@id SVD-id)
 ```@docs
 SVDsddWs
+SVDsddWs(::AbstractMatrix; job::AbstractChar)
 SVDsvdWs
+SVDsvdWs(::AbstractMatrix; jobu::AbstractChar, jobv::AbstractChar)
 GeneralizedSVDWs
+GeneralizedSVDWs(::AbstractMatrix; job::AbstractChar, jobv::AbstractChar, jobq::AbstractChar)
 ```
 
 

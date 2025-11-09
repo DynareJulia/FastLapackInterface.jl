@@ -23,45 +23,8 @@ import LinearAlgebra.LAPACK: gesdd!, gesvd!, ggsvd3!
 """
     SVDsddWs
 
-Workspace for [`LinearAlgebra.SVD`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD)
+creates a workspace for [`LinearAlgebra.SVD`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD)
 factorization using the [`LAPACK.gesdd!`](@ref) function.
-
-# Examples
-```jldoctest
-julia> A = [1.2 2.3
-            6.2 3.3]
-2×2 Matrix{Float64}:
- 1.2  2.3
- 6.2  3.3
-
-julia> ws = FastLapackInterface.SVDsddWs(A)
-SVDsddWs{Float64, Matrix{Float64}, Float64}
-  U: 2×2 Matrix{Float64}
-  VT: 2×2 Matrix{Float64}
-  work: 134-element Vector{Float64}
-  S: 2-element Vector{Float64}
-  rwork: 0-element Vector{Float64}
-  iwork: 16-element Vector{Int64}
-
-
-julia> t = FastLapackInterface.gesdd!(ws, 'A', A);
-
-julia> LinearAlgebra.SVD(t[1], t[2], t[3])
-SVD{Float64, Float64, Matrix{Float64}, Vector{Float64}}
-U factor:
-2×2 Matrix{Float64}:
- -0.302437  -0.953169
- -0.953169   0.302437
-singular values:
-2-element Vector{Float64}:
- 7.355199814161389
- 1.400369841777625
-Vt factor:
-2×2 Matrix{Float64}:
- -0.852808  -0.522224
-  0.522224  -0.852808
-
-```
 """
 mutable struct SVDsddWs{T, MT <: AbstractMatrix{T}, RT <: AbstractFloat} <: Workspace
     U::MT
@@ -140,7 +103,7 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
             resize!(ws.work, lwork)
             return ws
         end
-
+        
         SVDsddWs(A::AbstractMatrix{$elty}; kwargs...) = Base.resize!(
             SVDsddWs(similar(A, 0, 0), similar(A, 0, 0), Vector{$elty}(undef, 1),
                 Vector{$relty}(undef, 0), Vector{$relty}(undef, 0), Vector{BlasInt}(
@@ -217,9 +180,10 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
                         Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
                         Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
                         Ptr{BlasInt}, Ref{BlasInt}, Clong),
-                    job, m, n, A, max(1, stride(A, 2)), ws.S, ws.U,
-                    max(1, stride(ws.U, 2)), ws.VT, max(1, stride(ws.VT, 2)),
-                    ws.work, length(ws.work), ws.iwork, info, 1)
+                      job, m, n, A,
+                      max(1, stride(A, 2)), ws.S, ws.U, max(1, stride(ws.U, 2)),
+                      ws.VT, max(1, stride(ws.VT, 2)), ws.work, length(ws.work),
+                      ws.iwork, info, 1)
             end
             chklapackerror(info[])
             if job == 'O'
@@ -234,26 +198,16 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
     end
 end
 
-"""
-    gesdd!(ws, job, A; resize = true) -> (U, S, VT)
-
-Finds the singular value decomposition of `A`, `A = U * S * V'`,
-using a divide and conquer approachusing a preallocated [`SVDsddWs`](@ref).
-If `job = A`, all the columns of `U` and
-the rows of `V'` are computed. If `job = N`, no columns of `U` or rows of `V'`
-are computed. If `job = O`, `A` is overwritten with the columns of (thin) `U`
-and the rows of (thin) `V'`. If `job = S`, the columns of (thin) `U` and the
-rows of (thin) `V'` are computed and returned separately.
-If `ws` does not have the appropriate size for `A` and the work to be done,
-if `resize=true`, it will be automatically resized accordingly. 
-"""
-gesdd!(ws::SVDsddWs, job::AbstractChar, A::AbstractMatrix)
 
 """
-    SVDsvdWs
+    SVDsddWs(A; job = 'A')
 
-Workspace for [`LinearAlgebra.SVD`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD)
-factorization using the [`LAPACK.gesvd!`](@ref) function.
+creates a workspace for [`LinearAlgebra.SVD`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD)
+factorization using the [`LAPACK.gesdd!`](@ref) function.
+
+# Arguments
+- `A::AbstractMatrix`: the matrix to be decomposed. Only the shape of the matrix matters for building the workspace. The actual ellements value does not.
+- `job::AbstractChar`: one of `A`, `N`, `O` or `S`. Default = 'A'. See [gesdd!](@ref).
 
 # Examples
 ```jldoctest
@@ -263,17 +217,18 @@ julia> A = [1.2 2.3
  1.2  2.3
  6.2  3.3
 
-julia> ws = SVDsvdWs(A)
-SVDsvdWs{Float64, Matrix{Float64}, Float64}
+julia> ws = FastLapackInterface.SVDsddWs(A, job = 'A')
+SVDsddWs{Float64, Matrix{Float64}, Float64}
   U: 2×2 Matrix{Float64}
   VT: 2×2 Matrix{Float64}
   work: 134-element Vector{Float64}
   S: 2-element Vector{Float64}
   rwork: 0-element Vector{Float64}
+  iwork: 16-element Vector{Int64}
 
-julia> t = FastLapackInterface.gesvd!(ws, 'A', 'A', A);
+julia> t = FastLapackInterface.gesdd!(ws, 'A', A);
 
-julia> SVD(t[1], t[2], t[3])
+julia> LinearAlgebra.SVD(t[1], t[2], t[3])
 SVD{Float64, Float64, Matrix{Float64}, Vector{Float64}}
 U factor:
 2×2 Matrix{Float64}:
@@ -288,6 +243,29 @@ Vt factor:
  -0.852808  -0.522224
   0.522224  -0.852808
 ```
+"""
+SVDsddWs(::AbstractMatrix; job::AbstractChar)
+
+"""
+    gesdd!(ws, job, A; resize = true) -> (U, S, VT)
+
+Finds the singular value decomposition of `A`, `A = U * S * V'`,
+using a divide and conquer approachusing a preallocated [`SVDsddWs`](@ref).
+If `job : A`, all the columns of `U` and
+the rows of `V'` are computed. If `job = N`, no columns of `U` or rows of `V'`
+are computed. If `job = O`, `A` is overwritten with the columns of (thin) `U`
+and the rows of (thin) `V'`. If `job = S`, the columns of (thin) `U` and the
+rows of (thin) `V'` are computed and returned separately. The value of `job` must be the same in `SVDsddWs` and in 'gesdd!`.
+If `ws` does not have the appropriate size for `A` and the work to be done,
+if `resize=true`, it will be automatically resized accordingly. 
+"""
+gesdd!(ws::SVDsddWs, job::AbstractChar, A::AbstractMatrix)
+
+"""
+    SVDsvdWs
+
+Workspace for [`LinearAlgebra.SVD`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD)
+factorization using the [`LAPACK.gesvd!`](@ref) function.
 """
 mutable struct SVDsvdWs{T, MT <: AbstractMatrix{T}, RT <: AbstractFloat} <: Workspace
     U::MT
@@ -476,6 +454,53 @@ for (gesvd, elty, relty) in ((:dgesvd_, :Float64, :Float64),
 end
 
 """
+    SVDsvdWs(A; jobu = 'A', jobvt = 'A') 
+
+creates a workspace for [`LinearAlgebra.SVD`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD)
+factorization using the [`LAPACK.gesvd!`](@ref) function.
+
+# Arguments
+- `A::AbstractMatrix`: the matrix to be decomposed. Only the shape of the matrix matters for building the workspace. The actual ellements value does not.
+- `jobu::AbstractChar`: one of `A`, `N`, `O` or `S`. Default = 'A'. See [gesvd!](@ref).
+- `jobvt::AbstractChar`: one of `A`, `N`, `O` or `S`. Default = 'A'. See [gesvd!](@ref).
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> ws = SVDsvdWs(A, jobu = 'A', jobvt = 'A')
+SVDsvdWs{Float64, Matrix{Float64}, Float64}
+  U: 2×2 Matrix{Float64}
+  VT: 2×2 Matrix{Float64}
+  work: 134-element Vector{Float64}
+  S: 2-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+
+julia> t = FastLapackInterface.gesvd!(ws, 'A', 'A', A);
+
+julia> SVD(t[1], t[2], t[3])
+SVD{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+U factor:
+2×2 Matrix{Float64}:
+ -0.302437  -0.953169
+ -0.953169   0.302437
+singular values:
+2-element Vector{Float64}:
+ 7.355199814161389
+ 1.400369841777625
+Vt factor:
+2×2 Matrix{Float64}:
+ -0.852808  -0.522224
+  0.522224  -0.852808
+```
+"""
+SVDsvdWs(A::AbstractMatrix; jobu = 'A', jobvt = 'A')
+
+"""
     gesvd!(ws, jobu, jobvt, A; resize = true) -> (U, S, VT)
 
 Finds the singular value decomposition of `A`, `A = U * S * V'`
@@ -486,7 +511,7 @@ of `V'` are computed. If `jobu = N`, no columns of `U` are computed. If
 the columns of (thin) `U`. If `jobvt = O`, `A` is overwritten with the rows
 of (thin) `V'`. If `jobu = S`, the columns of (thin) `U` are computed
 and returned separately. If `jobvt = S` the rows of (thin) `V'` are
-computed and returned separately. `jobu` and `jobvt` can't both be `O`.
+computed and returned separately. `jobu` and `jobvt` can't both be `O`. The value of `jobu` and `jobvt` must be the same in `SVDsvdWs` and in `gesvd!`
 
 Returns `U`, `S`, and `Vt`, where `S` are the singular values of `A`.
 If `ws` does not have the appropriate size for `A` and the work to be done,
@@ -499,62 +524,6 @@ gesvd!(ws::SVDsvdWs, jobu::AbstractChar, jobvt::AbstractChar, A::AbstractMatrix)
 
 Workspace for [`LinearAlgebra.SVD`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSVD)
 factorization using the [`LAPACK.ggsvd3!`](@ref) function.
-
-# Examples
-```jldoctest
-julia> A = [1.2 2.3
-            6.2 3.3]
-2×2 Matrix{Float64}:
- 1.2  2.3
- 6.2  3.3
-
-julia> B = [2.2 3.3
-            5.2 4.3]
-2×2 Matrix{Float64}:
- 2.2  3.3
- 5.2  4.3
-
-julia> ws = GeneralizedSVDWs(A, B)
-GeneralizedSVDWs{Float64, Matrix{Float64}, Float64}
-  alpha: 2-element Vector{Float64}
-  beta: 2-element Vector{Float64}
-  U: 2×2 Matrix{Float64}
-  V: 2×2 Matrix{Float64}
-  Q: 2×2 Matrix{Float64}
-  work: 102-element Vector{Float64}
-  rwork: 0-element Vector{Float64}
-  iwork: 2-element Vector{Int64}
-
-
-julia> t = FastLapackInterface.ggsvd3!(ws, 'U', 'V', 'Q', A, B);
-
-julia> GeneralizedSVD(t...)
-GeneralizedSVD{Float64, Matrix{Float64}, Float64, Vector{Float64}}
-U factor:
-2×2 Matrix{Float64}:
- -0.309806  0.9508
-  0.9508    0.309806
-V factor:
-2×2 Matrix{Float64}:
- -0.653816  0.756653
-  0.756653  0.653816
-Q factor:
-2×2 Matrix{Float64}:
-  0.723532  0.690291
- -0.690291  0.723532
-D1 factor:
-2×2 Matrix{Float64}:
- 0.911256  0.0
- 0.0       0.517359
-D2 factor:
-2×2 Matrix{Float64}:
- 0.411841  0.0
- 0.0       0.855768
-R0 factor:
-2×2 Matrix{Float64}:
- 2.54834  6.10941
- 0.0      8.57328
-```
 """
 mutable struct GeneralizedSVDWs{T, MT <: AbstractMatrix{T}, RT <: AbstractFloat} <:
                Workspace
@@ -756,7 +725,79 @@ for (ggsvd3, elty, relty) in ((:dggsvd3_, :Float64, :Float64),
 end
 
 """
-    ggsvd3!(ws, jobu, jobv, jobq, A, B; rezise = true) -> (U, V, Q, alpha, beta, k, l, R)
+    GeneralizedSVDWs(A::AbstractMatrix; jobu = 'U', jobv = 'V', jobq = 'Q')
+
+creates a workspace for [`LinearAlgebra.SVD`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD)
+factorization using the [`LAPACK.ggsvd3!`](@ref) function.
+
+# Arguments
+- `A::AbstractMatrix`: the matrix to be decomposed. Only the shape of the matrix matters for building the workspace. The actual ellements value does not.
+- `jobu::AbstractChar`: one of `U` or `N`. Default = 'U'. See [ggsvd3!](@ref).
+- `jobv::AbstractChar`: one of `V` or `N`. Default = 'V'. See [ggsvd3!](@ref).
+- `jobq::AbstractChar`: one of `Q` or `N`. Default = 'Q'. See [ggsvd3!](@ref).
+
+# Arguments
+
+# Examples
+```jldoctest
+julia> A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia> B = [2.2 3.3
+            5.2 4.3]
+2×2 Matrix{Float64}:
+ 2.2  3.3
+ 5.2  4.3
+
+julia> ws = GeneralizedSVDWs(A, B)
+GeneralizedSVDWs{Float64, Matrix{Float64}, Float64}
+  alpha: 2-element Vector{Float64}
+  beta: 2-element Vector{Float64}
+  U: 2×2 Matrix{Float64}
+  V: 2×2 Matrix{Float64}
+  Q: 2×2 Matrix{Float64}
+  work: 102-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+  iwork: 2-element Vector{Int64}
+
+
+julia> t = FastLapackInterface.ggsvd3!(ws, 'U', 'V', 'Q', A, B);
+
+julia> GeneralizedSVD(t...)
+GeneralizedSVD{Float64, Matrix{Float64}, Float64, Vector{Float64}}
+U factor:
+2×2 Matrix{Float64}:
+ -0.309806  0.9508
+  0.9508    0.309806
+V factor:
+2×2 Matrix{Float64}:
+ -0.653816  0.756653
+  0.756653  0.653816
+Q factor:
+2×2 Matrix{Float64}:
+  0.723532  0.690291
+ -0.690291  0.723532
+D1 factor:
+2×2 Matrix{Float64}:
+ 0.911256  0.0
+ 0.0       0.517359
+D2 factor:
+2×2 Matrix{Float64}:
+ 0.411841  0.0
+ 0.0       0.855768
+R0 factor:
+2×2 Matrix{Float64}:
+ 2.54834  6.10941
+ 0.0      8.57328
+```
+"""
+GeneralizedSVDWs(A::AbstractMatrix; jobu::AbstractChar = 'U', jobv::AbstractChar = 'V', jobq::AbstractChar = 'Q')
+
+"""
+    ggsvd3!(ws, jobu, jobv, jobq, A, B; resize = true) -> (U, V, Q, alpha, beta, k, l, R)
 
 Finds the generalized singular value decomposition of `A` and `B`, `U'*A*Q = D1*R`
 and `V'*B*Q = D2*R`, using a preallocated [`GeneralizedSVDWs`](@ref).
@@ -764,7 +805,7 @@ and `V'*B*Q = D2*R`, using a preallocated [`GeneralizedSVDWs`](@ref).
 diagonal. If `jobu = U`, the orthogonal/unitary matrix `U` is computed. If
 `jobv = V` the orthogonal/unitary matrix `V` is computed. If `jobq = Q`,
 the orthogonal/unitary matrix `Q` is computed. If `jobu`, `jobv`, or `jobq` is
-`N`, that matrix is not computed. This function requires LAPACK 3.6.0.
+`N`, that matrix is not computed. The value of `jobu`, `jobv` and `jobq` must be the same in `GeneralizedSVDWs` and `ggsvd3!`. This function requires LAPACK 3.6.0.
 If `ws` does not have the appropriate size for `A`, `B`, and the work to be done,
 if `resize=true`, it will be automatically resized accordingly. 
 """
