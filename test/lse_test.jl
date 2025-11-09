@@ -5,7 +5,7 @@ using LinearAlgebra.LAPACK
 @testset "LSEWs" begin
     n = 16
     m = 8
-    p = 10 
+    p = 10
     for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset "$T" begin
             A0 = rand(T, m, n)
@@ -26,16 +26,19 @@ using LinearAlgebra.LAPACK
                 # using Workspace, factorize!
                 ws = Workspace(LAPACK.gglse!, copy(A0))
                 X2, err2 = factorize!(ws, copy(A0), copy(c0), copy(B0), copy(d0))
-                
+
                 @test isapprox(X1, X2)
                 for div in (-1, 1)
-                    @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, rand(T, m, n+div), copy(c0), rand(T, p+div, n+div), rand(T, p+div); resize=false)
-                    factorize!(ws, rand(T, m, n+div), copy(c0), rand(T, p+div, n+div), rand(T, p+div))
-                    @test size(ws.X , 1) == n+div
-                    @test size(ws.work , 1) >= p+div + min(m, n+div) + max(m,n+div)*32
+                    @test_throws FastLapackInterface.WorkspaceSizeError factorize!(
+                        ws, rand(T, m, n + div), copy(c0),
+                        rand(T, p + div, n + div), rand(T, p + div); resize = false)
+                    factorize!(ws, rand(T, m, n + div), copy(c0),
+                        rand(T, p + div, n + div), rand(T, p + div))
+                    @test size(ws.X, 1) == n + div
+                    @test size(ws.work, 1) >=
+                          p + div + min(m, n + div) + max(m, n + div) * 32
                 end
             end
         end
     end
 end
-

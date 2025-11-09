@@ -17,9 +17,9 @@ for n in sizes
     A = rand(n, n)
     suite["LUWs"]["creation"]["$n"] = @benchmarkable LUWs($A)
 end
-suite["LUWs"]["getrf!"]              = BenchmarkGroup()
+suite["LUWs"]["getrf!"] = BenchmarkGroup()
 suite["LUWs"]["getrf!"]["workspace"] = BenchmarkGroup()
-suite["LUWs"]["getrf!"]["LAPACK"]    = BenchmarkGroup()
+suite["LUWs"]["getrf!"]["LAPACK"] = BenchmarkGroup()
 
 function bench_getrf!(As, ws)
     for A in As

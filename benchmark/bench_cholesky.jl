@@ -17,13 +17,13 @@ for n in sizes
     A = rand(n, n)
     suite["Cholesky"]["creation"]["$n"] = @benchmarkable CholeskyPivotedWs($A)
 end
-suite["Cholesky"]["pstrf!"]              = BenchmarkGroup()
+suite["Cholesky"]["pstrf!"] = BenchmarkGroup()
 suite["Cholesky"]["pstrf!"]["workspace"] = BenchmarkGroup()
-suite["Cholesky"]["pstrf!"]["LAPACK"]    = BenchmarkGroup()
+suite["Cholesky"]["pstrf!"]["LAPACK"] = BenchmarkGroup()
 
 function bench_pstrf!(As, ws)
     for A in As
-        LAPACK.pstrf!(ws,'U', A, 1e-6)
+        LAPACK.pstrf!(ws, 'U', A, 1e-6)
     end
 end
 function bench_pstrf!(As)

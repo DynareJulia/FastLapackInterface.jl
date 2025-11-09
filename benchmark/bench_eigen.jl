@@ -15,9 +15,9 @@ for n in sizes
     suite["EigenWs"]["creation"]["$n"] = @benchmarkable EigenWs($A)
 end
 
-suite["EigenWs"]["geevx!"]              = BenchmarkGroup()
+suite["EigenWs"]["geevx!"] = BenchmarkGroup()
 suite["EigenWs"]["geevx!"]["workspace"] = BenchmarkGroup()
-suite["EigenWs"]["geevx!"]["LAPACK"]    = BenchmarkGroup()
+suite["EigenWs"]["geevx!"]["LAPACK"] = BenchmarkGroup()
 
 function bench_geevx!(As, ws)
     for A in As
@@ -43,9 +43,9 @@ for n in sizes
     suite["HermitianEigenWs"]["creation"]["$n"] = @benchmarkable HermitianEigenWs($A)
 end
 
-suite["HermitianEigenWs"]["syevr!"]              = BenchmarkGroup()
+suite["HermitianEigenWs"]["syevr!"] = BenchmarkGroup()
 suite["HermitianEigenWs"]["syevr!"]["workspace"] = BenchmarkGroup()
-suite["HermitianEigenWs"]["syevr!"]["LAPACK"]    = BenchmarkGroup()
+suite["HermitianEigenWs"]["syevr!"]["LAPACK"] = BenchmarkGroup()
 
 function bench_syevr!(As, ws)
     for A in As
@@ -62,8 +62,9 @@ for n in sizes
     As .= (As .+ adjoint.(As)) ./ 2
 
     ws = HermitianEigenWs(As[1]; vecs = true)
-    suite["HermitianEigenWs"]["syevr!"]["workspace"]["$n"] = @benchmarkable bench_syevr!($As,
-                                                                                         $ws)
+    suite["HermitianEigenWs"]["syevr!"]["workspace"]["$n"] = @benchmarkable bench_syevr!(
+        $As,
+        $ws)
     suite["HermitianEigenWs"]["syevr!"]["LAPACK"]["$n"] = @benchmarkable bench_syevr!($As)
 end
 

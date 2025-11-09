@@ -8,10 +8,10 @@ using LinearAlgebra.LAPACK
         A0 = randn(n, n)
         ws = EigenWs(copy(A0); lvecs = true, sense = true)
 
-        A1, WR1, WI1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 =
-            LAPACK.geevx!('P', 'V', 'V', 'V', copy(A0))
-        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            LAPACK.geevx!(ws, 'P', 'V', 'V', 'V', copy(A0))
+        A1, WR1, WI1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 = LAPACK.geevx!(
+            'P', 'V', 'V', 'V', copy(A0))
+        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = LAPACK.geevx!(
+            ws, 'P', 'V', 'V', 'V', copy(A0))
 
         @test isapprox(A1, A2)
         @test isapprox(WR1, WR2)
@@ -26,8 +26,8 @@ using LinearAlgebra.LAPACK
 
         # using Workspace, factorize!
         ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
-        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 =
-            factorize!(ws, 'P', 'V', 'V', 'V', copy(A0))
+        A2, WR2, WI2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = factorize!(
+            ws, 'P', 'V', 'V', 'V', copy(A0))
         @test isapprox(A1, A2)
         @test isapprox(WR1, WR2)
         @test isapprox(WI1, WI2)
@@ -38,22 +38,26 @@ using LinearAlgebra.LAPACK
         @test isapprox(scale1, scale2)
         @test isapprox(abnrm1, abnrm2)
         @test isapprox(rcondv1, rcondv2; atol = 1e-16)
-        
-        ws = Workspace(LAPACK.geevx!, copy(A0); lvecs=false, rvecs=false, sense=false)
+
+        ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = false, rvecs = false, sense = false)
         @test size(ws.VL, 1) == 0
-        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'N', 'N', copy(A0); resize=false)
+        @test_throws ArgumentError factorize!(
+            ws, 'P', 'V', 'N', 'N', copy(A0); resize = false)
         factorize!(ws, 'P', 'V', 'N', 'N', copy(A0))
         @test size(ws.VL, 1) != 0
-        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'V', 'N', copy(A0); resize=false)
+        @test_throws ArgumentError factorize!(
+            ws, 'P', 'V', 'V', 'N', copy(A0); resize = false)
         factorize!(ws, 'P', 'V', 'V', 'N', copy(A0))
         @test size(ws.VR, 1) != 0
-        @test_throws ArgumentError factorize!(ws, 'P', 'V', 'V', 'E', copy(A0); resize=false)
+        @test_throws ArgumentError factorize!(
+            ws, 'P', 'V', 'V', 'E', copy(A0); resize = false)
         factorize!(ws, 'P', 'V', 'V', 'E', copy(A0))
         @test size(ws.iwork, 1) != 0
-        for div in (-1, 1)            
-            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, 'P', 'N', 'N', 'N',rand(n+div, n+div); resize=false)
-            factorize!(ws, 'P', 'N', 'N', 'N',rand(n+div, n+div))
-            @test length(ws.W) == n+div
+        for div in (-1, 1)
+            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(
+                ws, 'P', 'N', 'N', 'N', rand(n + div, n + div); resize = false)
+            factorize!(ws, 'P', 'N', 'N', 'N', rand(n + div, n + div))
+            @test length(ws.W) == n + div
         end
         show(devnull, "text/plain", ws)
     end
@@ -63,16 +67,16 @@ using LinearAlgebra.LAPACK
         ws = EigenWs(copy(A0); lvecs = true, sense = true)
 
         A1, W1, VL1, VR1, ilo1, ihi1, scale1, abnrm1, rconde1, rcondv1 = LAPACK.geevx!('N',
-                                                                                       'V',
-                                                                                       'V',
-                                                                                       'V',
-                                                                                       copy(A0))
+            'V',
+            'V',
+            'V',
+            copy(A0))
         A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = LAPACK.geevx!(ws,
-                                                                                       'N',
-                                                                                       'V',
-                                                                                       'V',
-                                                                                       'V',
-                                                                                       copy(A0))
+            'N',
+            'V',
+            'V',
+            'V',
+            copy(A0))
 
         @test isapprox(A1, A2)
         @test isapprox(W1, W2)
@@ -84,11 +88,12 @@ using LinearAlgebra.LAPACK
         @test isapprox(abnrm1, abnrm2)
         # using Workspace, factorize!
         ws = Workspace(LAPACK.geevx!, copy(A0); lvecs = true, sense = true)
-        A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = factorize!(ws, 'N',
-                                                                                    'V',
-                                                                                    'V',
-                                                                                    'V',
-                                                                                    copy(A0))
+        A2, W2, VL2, VR2, ilo2, ihi2, scale2, abnrm2, rconde2, rcondv2 = factorize!(
+            ws, 'N',
+            'V',
+            'V',
+            'V',
+            copy(A0))
         @test isapprox(A1, A2)
         @test isapprox(W1, W2)
         @test isapprox(VL1, VL2)
@@ -105,7 +110,7 @@ end
     n = 3
     @testset "Real, square" begin
         A0 = randn(n, n)
-        A0 = (A0 + A0')/2
+        A0 = (A0 + A0') / 2
         ws = HermitianEigenWs(copy(A0); vecs = true)
 
         w1, Z1 = LAPACK.syevr!('V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-6)
@@ -118,19 +123,23 @@ end
         @test isapprox(w1, w2)
         @test isapprox(Z2, Z2)
         show(devnull, "text/plain", ws)
-        
+
         ws = Workspace(LAPACK.syevr!, copy(A0); vecs = false)
-        for div in (-1, 1)            
-            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, 'N', 'A', 'U', randn(n+div, n+div), 0.0, 0.0, 0, 0, 1e-6; resize=false)
-            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, 'V', 'A', 'U', randn(n+div, n+div), 0.0, 0.0, 0, 0, 1e-6; resize=false)
-            w2, Z2 = factorize!(ws, 'V', 'A', 'U', randn(n+div, n+div), 0.0, 0.0, 0, 0, 1e-6)
-            @test length(ws.w) == n+div
-            @test size(ws.Z, 1) == n+div
+        for div in (-1, 1)
+            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(
+                ws, 'N', 'A', 'U', randn(n + div, n + div),
+                0.0, 0.0, 0, 0, 1e-6; resize = false)
+            @test_throws FastLapackInterface.WorkspaceSizeError factorize!(
+                ws, 'V', 'A', 'U', randn(n + div, n + div),
+                0.0, 0.0, 0, 0, 1e-6; resize = false)
+            w2, Z2 = factorize!(
+                ws, 'V', 'A', 'U', randn(n + div, n + div), 0.0, 0.0, 0, 0, 1e-6)
+            @test length(ws.w) == n + div
+            @test size(ws.Z, 1) == n + div
         end
         w2, Z2 = factorize!(ws, 'V', 'A', 'U', copy(A0), 0.0, 0.0, 0, 0, 1e-16)
         @test length(w2) == n
         @test sum(abs.(Matrix(Eigen(w2, Z2)) .- A0)) < 1e-12
-        
     end
 
     @testset "Complex, square" begin
@@ -172,22 +181,26 @@ end
         @test isapprox(vl1, vl2)
         @test isapprox(vr1, vr2)
         show(devnull, "text/plain", ws)
-        
+
         ws = Workspace(LAPACK.ggev!, copy(A0))
         @test size(ws.vl, 1) == 0
         @test size(ws.vr, 1) == 0
-        @test_throws ArgumentError LAPACK.ggev!(ws, 'N', 'V', copy(A0), copy(B0); resize=false)
+        @test_throws ArgumentError LAPACK.ggev!(
+            ws, 'N', 'V', copy(A0), copy(B0); resize = false)
         LAPACK.ggev!(ws, 'N', 'V', copy(A0), copy(B0))
         @test size(ws.vr, 1) == n
-        @test_throws ArgumentError LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0); resize=false)
+        @test_throws ArgumentError LAPACK.ggev!(
+            ws, 'V', 'V', copy(A0), copy(B0); resize = false)
         LAPACK.ggev!(ws, 'V', 'V', copy(A0), copy(B0))
         @test size(ws.vl, 1) == n
 
-        for div in (-1,1)
-            @test_throws FastLapackInterface.WorkspaceSizeError LAPACK.ggev!(ws, 'V', 'V', randn(n+div,n+div), randn(n+div, n+div), resize=false)
-            LAPACK.ggev!(ws, 'V', 'V', randn(n+div,n+div), randn(n+div, n+div))
-            @test size(ws.vl, 1) == n+div
-            @test size(ws.vr, 1) == n+div
+        for div in (-1, 1)
+            @test_throws FastLapackInterface.WorkspaceSizeError LAPACK.ggev!(
+                ws, 'V', 'V', randn(n + div, n + div),
+                randn(n + div, n + div), resize = false)
+            LAPACK.ggev!(ws, 'V', 'V', randn(n + div, n + div), randn(n + div, n + div))
+            @test size(ws.vl, 1) == n + div
+            @test size(ws.vr, 1) == n + div
         end
     end
 

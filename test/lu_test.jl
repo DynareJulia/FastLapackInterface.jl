@@ -27,13 +27,15 @@ m = 8
             @test F.U ≈ res.U
             @test UpperTriangular(reshape(res.U, n, n)) ≈ F.U
 
-            @test LAPACK.getrs!('N', res.factors, linws.ipiv, copy(B0)) == LAPACK.getrs!(linws, 'N', res.factors, copy(B0))
+            @test LAPACK.getrs!('N', res.factors, linws.ipiv, copy(B0)) ==
+                  LAPACK.getrs!(linws, 'N', res.factors, copy(B0))
 
             show(devnull, "text/plain", linws)
             for div in (-1, 1)
-                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(linws, rand(elty, n+div, n+div); resize=false)
-                factorize!(linws, rand(elty, n+div, n+div))
-                @test length(linws.ipiv) == n+div
+                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(
+                    linws, rand(elty, n + div, n + div); resize = false)
+                factorize!(linws, rand(elty, n + div, n + div))
+                @test length(linws.ipiv) == n + div
             end
 
             # res = LU(LAPACK.getrf!(collect(copy(A)'), linws)...)

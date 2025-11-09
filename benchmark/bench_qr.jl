@@ -14,9 +14,9 @@ for n in sizes
     A = rand(n, n)
     suite["QRWs"]["creation"]["$n"] = @benchmarkable QRWs($A)
 end
-suite["QRWs"]["geqrf!"]              = BenchmarkGroup()
+suite["QRWs"]["geqrf!"] = BenchmarkGroup()
 suite["QRWs"]["geqrf!"]["workspace"] = BenchmarkGroup()
-suite["QRWs"]["geqrf!"]["LAPACK"]    = BenchmarkGroup()
+suite["QRWs"]["geqrf!"]["LAPACK"] = BenchmarkGroup()
 
 function bench_geqrf!(As, ws)
     for A in As
@@ -35,9 +35,9 @@ for n in sizes
     suite["QRWs"]["geqrf!"]["workspace"]["$n"] = @benchmarkable bench_geqrf!($As, $ws)
     suite["QRWs"]["geqrf!"]["LAPACK"]["$n"] = @benchmarkable bench_geqrf!($As)
 end
-suite["QRWs"]["ormqr!"]              = BenchmarkGroup()
+suite["QRWs"]["ormqr!"] = BenchmarkGroup()
 suite["QRWs"]["ormqr!"]["workspace"] = BenchmarkGroup()
-suite["QRWs"]["ormqr!"]["LAPACK"]    = BenchmarkGroup()
+suite["QRWs"]["ormqr!"]["LAPACK"] = BenchmarkGroup()
 function bench_ormqr!(As, ws::QRWs)
     for A in As
         LAPACK.ormqr!(ws, 'L', 'N', A, A)
@@ -63,12 +63,12 @@ end
 suite["QRWYWs"] = BenchmarkGroup()
 suite["QRWYWs"]["creation"] = BenchmarkGroup()
 for n in sizes
-    suite["QRWYWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup = (A = rand($n, $n))
+    suite["QRWYWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup=(A = rand($n, $n))
 end
 
-suite["QRWYWs"]["geqrt!"]              = BenchmarkGroup()
+suite["QRWYWs"]["geqrt!"] = BenchmarkGroup()
 suite["QRWYWs"]["geqrt!"]["workspace"] = BenchmarkGroup()
-suite["QRWYWs"]["geqrt!"]["LAPACK"]    = BenchmarkGroup()
+suite["QRWYWs"]["geqrt!"]["LAPACK"] = BenchmarkGroup()
 
 function bench_geqrt!(As, ws)
     for A in As
@@ -83,11 +83,11 @@ end
 
 for n in sizes
     As = [rand(n, n) for i in 1:vector_length]
-    T  = rand(n, n)
+    T = rand(n, n)
     ws = QRWYWs(As[1])
 
     suite["QRWYWs"]["geqrt!"]["workspace"]["$n"] = @benchmarkable bench_geqrt!($As, $ws)
-    suite["QRWYWs"]["geqrt!"]["LAPACK"]["$n"]    = @benchmarkable bench_geqrt!($As, $T)
+    suite["QRWYWs"]["geqrt!"]["LAPACK"]["$n"] = @benchmarkable bench_geqrt!($As, $T)
 end
 
 ###### QRPivotedWs
@@ -95,16 +95,18 @@ end
 suite["QRPivotedWs"] = BenchmarkGroup()
 suite["QRPivotedWs"]["creation"] = BenchmarkGroup()
 for n in sizes
-    suite["QRPivotedWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup = (A = rand($n, $n))
+    suite["QRPivotedWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup=(A = rand(
+        $n, $n))
 end
 
 for n in sizes
-    suite["QRPivotedWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup = (A = rand($n, $n))
+    suite["QRPivotedWs"]["creation"]["$n"] = @benchmarkable QRWYWs(A) setup=(A = rand(
+        $n, $n))
 end
 
-suite["QRPivotedWs"]["geqp3!"]              = BenchmarkGroup()
+suite["QRPivotedWs"]["geqp3!"] = BenchmarkGroup()
 suite["QRPivotedWs"]["geqp3!"]["workspace"] = BenchmarkGroup()
-suite["QRPivotedWs"]["geqp3!"]["LAPACK"]    = BenchmarkGroup()
+suite["QRPivotedWs"]["geqp3!"]["LAPACK"] = BenchmarkGroup()
 
 function bench_geqp3!(As, ws)
     for A in As
@@ -118,13 +120,15 @@ function bench_geqp3!(As, lpvt, τ)
 end
 
 for n in sizes
-    As   = [rand(n, n) for i in 1:vector_length]
-    τ    = zeros(n)
+    As = [rand(n, n) for i in 1:vector_length]
+    τ = zeros(n)
     lpvt = zeros(Int, n)
-    ws   = QRPivotedWs(As[1])
+    ws = QRPivotedWs(As[1])
 
-    suite["QRPivotedWs"]["geqp3!"]["workspace"]["$n"] = @benchmarkable bench_geqp3!($As, $ws)
-    suite["QRPivotedWs"]["geqp3!"]["LAPACK"]["$n"]    = @benchmarkable bench_geqp3!($As, $lpvt, $τ)
+    suite["QRPivotedWs"]["geqp3!"]["workspace"]["$n"] = @benchmarkable bench_geqp3!(
+        $As, $ws)
+    suite["QRPivotedWs"]["geqp3!"]["LAPACK"]["$n"] = @benchmarkable bench_geqp3!(
+        $As, $lpvt, $τ)
 end
 
 end

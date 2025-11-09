@@ -42,7 +42,7 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
     (:cgesdd_, :ComplexF32, :Float32))
     @eval begin
         function Base.resize!(
-            ws::SVDsddWs, A::AbstractMatrix{$elty}; job::AbstractChar = 'A')
+                ws::SVDsddWs, A::AbstractMatrix{$elty}; job::AbstractChar = 'A')
             require_one_based_indexing(A)
             chkstride1(A)
             if VERSION >= v"1.11"
@@ -103,7 +103,7 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
             resize!(ws.work, lwork)
             return ws
         end
-        
+
         SVDsddWs(A::AbstractMatrix{$elty}; kwargs...) = Base.resize!(
             SVDsddWs(similar(A, 0, 0), similar(A, 0, 0), Vector{$elty}(undef, 1),
                 Vector{$relty}(undef, 0), Vector{$relty}(undef, 0), Vector{BlasInt}(
@@ -120,7 +120,8 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
         #      INTEGER            IWORK( * )
         #      DOUBLE PRECISION   A( LDA, * ), S( * ), U( LDU, * ),
         #                        VT( LDVT, * ), WORK( * )
-        function gesdd!(ws::SVDsddWs, job::AbstractChar, A::AbstractMatrix{$elty}; resize = true)
+        function gesdd!(
+                ws::SVDsddWs, job::AbstractChar, A::AbstractMatrix{$elty}; resize = true)
             require_one_based_indexing(A)
             chkstride1(A)
             if VERSION >= v"1.11"
@@ -180,10 +181,10 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
                         Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
                         Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
                         Ptr{BlasInt}, Ref{BlasInt}, Clong),
-                      job, m, n, A,
-                      max(1, stride(A, 2)), ws.S, ws.U, max(1, stride(ws.U, 2)),
-                      ws.VT, max(1, stride(ws.VT, 2)), ws.work, length(ws.work),
-                      ws.iwork, info, 1)
+                    job, m, n, A,
+                    max(1, stride(A, 2)), ws.S, ws.U, max(1, stride(ws.U, 2)),
+                    ws.VT, max(1, stride(ws.VT, 2)), ws.work, length(ws.work),
+                    ws.iwork, info, 1)
             end
             chklapackerror(info[])
             if job == 'O'
@@ -197,7 +198,6 @@ for (gesdd, elty, relty) in ((:dgesdd_, :Float64, :Float64),
         end
     end
 end
-
 
 """
     SVDsddWs(A; job = 'A')
@@ -635,8 +635,8 @@ for (ggsvd3, elty, relty) in ((:dggsvd3_, :Float64, :Float64),
         #       COMPLEX*16         A( LDA, * ), B( LDB, * ), Q( LDQ, * ),
         #      $                   U( LDU, * ), V( LDV, * ), WORK( * )
         function ggsvd3!(ws::GeneralizedSVDWs, jobu::AbstractChar, jobv::AbstractChar,
-                         jobq::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
-                         resize = true)
+                jobq::AbstractChar, A::AbstractMatrix{$elty}, B::AbstractMatrix{$elty},
+                resize = true)
             require_one_based_indexing(A, B)
             chkstride1(A, B)
             if VERSION >= v"1.11"
@@ -662,21 +662,21 @@ for (ggsvd3, elty, relty) in ((:dggsvd3_, :Float64, :Float64),
                 else
                     throw(ArgumentError("Workspace has wrong size, use resize!()."))
                 end
-            end                
+            end
             if jobv == 'V' && size(ws.V) != (ldv, p)
                 if resize
                     resize!(ws, A, jobu = jobu, jobv = jobv, jobq = jobq)
                 else
                     throw(ArgumentError("Workspace has wrong size, use resize!()."))
                 end
-            end                
+            end
             if jobq == 'Q' && size(ws.Q) != (ldq, n)
                 if resize
                     resize!(ws, A, jobu = jobu, jobv = jobv, jobq = jobq)
                 else
                     throw(ArgumentError("Workspace has wrong size, use resize!()."))
                 end
-            end                
+            end
             cmplx = eltype(A) <: Complex
             info = Ref{BlasInt}()
             if cmplx
@@ -794,7 +794,8 @@ R0 factor:
  0.0      8.57328
 ```
 """
-GeneralizedSVDWs(A::AbstractMatrix; jobu::AbstractChar = 'U', jobv::AbstractChar = 'V', jobq::AbstractChar = 'Q')
+GeneralizedSVDWs(A::AbstractMatrix; jobu::AbstractChar = 'U',
+    jobv::AbstractChar = 'V', jobq::AbstractChar = 'Q')
 
 """
     ggsvd3!(ws, jobu, jobv, jobq, A, B; resize = true) -> (U, V, Q, alpha, beta, k, l, R)
