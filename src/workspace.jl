@@ -133,11 +133,11 @@ end
 
 decompose!(ws::LSEWs, args...; kwargs...) = LAPACK.gglse!(ws, args...; kwargs...)
 
-decompose!(sw::SVDsddWs, A::AbstractMatrix; job = 'A') = LAPACK.gesdd!(ws, job, A)
-function decompose!(sw::SVDsvdWs, A::AbstractMatrix; jobu = 'A', jobvt = 'A')
+decompose!(ws::SVDsddWs, A::AbstractMatrix; job = 'A') = LAPACK.gesdd!(ws, job, A)
+function decompose!(ws::SVDsvdWs, A::AbstractMatrix; jobu = 'A', jobvt = 'A')
     LAPACK.gesdd!(ws, jobu, jobvt, A)
 end
-function decompose!(sw::GeneralizedSVDWs, A::AbstractMatrix,
+function decompose!(ws::GeneralizedSVDWs, A::AbstractMatrix,
         B::AbstractMatrix; jobu = 'U', jobv = 'V', jobq = 'Q')
     LAPACK.ggsvd3!(ws, jobu, jobv, jobq, A, B)
 end
