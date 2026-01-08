@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Work Spaces · FastLapackInterface.jl</title><meta name="title" content="Work Spaces · FastLapackInterface.jl"/><meta property="og:title" content="Work Spaces · FastLapackInterface.jl"/><meta property="twitter:title" content="Work Spaces · FastLapackInterface.jl"/><meta name="description" content="Documentation for FastLapackInterface.jl."/><meta property="og:description" content="Documentation for FastLapackInterface.jl."/><meta property="twitter:description" content="Documentation for FastLapackInterface.jl."/><meta property="og:url" content="https://dynarejulia.github.io/FastLapackInterface.jl/stable/workspaces/"/><meta property="twitter:url" content="https://dynarejulia.github.io/FastLapackInterface.jl/stable/workspaces/"/><link rel="canonical" href="https://dynarejulia.github.io/FastLapackInterface.jl/stable/workspaces/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">FastLapackInterface.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Work Spaces</a><ul class="internal"><li><a class="tocitem" href="#Workspace"><span>Workspace</span></a></li><li><a class="tocitem" href="#BunchKaufman-id"><span>BunchKaufman</span></a></li><li><a class="tocitem" href="#Cholesky-id"><span>Cholesky</span></a></li><li><a class="tocitem" href="#Eigen-id"><span>Eigen</span></a></li><li><a class="tocitem" href="#LSE-id"><span>LSE</span></a></li><li><a class="tocitem" href="#LU-id"><span>LU</span></a></li><li><a class="tocitem" href="#QR-id"><span>QR</span></a></li><li><a class="tocitem" href="#Schur-id"><span>Schur</span></a></li><li><a class="tocitem" href="#SVD-id"><span>SVD</span></a></li></ul></li><li><a class="tocitem" href="../LAPACK/">LAPACK</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Work Spaces</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Work Spaces</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/DynareJulia/FastLapackInterface.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/main/docs/src/workspaces.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="WorkSpaces"><a class="docs-heading-anchor" href="#WorkSpaces">Workspaces</a><a id="WorkSpaces-1"></a><a class="docs-heading-anchor-permalink" href="#WorkSpaces" title="Permalink"></a></h1><p><code>Workspaces</code> represent the buffers and temporary storage that are used during the computations of <a href="../LAPACK/#LAPACK"><code>LAPACK functions</code></a>. Upon initialization with a template matrix, work buffers will be allocated that are appropriate to be used during the factorization of matrices similar to the template, e.g. both <code>Float64</code> and <code>Float32</code> Matrices work, but also <code>Complex</code> numbers are allowed when appropriate.</p><h2 id="Workspace"><a class="docs-heading-anchor" href="#Workspace">Workspace</a><a id="Workspace-1"></a><a class="docs-heading-anchor-permalink" href="#Workspace" title="Permalink"></a></h2><p>The following convenience function is supplied in order to construct the correct <code>Workspace</code> for a given <a href="../LAPACK/#LAPACK"><code>LAPACK function</code></a>. This can then be used to perform the decompositions without extra allocations.</p><article><details class="docstring" open="true"><summary id="FastLapackInterface.Workspace"><a class="docstring-binding" href="#FastLapackInterface.Workspace"><code>FastLapackInterface.Workspace</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Workspace(lapack_function, A)</code></pre><p>Will create the correct <a href="#WorkSpaces"><code>Workspace</code></a> for the target <code>lapack_function</code> and matrix <code>A</code>.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = Workspace(LAPACK.geqrt!, A)
+QRWYWs{Float64, Matrix{Float64}}
+  work: 4-element Vector{Float64}
+  T: 2×2 Matrix{Float64}
+
+
+julia&gt; LinearAlgebra.QRCompactWY(factorize!(ws, A)...)
+LinearAlgebra.QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
+Q factor: 2×2 LinearAlgebra.QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}
+R factor:
+2×2 Matrix{Float64}:
+ -6.31506  -3.67692
+  0.0      -1.63102</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/workspace.jl#L11-L38">source</a></section></details></article><p>Each <a href="#Workspace"><code>Workspace</code></a> also has a function to <a href="#Base.resize!-Tuple{Workspace, AbstractMatrix}"><code>resize!</code></a> to allow for its use with larger matrices or with more features (e.g. the computation of left eigenvectors and right eigenvectors using <a href="#FastLapackInterface.EigenWs"><code>EigenWs</code></a>).</p><article><details class="docstring" open="true"><summary id="Base.resize!-Tuple{Workspace, AbstractMatrix}"><a class="docstring-binding" href="#Base.resize!-Tuple{Workspace, AbstractMatrix}"><code>Base.resize!</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">resize!(ws, A; kwargs...)</code></pre><p>Resizes the <code>ws</code> to be appropriate for use with matrix <code>A</code>. The <code>kwargs</code> can be used to communicate which features should be supported by the <a href="#Workspace"><code>Workspace</code></a>, such as left and right eigenvectors while using <a href="#FastLapackInterface.EigenWs"><code>EigenWs</code></a>. This function is mainly used for automatic resizing inside <a href="../LAPACK/#LAPACK"><code>LAPACK functions</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/workspace.jl#L152-L159">source</a></section></details></article><h2 id="BunchKaufman-id"><a class="docs-heading-anchor" href="#BunchKaufman-id">BunchKaufman</a><a id="BunchKaufman-id-1"></a><a class="docs-heading-anchor-permalink" href="#BunchKaufman-id" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="FastLapackInterface.BunchKaufmanWs"><a class="docstring-binding" href="#FastLapackInterface.BunchKaufmanWs"><code>FastLapackInterface.BunchKaufmanWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">BunchKaufmanWs</code></pre><p>Workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.BunchKaufman"><code>LinearAlgebra.BunchKaufman</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.sytrf!-Tuple{BunchKaufmanWs, AbstractChar, AbstractMatrix}"><code>LAPACK.sytrf!</code></a> or <a href="../LAPACK/#LinearAlgebra.LAPACK.sytrf_rook!-Tuple{BunchKaufmanWs, AbstractChar, AbstractMatrix}"><code>LAPACK.sytrf_rook!</code></a> functions for symmetric matrices, and <a href="../LAPACK/#LinearAlgebra.LAPACK.hetrf!-Tuple{BunchKaufmanWs, AbstractChar, AbstractMatrix}"><code>LAPACK.hetrf!</code></a> or <a href="../LAPACK/#LinearAlgebra.LAPACK.hetrf_rook!-Tuple{BunchKaufmanWs, AbstractChar, AbstractMatrix}"><code>LAPACK.hetrf_rook!</code></a> functions for hermitian matrices (e.g. with <code>ComplexF64</code> or <code>ComplexF32</code> elements).</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 7.8
+            7.8 3.3]
+2×2 Matrix{Float64}:
+ 1.2  7.8
+ 7.8  3.3
+
+julia&gt; ws = BunchKaufmanWs(A)
+BunchKaufmanWs{Float64}
+  work: 128-element Vector{Float64}
+  ipiv: 2-element Vector{Int64}
+
+
+julia&gt; A, ipiv, info = LAPACK.sytrf!(ws, &#39;U&#39;, A)
+([1.2 7.8; 7.8 3.3], [-1, -1], 0)
+
+julia&gt; t = LinearAlgebra.BunchKaufman(A, ipiv,&#39;U&#39;, true, false, info)
+BunchKaufman{Float64, Matrix{Float64}, Vector{Int64}}
+D factor:
+2×2 Tridiagonal{Float64, Vector{Float64}}:
+ 1.2  7.8
+ 7.8  3.3
+U factor:
+2×2 UnitUpperTriangular{Float64, Matrix{Float64}}:
+ 1.0  0.0
+  ⋅   1.0
+permutation:
+2-element Vector{Int64}:
+ 1
+ 2
+
+julia&gt; A = [1.2 7.8
+            7.8 3.3]
+2×2 Matrix{Float64}:
+ 1.2  7.8
+ 7.8  3.3
+
+julia&gt; ws = BunchKaufmanWs(A)
+BunchKaufmanWs{Float64}
+  work: 128-element Vector{Float64}
+  ipiv: 2-element Vector{Int64}
+
+
+julia&gt; A, ipiv, info = LAPACK.sytrf_rook!(ws, &#39;U&#39;, A)
+([1.2 7.8; 7.8 3.3], [-1, -2], 0)
+
+julia&gt; t = LinearAlgebra.BunchKaufman(A, ipiv,&#39;U&#39;, true, true, info)
+BunchKaufman{Float64, Matrix{Float64}, Vector{Int64}}
+D factor:
+2×2 Tridiagonal{Float64, Vector{Float64}}:
+ 1.2  7.8
+ 7.8  3.3
+U factor:
+2×2 UnitUpperTriangular{Float64, Matrix{Float64}}:
+ 1.0  0.0
+  ⋅   1.0
+permutation:
+2-element Vector{Int64}:
+ 1
+ 2</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/bunch_kaufman.jl#L4-L72">source</a></section></details></article><h2 id="Cholesky-id"><a class="docs-heading-anchor" href="#Cholesky-id">Cholesky</a><a id="Cholesky-id-1"></a><a class="docs-heading-anchor-permalink" href="#Cholesky-id" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="FastLapackInterface.CholeskyPivotedWs"><a class="docstring-binding" href="#FastLapackInterface.CholeskyPivotedWs"><code>FastLapackInterface.CholeskyPivotedWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">CholeskyPivotedWs</code></pre><p>Workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.CholeskyPivoted"><code>LinearAlgebra.CholeskyPivoted</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.pstrf!-Tuple{CholeskyPivotedWs, AbstractChar, AbstractMatrix, Real}"><code>LAPACK.pstrf!</code></a> function. The standard <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.Cholesky"><code>LinearAlgebra.Cholesky</code></a> uses <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK.potrf!"><code>LAPACK.potrf!</code></a> which is non-allocating and does not require a separate <a href="#Workspace"><code>Workspace</code></a>.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 7.8
+            7.8 3.3]
+2×2 Matrix{Float64}:
+ 1.2  7.8
+ 7.8  3.3
+
+julia&gt; ws = CholeskyPivotedWs(A)
+CholeskyPivotedWs{Float64}
+  work: 4-element Vector{Float64}
+  piv: 2-element Vector{Int64}
+
+
+julia&gt; AA, piv, rank, info = LAPACK.pstrf!(ws, &#39;U&#39;, A, 1e-6)
+([1.816590212458495 4.293758683992806; 7.8 -17.236363636363635], [2, 1], 1, 1)
+
+julia&gt; CholeskyPivoted(AA, &#39;U&#39;, piv, rank, 1e-6, info)
+CholeskyPivoted{Float64, Matrix{Float64}, Vector{Int64}}
+U factor with rank 1:
+2×2 UpperTriangular{Float64, Matrix{Float64}}:
+ 1.81659    4.29376
+  ⋅       -17.2364
+permutation:
+2-element Vector{Int64}:
+ 2
+ 1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/cholesky.jl#L2-L36">source</a></section></details></article><h2 id="Eigen-id"><a class="docs-heading-anchor" href="#Eigen-id">Eigen</a><a id="Eigen-id-1"></a><a class="docs-heading-anchor-permalink" href="#Eigen-id" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="FastLapackInterface.EigenWs"><a class="docstring-binding" href="#FastLapackInterface.EigenWs"><code>FastLapackInterface.EigenWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">EigenWs</code></pre><p>Workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.Eigen"><code>LinearAlgebra.Eigen</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.geevx!-Tuple{EigenWs, AbstractChar, AbstractChar, AbstractChar, AbstractChar, AbstractMatrix}"><code>LAPACK.geevx!</code></a> function.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = EigenWs(A, rvecs=true)
+EigenWs{Float64, Matrix{Float64}, Float64}
+  work: 260-element Vector{Float64}
+  rwork: 2-element Vector{Float64}
+  VL: 0×2 Matrix{Float64}
+  VR: 2×2 Matrix{Float64}
+  W: 2-element Vector{Float64}
+  scale: 2-element Vector{Float64}
+  iwork: 0-element Vector{Int64}
+  rconde: 0-element Vector{Float64}
+  rcondv: 0-element Vector{Float64}
+
+
+julia&gt; t = LAPACK.geevx!(ws, &#39;N&#39;, &#39;N&#39;, &#39;V&#39;, &#39;N&#39;, A);
+
+julia&gt; LinearAlgebra.Eigen(t[2], t[5])
+Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+values:
+2-element Vector{Float64}:
+ -1.6695025194532018
+  6.169502519453203
+vectors:
+2×2 Matrix{Float64}:
+ -0.625424  -0.420019
+  0.780285  -0.907515</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/eigen.jl#L5-L45">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.HermitianEigenWs"><a class="docstring-binding" href="#FastLapackInterface.HermitianEigenWs"><code>FastLapackInterface.HermitianEigenWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">HermitianEigenWs</code></pre><p>Workspace to be used with Hermitian diagonalization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.syevr!-Tuple{HermitianEigenWs, AbstractChar, AbstractChar, AbstractChar, AbstractMatrix, AbstractFloat, AbstractFloat, Integer, Integer, AbstractFloat}"><code>LAPACK.syevr!</code></a> function. Supports both <code>Real</code> and <code>Complex</code> Hermitian matrices.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = HermitianEigenWs(A, vecs=true)
+HermitianEigenWs{Float64, Matrix{Float64}, Float64}
+  work: 66-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+  iwork: 20-element Vector{Int64}
+  w: 2-element Vector{Float64}
+  Z: 2×2 Matrix{Float64}
+  isuppz: 4-element Vector{Int64}
+
+
+julia&gt; LinearAlgebra.Eigen(LAPACK.syevr!(ws, &#39;V&#39;, &#39;A&#39;, &#39;U&#39;, A, 0.0, 0.0, 0, 0, 1e-6)...)
+Eigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+values:
+2-element Vector{Float64}:
+ -0.2783393759541063
+  4.778339375954106
+vectors:
+2×2 Matrix{Float64}:
+ -0.841217  0.540698
+  0.540698  0.841217</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/eigen.jl#L259-L293">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.GeneralizedEigenWs"><a class="docstring-binding" href="#FastLapackInterface.GeneralizedEigenWs"><code>FastLapackInterface.GeneralizedEigenWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">GeneralizedEigenWs</code></pre><p>Workspace that can be used for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedEigen"><code>LinearAlgebra.GeneralizedEigen</code></a> factorization using <a href="../LAPACK/#LinearAlgebra.LAPACK.ggev!-Tuple{GeneralizedEigenWs, AbstractChar, AbstractChar, AbstractMatrix, AbstractMatrix}"><code>LAPACK.ggev!</code></a>. Supports <code>Real</code> and <code>Complex</code> matrices.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; B = [8.2 1.7
+            5.9 2.1]
+2×2 Matrix{Float64}:
+ 8.2  1.7
+ 5.9  2.1
+
+julia&gt; ws = GeneralizedEigenWs(A, rvecs=true)
+GeneralizedEigenWs{Float64, Matrix{Float64}, Float64}
+  work: 78-element Vector{Float64}
+  vl: 0×2 Matrix{Float64}
+  vr: 2×2 Matrix{Float64}
+  αr: 2-element Vector{Float64}
+  αi: 2-element Vector{Float64}
+  β: 2-element Vector{Float64}
+
+
+julia&gt; αr, αi, β, _, vr = LAPACK.ggev!(ws, &#39;N&#39;, &#39;V&#39;, A, B);
+
+julia&gt; LinearAlgebra.GeneralizedEigen(αr ./ β, vr)
+GeneralizedEigen{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+values:
+2-element Vector{Float64}:
+ -0.8754932558185097
+  1.6362721153456299
+vectors:
+2×2 Matrix{Float64}:
+ -0.452121  -0.0394242
+  1.0        1.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/eigen.jl#L477-L521">source</a></section></details></article><h2 id="LSE-id"><a class="docs-heading-anchor" href="#LSE-id">LSE</a><a id="LSE-id-1"></a><a class="docs-heading-anchor-permalink" href="#LSE-id" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="FastLapackInterface.LSEWs"><a class="docstring-binding" href="#FastLapackInterface.LSEWs"><code>FastLapackInterface.LSEWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">LSEWs</code></pre><p>Workspace for the least squares solving function <a href="../LAPACK/#LinearAlgebra.LAPACK.geqrf!-Tuple{QRWs, AbstractMatrix}"><code>LAPACK.geqrf!</code></a>.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3 6.2
+            6.2 3.3 8.8
+            9.1 2.1 5.5]
+3×3 Matrix{Float64}:
+ 1.2  2.3  6.2
+ 6.2  3.3  8.8
+ 9.1  2.1  5.5
+
+julia&gt; B = [2.7 3.1 7.7
+            4.1 8.1 1.8]
+2×3 Matrix{Float64}:
+ 2.7  3.1  7.7
+ 4.1  8.1  1.8
+
+julia&gt; c = [0.2, 7.2, 2.9]
+3-element Vector{Float64}:
+ 0.2
+ 7.2
+ 2.9
+
+julia&gt; d = [3.9, 2.1]
+2-element Vector{Float64}:
+ 3.9
+ 2.1
+
+julia&gt; ws = LSEWs(A, B)
+LSEWs{Float64}
+  work: 101-element Vector{Float64}
+  X: 3-element Vector{Float64}
+
+julia&gt; LAPACK.gglse!(ws, A, c, B, d)
+([0.19723156207005318, 0.0683561362406917, 0.40981438442398854], 13.750943845251626)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/lse.jl#L3-L43">source</a></section></details></article><h2 id="LU-id"><a class="docs-heading-anchor" href="#LU-id">LU</a><a id="LU-id-1"></a><a class="docs-heading-anchor-permalink" href="#LU-id" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="FastLapackInterface.LUWs"><a class="docstring-binding" href="#FastLapackInterface.LUWs"><code>FastLapackInterface.LUWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">LUWs</code></pre><p>Workspace to be used with the <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LU"><code>LinearAlgebra.LU</code></a> representation of the LU factorization which uses the <a href="../LAPACK/#LinearAlgebra.LAPACK.getrf!-Tuple{LUWs, AbstractMatrix}"><code>LAPACK.getrf!</code></a> function.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = LUWs(A)
+LUWs
+  ipiv: 2-element Vector{Int64}
+
+julia&gt; t = LU(LAPACK.getrf!(ws, A)...)
+LU{Float64, Matrix{Float64}, Vector{Int64}}
+L factor:
+2×2 Matrix{Float64}:
+ 1.0       0.0
+ 0.193548  1.0
+U factor:
+2×2 Matrix{Float64}:
+ 6.2  3.3
+ 0.0  1.66129</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/lu.jl#L2-L31">source</a></section></details></article><h2 id="QR-id"><a class="docs-heading-anchor" href="#QR-id">QR</a><a id="QR-id-1"></a><a class="docs-heading-anchor-permalink" href="#QR-id" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="FastLapackInterface.QRWs"><a class="docstring-binding" href="#FastLapackInterface.QRWs"><code>FastLapackInterface.QRWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">QRWs</code></pre><p>Workspace for standard <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QR"><code>LinearAlgebra.QR</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.geqrf!-Tuple{QRWs, AbstractMatrix}"><code>LAPACK.geqrf!</code></a> function.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = QRWs(A)
+QRWs{Float64}
+  work: 64-element Vector{Float64}
+  τ: 2-element Vector{Float64}
+
+julia&gt; t = QR(LAPACK.geqrf!(ws, A)...)
+QR{Float64, Matrix{Float64}, Vector{Float64}}
+Q factor: 2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}
+R factor:
+2×2 Matrix{Float64}:
+ -6.31506  -3.67692
+  0.0      -1.63102
+
+julia&gt; Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/qr.jl#L4-L36">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.QRWYWs"><a class="docstring-binding" href="#FastLapackInterface.QRWYWs"><code>FastLapackInterface.QRWYWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">QRWYWs</code></pre><p>Workspace to be used with the <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QRCompactWY"><code>LinearAlgebra.QRCompactWY</code></a> representation of the blocked QR factorization which uses the <a href="../LAPACK/#LinearAlgebra.LAPACK.geqrt!-Tuple{QRWYWs, AbstractMatrix}"><code>LAPACK.geqrt!</code></a> function. By default the blocksize for the algorithm is taken as <code>min(36, min(size(template)))</code>, this can be overridden by using the <code>blocksize</code> keyword of the constructor.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = QRWYWs(A)
+QRWYWs{Float64, Matrix{Float64}}
+  work: 4-element Vector{Float64}
+  T: 2×2 Matrix{Float64}
+
+julia&gt; t = LinearAlgebra.QRCompactWY(LAPACK.geqrt!(ws, A)...)
+LinearAlgebra.QRCompactWY{Float64, Matrix{Float64}, Matrix{Float64}}
+Q factor: 2×2 LinearAlgebra.QRCompactWYQ{Float64, Matrix{Float64}, Matrix{Float64}}
+R factor:
+2×2 Matrix{Float64}:
+ -6.31506  -3.67692
+  0.0      -1.63102
+
+julia&gt; Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/qr.jl#L108-L142">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.QRPivotedWs"><a class="docstring-binding" href="#FastLapackInterface.QRPivotedWs"><code>FastLapackInterface.QRPivotedWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">QRPivotedWs</code></pre><p>Workspace to be used with the <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.QRPivoted"><code>LinearAlgebra.QRPivoted</code></a> representation of the QR factorization which uses the <a href="../LAPACK/#LinearAlgebra.LAPACK.geqp3!-Tuple{QRPivotedWs, AbstractMatrix}"><code>LAPACK.geqp3!</code></a> function.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = QRPivotedWs(A)
+QRPivotedWs{Float64, Float64}
+  work: 100-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+  τ: 2-element Vector{Float64}
+  jpvt: 2-element Vector{Int64}
+
+julia&gt; t = QRPivoted(LAPACK.geqp3!(ws, A)...)
+QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
+Q factor: 2×2 LinearAlgebra.QRPackedQ{Float64, Matrix{Float64}, Vector{Float64}}
+R factor:
+2×2 Matrix{Float64}:
+ -6.31506  -3.67692
+  0.0      -1.63102
+permutation:
+2-element Vector{Int64}:
+ 1
+ 2
+
+julia&gt; Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/qr.jl#L215-L253">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.QROrmWs"><a class="docstring-binding" href="#FastLapackInterface.QROrmWs"><code>FastLapackInterface.QROrmWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">QROrmWs</code></pre><p>Workspace to be used with the <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK.ormqr!"><code>LinearAlgebra.LAPACK.ormqr!</code></a> function. It requires the workspace of a <code>QR</code> or a <code>QRPivoted</code> previous factorization</p><p><strong>Examples</strong></p><p>```jldoctest julia&gt; A = [1.2 2.3             6.2 3.3] 2×2 Matrix{Float64}:  1.2  2.3  6.2  3.3</p><p>julia&gt; ws = QRPivotedWs(A) QRPivotedWs{Float64, Float64}   work: 100-element Vector{Float64}   rwork: 0-element Vector{Float64}   τ: 2-element Vector{Float64}   jpvt: 2-element Vector{Int64}</p><p>julia&gt; C=[1 0.5; 2 1] 2×2 Matrix{Float64}:  1.0  0.5  2.0  1.0</p><p>julia&gt; ormws =  QROrmWs(ws, &#39;L&#39;, &#39;N&#39;, A, C) QROrmWs{Float64}   work: 4224-element Vector{Float64}   τ: 2-element Vector{Float64}</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/qr.jl#L351-L382">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.QROrgWs"><a class="docstring-binding" href="#FastLapackInterface.QROrgWs"><code>FastLapackInterface.QROrgWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">QROrgWs</code></pre><p>Workspace to be used with the <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK.orgqr!"><code>LinearAlgebra.LAPACK.orgqr!</code></a> function. It requires the workspace of a <code>QR</code> or a <code>QRPivoted</code> previous factorization</p><p><strong>Examples</strong></p><p>```jldoctest julia&gt; A = [1.2 2.3             6.2 3.3] 2×2 Matrix{Float64}:  1.2  2.3  6.2  3.3</p><p>julia&gt; ws = QRPivotedWs(A) QRPivotedWs{Float64, Float64}   work: 100-element Vector{Float64}   rwork: 0-element Vector{Float64}   τ: 2-element Vector{Float64}   jpvt: 2-element Vector{Int64}</p><p>julia&gt; C=[1 0.5; 2 1] 2×2 Matrix{Float64}:  1.0  0.5  2.0  1.0</p><p>julia&gt; orgws =  QROrgWs(ws, &#39;L&#39;, &#39;N&#39;, A, C) QROrgWs{Float64}   work: 4224-element Vector{Float64}   τ: 2-element Vector{Float64}</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/qr.jl#L388-L419">source</a></section></details></article><h2 id="Schur-id"><a class="docs-heading-anchor" href="#Schur-id">Schur</a><a id="Schur-id-1"></a><a class="docs-heading-anchor-permalink" href="#Schur-id" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="FastLapackInterface.SchurWs"><a class="docstring-binding" href="#FastLapackInterface.SchurWs"><code>FastLapackInterface.SchurWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">SchurWs</code></pre><p>Workspace to be used with the <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSchur"><code>LinearAlgebra.Schur</code></a> representation of the Schur decomposition which uses the <a href="../LAPACK/#LinearAlgebra.LAPACK.gees!-Tuple{SchurWs, AbstractChar, AbstractMatrix}"><code>LAPACK.gees!</code></a> function.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = SchurWs(A)
+SchurWs{Float64}
+  work: 68-element Vector{Float64}
+  wr: 2-element Vector{Float64}
+  wi: 2-element Vector{Float64}
+  vs: 2×2 Matrix{Float64}
+  sdim: Base.RefValue{Int64}
+  bwork: 2-element Vector{Int64}
+  eigen_values: 2-element Vector{ComplexF64}
+
+julia&gt; t = Schur(LAPACK.gees!(ws, &#39;V&#39;, A)...)
+Schur{Float64, Matrix{Float64}, Vector{Float64}}
+T factor:
+2×2 Matrix{Float64}:
+ -1.6695  -3.9
+  0.0      6.1695
+Z factor:
+2×2 Matrix{Float64}:
+ -0.625424  -0.780285
+  0.780285  -0.625424
+eigenvalues:
+2-element Vector{Float64}:
+ -1.6695025194532018
+  6.169502519453203
+
+julia&gt; Matrix(t)
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/schur.jl#L138-L182">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.GeneralizedSchurWs"><a class="docstring-binding" href="#FastLapackInterface.GeneralizedSchurWs"><code>FastLapackInterface.GeneralizedSchurWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">GeneralizedSchurWs</code></pre><p>Workspace to be used with the <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSchur"><code>LinearAlgebra.GeneralizedSchur</code></a> representation of the Generalized Schur decomposition which uses the <a href="../LAPACK/#LinearAlgebra.LAPACK.gges!-Tuple{GeneralizedSchurWs, AbstractChar, AbstractChar, AbstractMatrix, AbstractMatrix}"><code>LAPACK.gges!</code></a> function.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; B = [8.2 0.3
+            1.7 4.3]
+2×2 Matrix{Float64}:
+ 8.2  0.3
+ 1.7  4.3
+
+julia&gt; ws = GeneralizedSchurWs(A)
+GeneralizedSchurWs{Float64}
+  work: 90-element Vector{Float64}
+  αr: 2-element Vector{Float64}
+  αi: 2-element Vector{Float64}
+  β: 2-element Vector{Float64}
+  vsl: 2×2 Matrix{Float64}
+  vsr: 2×2 Matrix{Float64}
+  sdim: Base.RefValue{Int64}
+  bwork: 2-element Vector{Int64}
+  eigen_values: 2-element Vector{ComplexF64}
+  
+julia&gt; t = GeneralizedSchur(LAPACK.gges!(ws, &#39;V&#39;,&#39;V&#39;, A, B)...)
+GeneralizedSchur{Float64, Matrix{Float64}, Vector{ComplexF64}, Vector{Float64}}
+S factor:
+2×2 Matrix{Float64}:
+ -1.43796  1.63843
+  0.0      7.16295
+T factor:
+2×2 Matrix{Float64}:
+ 5.06887  -4.00221
+ 0.0       6.85558
+Q factor:
+2×2 Matrix{Float64}:
+ -0.857329  0.514769
+  0.514769  0.857329
+Z factor:
+2×2 Matrix{Float64}:
+ -0.560266  0.828313
+  0.828313  0.560266
+α:
+2-element Vector{ComplexF64}:
+ -1.4379554610733563 + 0.0im
+   7.162947865097022 + 0.0im
+β:
+2-element Vector{Float64}:
+ 5.068865029631368
+ 6.855578082442485</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/schur.jl#L325-L384">source</a></section></details></article><h2 id="SVD-id"><a class="docs-heading-anchor" href="#SVD-id">SVD</a><a id="SVD-id-1"></a><a class="docs-heading-anchor-permalink" href="#SVD-id" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="FastLapackInterface.SVDsddWs"><a class="docstring-binding" href="#FastLapackInterface.SVDsddWs"><code>FastLapackInterface.SVDsddWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">SVDsddWs</code></pre><p>creates a workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD"><code>LinearAlgebra.SVD</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.gesdd!-Tuple{SVDsddWs, AbstractChar, AbstractMatrix}"><code>LAPACK.gesdd!</code></a> function.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/svd.jl#L23-L28">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.SVDsddWs-Tuple{AbstractMatrix}"><a class="docstring-binding" href="#FastLapackInterface.SVDsddWs-Tuple{AbstractMatrix}"><code>FastLapackInterface.SVDsddWs</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">SVDsddWs(A; job = &#39;A&#39;)</code></pre><p>creates a workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD"><code>LinearAlgebra.SVD</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.gesdd!-Tuple{SVDsddWs, AbstractChar, AbstractMatrix}"><code>LAPACK.gesdd!</code></a> function.</p><p><strong>Arguments</strong></p><ul><li><code>A::AbstractMatrix</code>: the matrix to be decomposed. Only the shape of the matrix matters for building the workspace. The actual ellements value does not.</li><li><code>job::AbstractChar</code>: one of <code>A</code>, <code>N</code>, <code>O</code> or <code>S</code>. Default = &#39;A&#39;. See <a href="../LAPACK/#LinearAlgebra.LAPACK.gesdd!-Tuple{SVDsddWs, AbstractChar, AbstractMatrix}">gesdd!</a>.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = FastLapackInterface.SVDsddWs(A, job = &#39;A&#39;)
+SVDsddWs{Float64, Matrix{Float64}, Float64}
+  U: 2×2 Matrix{Float64}
+  VT: 2×2 Matrix{Float64}
+  work: 134-element Vector{Float64}
+  S: 2-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+  iwork: 16-element Vector{Int64}
+
+julia&gt; t = FastLapackInterface.gesdd!(ws, &#39;A&#39;, A);
+
+julia&gt; LinearAlgebra.SVD(t[1], t[2], t[3])
+SVD{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+U factor:
+2×2 Matrix{Float64}:
+ -0.302437  -0.953169
+ -0.953169   0.302437
+singular values:
+2-element Vector{Float64}:
+ 7.355199814161389
+ 1.400369841777625
+Vt factor:
+2×2 Matrix{Float64}:
+ -0.852808  -0.522224
+  0.522224  -0.852808</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/svd.jl#L202-L246">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.SVDsvdWs"><a class="docstring-binding" href="#FastLapackInterface.SVDsvdWs"><code>FastLapackInterface.SVDsvdWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">SVDsvdWs</code></pre><p>Workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD"><code>LinearAlgebra.SVD</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.gesvd!-Tuple{SVDsvdWs, AbstractChar, AbstractChar, AbstractMatrix}"><code>LAPACK.gesvd!</code></a> function.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/svd.jl#L264-L269">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.SVDsvdWs-Tuple{AbstractMatrix}"><a class="docstring-binding" href="#FastLapackInterface.SVDsvdWs-Tuple{AbstractMatrix}"><code>FastLapackInterface.SVDsvdWs</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">SVDsvdWs(A; jobu = &#39;A&#39;, jobvt = &#39;A&#39;)</code></pre><p>creates a workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD"><code>LinearAlgebra.SVD</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.gesvd!-Tuple{SVDsvdWs, AbstractChar, AbstractChar, AbstractMatrix}"><code>LAPACK.gesvd!</code></a> function.</p><p><strong>Arguments</strong></p><ul><li><code>A::AbstractMatrix</code>: the matrix to be decomposed. Only the shape of the matrix matters for building the workspace. The actual ellements value does not.</li><li><code>jobu::AbstractChar</code>: one of <code>A</code>, <code>N</code>, <code>O</code> or <code>S</code>. Default = &#39;A&#39;. See <a href="../LAPACK/#LinearAlgebra.LAPACK.gesvd!-Tuple{SVDsvdWs, AbstractChar, AbstractChar, AbstractMatrix}">gesvd!</a>.</li><li><code>jobvt::AbstractChar</code>: one of <code>A</code>, <code>N</code>, <code>O</code> or <code>S</code>. Default = &#39;A&#39;. See <a href="../LAPACK/#LinearAlgebra.LAPACK.gesvd!-Tuple{SVDsvdWs, AbstractChar, AbstractChar, AbstractMatrix}">gesvd!</a>.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; ws = SVDsvdWs(A, jobu = &#39;A&#39;, jobvt = &#39;A&#39;)
+SVDsvdWs{Float64, Matrix{Float64}, Float64}
+  U: 2×2 Matrix{Float64}
+  VT: 2×2 Matrix{Float64}
+  work: 134-element Vector{Float64}
+  S: 2-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+
+julia&gt; t = FastLapackInterface.gesvd!(ws, &#39;A&#39;, &#39;A&#39;, A);
+
+julia&gt; SVD(t[1], t[2], t[3])
+SVD{Float64, Float64, Matrix{Float64}, Vector{Float64}}
+U factor:
+2×2 Matrix{Float64}:
+ -0.302437  -0.953169
+ -0.953169   0.302437
+singular values:
+2-element Vector{Float64}:
+ 7.355199814161389
+ 1.400369841777625
+Vt factor:
+2×2 Matrix{Float64}:
+ -0.852808  -0.522224
+  0.522224  -0.852808</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/svd.jl#L456-L500">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.GeneralizedSVDWs"><a class="docstring-binding" href="#FastLapackInterface.GeneralizedSVDWs"><code>FastLapackInterface.GeneralizedSVDWs</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">GeneralizedSVDWs</code></pre><p>Workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSVD"><code>LinearAlgebra.SVD</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.ggsvd3!-Tuple{GeneralizedSVDWs, AbstractChar, AbstractChar, AbstractChar, AbstractMatrix, AbstractMatrix}"><code>LAPACK.ggsvd3!</code></a> function.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/svd.jl#L522-L527">source</a></section></details></article><article><details class="docstring" open="true"><summary id="FastLapackInterface.GeneralizedSVDWs-Tuple{AbstractMatrix}"><a class="docstring-binding" href="#FastLapackInterface.GeneralizedSVDWs-Tuple{AbstractMatrix}"><code>FastLapackInterface.GeneralizedSVDWs</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">GeneralizedSVDWs(A::AbstractMatrix; jobu = &#39;U&#39;, jobv = &#39;V&#39;, jobq = &#39;Q&#39;)</code></pre><p>creates a workspace for <a href="https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.SVD"><code>LinearAlgebra.SVD</code></a> factorization using the <a href="../LAPACK/#LinearAlgebra.LAPACK.ggsvd3!-Tuple{GeneralizedSVDWs, AbstractChar, AbstractChar, AbstractChar, AbstractMatrix, AbstractMatrix}"><code>LAPACK.ggsvd3!</code></a> function.</p><p><strong>Arguments</strong></p><ul><li><code>A::AbstractMatrix</code>: the matrix to be decomposed. Only the shape of the matrix matters for building the workspace. The actual ellements value does not.</li><li><code>jobu::AbstractChar</code>: one of <code>U</code> or <code>N</code>. Default = &#39;U&#39;. See <a href="../LAPACK/#LinearAlgebra.LAPACK.ggsvd3!-Tuple{GeneralizedSVDWs, AbstractChar, AbstractChar, AbstractChar, AbstractMatrix, AbstractMatrix}">ggsvd3!</a>.</li><li><code>jobv::AbstractChar</code>: one of <code>V</code> or <code>N</code>. Default = &#39;V&#39;. See <a href="../LAPACK/#LinearAlgebra.LAPACK.ggsvd3!-Tuple{GeneralizedSVDWs, AbstractChar, AbstractChar, AbstractChar, AbstractMatrix, AbstractMatrix}">ggsvd3!</a>.</li><li><code>jobq::AbstractChar</code>: one of <code>Q</code> or <code>N</code>. Default = &#39;Q&#39;. See <a href="../LAPACK/#LinearAlgebra.LAPACK.ggsvd3!-Tuple{GeneralizedSVDWs, AbstractChar, AbstractChar, AbstractChar, AbstractMatrix, AbstractMatrix}">ggsvd3!</a>.</li></ul><p><strong>Arguments</strong></p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = [1.2 2.3
+            6.2 3.3]
+2×2 Matrix{Float64}:
+ 1.2  2.3
+ 6.2  3.3
+
+julia&gt; B = [2.2 3.3
+            5.2 4.3]
+2×2 Matrix{Float64}:
+ 2.2  3.3
+ 5.2  4.3
+
+julia&gt; ws = GeneralizedSVDWs(A, B)
+GeneralizedSVDWs{Float64, Matrix{Float64}, Float64}
+  alpha: 2-element Vector{Float64}
+  beta: 2-element Vector{Float64}
+  U: 2×2 Matrix{Float64}
+  V: 2×2 Matrix{Float64}
+  Q: 2×2 Matrix{Float64}
+  work: 102-element Vector{Float64}
+  rwork: 0-element Vector{Float64}
+  iwork: 2-element Vector{Int64}
+
+
+julia&gt; t = FastLapackInterface.ggsvd3!(ws, &#39;U&#39;, &#39;V&#39;, &#39;Q&#39;, A, B);
+
+julia&gt; GeneralizedSVD(t...)
+GeneralizedSVD{Float64, Matrix{Float64}, Float64, Vector{Float64}}
+U factor:
+2×2 Matrix{Float64}:
+ -0.309806  0.9508
+  0.9508    0.309806
+V factor:
+2×2 Matrix{Float64}:
+ -0.653816  0.756653
+  0.756653  0.653816
+Q factor:
+2×2 Matrix{Float64}:
+  0.723532  0.690291
+ -0.690291  0.723532
+D1 factor:
+2×2 Matrix{Float64}:
+ 0.911256  0.0
+ 0.0       0.517359
+D2 factor:
+2×2 Matrix{Float64}:
+ 0.411841  0.0
+ 0.0       0.855768
+R0 factor:
+2×2 Matrix{Float64}:
+ 2.54834  6.10941
+ 0.0      8.57328</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/DynareJulia/FastLapackInterface.jl/blob/c31379c06ae5638f3edbe4b43eb6b1b2430f9780/src/svd.jl#L727-L796">source</a></section></details></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../LAPACK/">LAPACK »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Thursday 8 January 2026 14:40">Thursday 8 January 2026</span>. Using Julia version 1.12.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
