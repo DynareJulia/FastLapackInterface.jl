@@ -1,6 +1,7 @@
 # Workspaces for Eigenvalue decomposition
 using LinearAlgebra.LAPACK: chkfinite
 import LinearAlgebra.LAPACK: geevx!, syevr!, ggev!
+import LinearAlgebra: Algorithm, default_eigen_alg, RobustRepresentations, sorteig!, eigen!
 
 """
     EigenWs
@@ -473,6 +474,14 @@ syevr!(ws::HermitianEigenWs, jobz::AbstractChar, range::AbstractChar,
     uplo::AbstractChar, A::AbstractMatrix,
     vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer,
     abstol::AbstractFloat; resize = true)
+
+function eigen!(ws::HermitianEigenWs, A::Hermitian; alg::Algorithm=default_eigen_alg(A), sortby::Union{Function,Nothing}=nothing)
+    if alg === RobustRepresentations()
+        Eigen(sorteig!(syevr!(ws, 'V', 'A', A.uplo, A.data, 0.0, 0.0, 0, 0, -1.0)..., sortby)...)
+    else
+        throw(ArgumentError("Unsupported value for `alg` keyword."))
+    end
+end
 
 """
     GeneralizedEigenWs
