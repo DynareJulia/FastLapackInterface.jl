@@ -53,6 +53,8 @@ QROrgWs
 ```@docs
 SchurWs
 GeneralizedSchurWs
+GeneralizedOrdSchurWs
+GeneralizedEigenvectorsWs
 ```
 
 ## [SVD](@id SVD-id)

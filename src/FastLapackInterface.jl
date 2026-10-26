@@ -24,7 +24,7 @@ export LUWs
 include("qr.jl")
 export QRWs, QRWYWs, QRPivotedWs, QROrmWs, QROrgWs
 include("schur.jl")
-export SchurWs, GeneralizedSchurWs
+export SchurWs, GeneralizedSchurWs, GeneralizedOrdSchurWs, GeneralizedEigenvectorsWs
 include("eigen.jl")
 export EigenWs, HermitianEigenWs, GeneralizedEigenWs
 include("bunch_kaufman.jl")

@@ -66,6 +66,8 @@ LinearAlgebra.LAPACK.orgqr!(::QRWs, ::AbstractMatrix, ::Integer)
 ```@docs
 LinearAlgebra.LAPACK.gees!(::SchurWs, ::AbstractChar, ::AbstractMatrix)
 LinearAlgebra.LAPACK.gges!(::GeneralizedSchurWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix, ::AbstractMatrix)
+LinearAlgebra.LAPACK.tgsen!(::GeneralizedOrdSchurWs, ::AbstractVector{LinearAlgebra.BlasInt}, ::AbstractMatrix, ::AbstractMatrix, ::AbstractMatrix, ::AbstractMatrix)
+FastLapackInterface.tgevc!(::GeneralizedEigenvectorsWs, ::AbstractChar, ::AbstractChar, ::AbstractVector{LinearAlgebra.BlasInt}, ::AbstractMatrix, ::AbstractMatrix, ::AbstractMatrix, ::AbstractMatrix)
 FastLapackInterface.SCHURORDER
 ```
 

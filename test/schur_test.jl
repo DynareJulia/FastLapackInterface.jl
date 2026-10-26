@@ -170,3 +170,94 @@ end
         @test count(abs.(ws.eigen_values) .>= CRITERIUM) == ws.sdim[]
     end
 end
+
+@testset "GeneralizedOrdSchurWs" begin
+    n = 10
+    @testset "Complex, square" begin
+        for T in (ComplexF64, ComplexF32)
+            A0 = randn(T, n, n)
+            B0 = randn(T, n, n)
+            F = schur(A0, B0)
+            select = LinearAlgebra.BlasInt[isodd(i) for i in 1:n]
+            ws = GeneralizedOrdSchurWs(copy(A0))
+
+            S1, T1, α1, β1, Q1, Z1 = LAPACK.tgsen!(select, copy(F.S), copy(F.T), copy(F.Q), copy(F.Z))
+            S2, T2, α2, β2, Q2, Z2 = LAPACK.tgsen!(ws, select, copy(F.S), copy(F.T), copy(F.Q), copy(F.Z))
+            @test isapprox(S1, S2)
+            @test isapprox(T1, T2)
+            @test isapprox(α1, α2)
+            @test isapprox(β1, β2)
+            @test isapprox(Q1, Q2)
+            @test isapprox(Z1, Z2)
+
+            # Using Workspace, factorize!
+            ws = Workspace(LAPACK.tgsen!, copy(A0))
+            S2, T2, α2, β2, Q2, Z2 = factorize!(ws, select, copy(F.S), copy(F.T), copy(F.Q), copy(F.Z))
+            @test isapprox(S1, S2)
+            @test isapprox(Z1, Z2)
+            show(devnull, "text/plain", ws)
+
+            for div in (-1, 1)
+                F2 = schur(randn(T, n + div, n + div), randn(T, n + div, n + div))
+                select2 = LinearAlgebra.BlasInt[isodd(i) for i in 1:(n + div)]
+                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(
+                    ws, select2, F2.S, F2.T, F2.Q, F2.Z; resize = false)
+                factorize!(ws, select2, F2.S, F2.T, F2.Q, F2.Z)
+                @test length(ws.α) == n + div
+            end
+        end
+    end
+end
+
+@testset "GeneralizedEigenvectorsWs" begin
+    n = 10
+    @testset "Complex, square" begin
+        for T in (ComplexF64, ComplexF32)
+            A0 = randn(T, n, n)
+            B0 = randn(T, n, n)
+            F = schur(A0, B0)
+            λs = F.α ./ F.β
+            ws = GeneralizedEigenvectorsWs(copy(A0))
+            tol = sqrt(eps(real(T)))
+
+            # back-transformed right and left eigenvectors of (A0, B0)
+            VL, VR, m = FastLapackInterface.tgevc!(ws, 'B', 'B', LinearAlgebra.BlasInt[],
+                F.S, F.T, copy(F.Q), copy(F.Z))
+            @test m == n
+            for j in 1:n
+                v, u = VR[:, j], VL[:, j]
+                @test norm(A0 * v - λs[j] * B0 * v) < tol * norm(A0) * norm(v)
+                @test norm(u' * A0 - λs[j] * u' * B0) < tol * norm(A0) * norm(u)
+            end
+
+            # selected right eigenvectors of (S, T), written into a view
+            select = LinearAlgebra.BlasInt[i <= n ÷ 2 for i in 1:n]
+            VRall = FastLapackInterface.tgevc!(ws, 'R', 'A', select, F.S, F.T,
+                similar(F.S, 0, n), similar(F.S))[2]
+            VRsel = zeros(T, n, n)
+            _, _, m = FastLapackInterface.tgevc!(ws, 'R', 'S', select, F.S, F.T,
+                similar(F.S, 0, n), view(VRsel, :, 1:(n ÷ 2)))
+            @test m == n ÷ 2
+            @test isapprox(VRsel[:, 1:(n ÷ 2)], VRall[:, 1:(n ÷ 2)])
+            @test iszero(VRsel[:, (n ÷ 2 + 1):n])
+
+            # Using Workspace, factorize!
+            ws = Workspace(FastLapackInterface.tgevc!, copy(A0))
+            _, VR2, _ = factorize!(ws, 'R', 'A', select, F.S, F.T, similar(F.S, 0, n), similar(F.S))
+            @test isapprox(VRall, VR2)
+            show(devnull, "text/plain", ws)
+
+            @test_throws ArgumentError FastLapackInterface.tgevc!(ws, 'X', 'A', select,
+                F.S, F.T, similar(F.S, 0, n), similar(F.S))
+            for div in (-1, 1)
+                F2 = schur(randn(T, n + div, n + div), randn(T, n + div, n + div))
+                args2 = ('R', 'A', LinearAlgebra.BlasInt[], F2.S, F2.T,
+                    similar(F2.S, 0, n + div), similar(F2.S))
+                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(ws, args2...;
+                    resize = false)
+                factorize!(ws, args2...)
+                @test length(ws) == n + div
+            end
+        end
+    end
+end

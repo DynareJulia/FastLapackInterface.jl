@@ -53,6 +53,8 @@ end
 
 Workspace(::typeof(LAPACK.gees!), A::AbstractMatrix) = SchurWs(A)
 Workspace(::typeof(LAPACK.gges!), A::AbstractMatrix) = GeneralizedSchurWs(A)
+Workspace(::typeof(LAPACK.tgsen!), A::AbstractMatrix) = GeneralizedOrdSchurWs(A)
+Workspace(::typeof(tgevc!), A::AbstractMatrix) = GeneralizedEigenvectorsWs(A)
 
 Workspace(::typeof(LAPACK.geevx!), A::AbstractMatrix; kwargs...) = EigenWs(A; kwargs...)
 function Workspace(::typeof(LAPACK.syevr!), A::AbstractMatrix; kwargs...)
@@ -94,6 +96,8 @@ decompose!(ws::SchurWs, args...; kwargs...) = LAPACK.gees!(ws, args...; kwargs..
 function decompose!(ws::GeneralizedSchurWs, args...; kwargs...)
     LAPACK.gges!(ws, args...; kwargs...)
 end
+decompose!(ws::GeneralizedOrdSchurWs, args...; kwargs...) = LAPACK.tgsen!(ws, args...; kwargs...)
+decompose!(ws::GeneralizedEigenvectorsWs, args...; kwargs...) = tgevc!(ws, args...; kwargs...)
 
 decompose!(ws::EigenWs, args...; kwargs...) = LAPACK.geevx!(ws, args...; kwargs...)
 decompose!(ws::HermitianEigenWs, args...; kwargs...) = LAPACK.syevr!(ws, args...; kwargs...)
