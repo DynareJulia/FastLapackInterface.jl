@@ -327,6 +327,7 @@ gees!(ws::SchurWs, jobvs::AbstractChar, A::AbstractMatrix; kwargs...)
 
 Workspace to be used with the [`LinearAlgebra.GeneralizedSchur`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.GeneralizedSchur)
 representation of the Generalized Schur decomposition which uses the [`LAPACK.gges!`](@ref) function.
+Supports `Real` and `Complex` matrices.
 
 # Examples
 ```jldoctest
@@ -343,7 +344,7 @@ julia> B = [8.2 0.3
  1.7  4.3
 
 julia> ws = GeneralizedSchurWs(A)
-GeneralizedSchurWs{Float64}
+GeneralizedSchurWs{Float64, Float64}
   work: 90-element Vector{Float64}
   αr: 2-element Vector{Float64}
   αi: 2-element Vector{Float64}
@@ -382,29 +383,33 @@ Z factor:
  6.855578082442485
 ```
 """
-mutable struct GeneralizedSchurWs{T} <: Workspace
+mutable struct GeneralizedSchurWs{T, RT <: AbstractFloat} <: Workspace
     work::Vector{T}
     αr::Vector{T}
-    αi::Vector{T}
+    αi::Vector{RT}
     β::Vector{T}
     vsl::Matrix{T}
     vsr::Matrix{T}
     sdim::Ref{BlasInt}
     bwork::Vector{BlasInt}
-    eigen_values::Vector{Complex{T}}
+    eigen_values::Vector{Complex{RT}}
 end
 
 Base.length(ws::GeneralizedSchurWs) = length(ws.αr)
 
 # look into matlab function
-for (gges, elty) in ((:dgges_, :Float64),
-    (:sgges_, :Float32))
+for (gges, elty, relty) in ((:dgges_, :Float64, :Float64),
+    (:sgges_, :Float32, :Float32),
+    (:zgges_, :ComplexF64, :Float64),
+    (:cgges_, :ComplexF32, :Float32))
     @eval begin
         function Base.resize!(ws::GeneralizedSchurWs, A::AbstractMatrix{$elty}; work = true)
             chkstride1(A)
             n = checksquare(A)
+            cmplx = eltype(A) <: Complex
             resize!(ws.αr, n)
-            resize!(ws.αi, n)
+            # for complex matrices αi is used as rwork, which zgges/cgges require to be 8n long
+            resize!(ws.αi, cmplx ? 8n : n)
             resize!(ws.β, n)
             resize!(ws.bwork, n)
             resize!(ws.eigen_values, n)
@@ -412,29 +417,44 @@ for (gges, elty) in ((:dgges_, :Float64),
             ws.vsr = zeros($elty, n, n)
             if work
                 info = Ref{BlasInt}()
-                ccall((@blasfunc($gges), liblapack), Cvoid,
-                    (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
-                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                        Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty}, Ptr{$elty},
-                        Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
-                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
-                        Ref{BlasInt}, Clong, Clong, Clong),
-                    'V', 'V', 'N', C_NULL,
-                    n, A, max(1, stride(A, 2)), A,
-                    max(1, stride(A, 2)), C_NULL, ws.αr, ws.αi,
-                    ws.β, ws.vsl, n, ws.vsr,
-                    n, ws.work, -1, C_NULL,
-                    info, 1, 1, 1)
-
+                if cmplx
+                    ccall((@blasfunc($gges), liblapack), Cvoid,
+                        (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                            Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                            Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty}, Ptr{$elty},
+                            Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                            Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{Cvoid},
+                            Ref{BlasInt}, Clong, Clong, Clong),
+                        'V', 'V', 'N', C_NULL,
+                        n, A, max(1, stride(A, 2)), A,
+                        max(1, stride(A, 2)), C_NULL, ws.αr, ws.β,
+                        ws.vsl, n, ws.vsr, n,
+                        ws.work, -1, ws.αi, C_NULL,
+                        info, 1, 1, 1)
+                else
+                    ccall((@blasfunc($gges), liblapack), Cvoid,
+                        (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                            Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                            Ref{BlasInt}, Ptr{Cvoid}, Ptr{$elty}, Ptr{$elty},
+                            Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                            Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{Cvoid},
+                            Ref{BlasInt}, Clong, Clong, Clong),
+                        'V', 'V', 'N', C_NULL,
+                        n, A, max(1, stride(A, 2)), A,
+                        max(1, stride(A, 2)), C_NULL, ws.αr, ws.αi,
+                        ws.β, ws.vsl, n, ws.vsr,
+                        n, ws.work, -1, C_NULL,
+                        info, 1, 1, 1)
+                end
                 chklapackerror(info[])
                 resize!(ws.work, BlasInt(real(ws.work[1])))
             end
             return ws
         end
         GeneralizedSchurWs(A::AbstractMatrix{$elty}) = resize!(
-            GeneralizedSchurWs(Vector{$elty}(undef, 1), $elty[], $elty[], $elty[],
+            GeneralizedSchurWs(Vector{$elty}(undef, 1), $elty[], $relty[], $elty[],
                 Matrix{$elty}(undef, 0, 0), Matrix{$elty}(undef, 0, 0),
-                Ref{BlasInt}(), BlasInt[], Complex{$elty}[]),
+                Ref{BlasInt}(), BlasInt[], Complex{$relty}[]),
             A)
 
         function gges!(ws::GeneralizedSchurWs, jobvsl::AbstractChar,
@@ -443,6 +463,10 @@ for (gges, elty) in ((:dgges_, :Float64),
                 select::Union{Nothing, Function, SCHURORDER} = nothing,
                 criterium::Number = 0,
                 resize = true)
+            cmplx = eltype(A) <: Complex
+            if cmplx && select !== nothing
+                throw(ArgumentError("gges: eigenvalue selection is not supported for complex matrices"))
+            end
             chkstride1(A, B)
             n = checksquare(A)
             m = checksquare(B)
@@ -461,7 +485,21 @@ for (gges, elty) in ((:dgges_, :Float64),
             info = Ref{BlasInt}()
             ldvsl = size(ws.vsl, 1)
             ldvsr = size(ws.vsr, 1)
-            if select isa Function
+            if cmplx
+                ccall((@blasfunc($gges), liblapack), Cvoid,
+                    (Ref{UInt8}, Ref{UInt8}, Ref{UInt8}, Ptr{Cvoid},
+                        Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                        Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                        Ptr{$elty}, Ref{BlasInt}, Ptr{$relty}, Ptr{Cvoid},
+                        Ref{BlasInt}, Clong, Clong, Clong),
+                    jobvsl, jobvsr, 'N', C_NULL,
+                    n, A, max(1, stride(A, 2)), B,
+                    max(1, stride(B, 2)), Ref{BlasInt}(), ws.αr, ws.β,
+                    ws.vsl, ldvsl, ws.vsr, ldvsr,
+                    ws.work, length(ws.work), ws.αi, C_NULL,
+                    info, 1, 1, 1)
+            elseif select isa Function
                 if Sys.ARCH == :aarch64
                     throw(ArgumentError("gges: using a select function is not possible on aarch64 architecture"))
                 end
@@ -512,6 +550,12 @@ for (gges, elty) in ((:dgges_, :Float64),
                     info, 1, 1, 1)
             end
             chklapackerror(info[])
+            if cmplx
+                @inbounds for i in axes(A, 1)
+                    ws.eigen_values[i] = ws.αr[i] / ws.β[i]
+                end
+                return A, B, ws.αr, ws.β, ws.vsl, ws.vsr
+            end
             @inbounds for i in axes(A, 1)
                 ws.eigen_values[i] = complex(ws.αr[i], ws.αi[i]) / ws.β[i]
             end
@@ -536,6 +580,8 @@ It is possible to select the eigenvalues appearing in the top left corner of the
     - `ed`: Exterior of disk (abs(eigenvalue)^2 >= criterium)
   and setting `criterium`.
 - by setting `select` equal to a function used to sort the eigenvalues during the decomposition. In this case, the `criterium` keyword isn't used. The function should have the signature `f(αr::T, αi::T, β::T) -> Bool` where `T == eltype(A)`. An eigenvalue `(αr[j]+αi[j])/β[j]` is selected if `f(αr[j],αi[j],β[j])` is true, i.e. if either one of a complex conjugate pair of eigenvalues is selected, then both complex eigenvalues are selected. This is not available on aarch64 architecture.
+
+For complex `A` and `B`, `select` is not supported, and `α` and `β` are both the complex workspace vectors `ws.αr` and `ws.β`.
 
 The generalized eigenvalues components are returned in `ws.α` and `ws.β` where `ws.α` is a complex vector and `ẁs.β`, a real vector.
 The generalized eigenvalues (`ws.α./ws.β`) are returned in `ws.eigen_values`, a complex vector. 

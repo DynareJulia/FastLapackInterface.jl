@@ -169,4 +169,39 @@ end
             criterium = CRITERIUM)
         @test count(abs.(ws.eigen_values) .>= CRITERIUM) == ws.sdim[]
     end
+
+    @testset "Complex, square" begin
+        for T in (ComplexF64, ComplexF32)
+            A0 = randn(T, n, n)
+            B0 = randn(T, n, n)
+            ws = GeneralizedSchurWs(copy(A0))
+
+            A1, B1, α1, β1, vsl1, vsr1 = LAPACK.gges!('V', 'V', copy(A0), copy(B0))
+            A2, B2, α2, β2, vsl2, vsr2 = LAPACK.gges!(ws, 'V', 'V', copy(A0), copy(B0))
+            @test isapprox(A1, A2)
+            @test isapprox(B1, B2)
+            @test isapprox(α1, α2)
+            @test isapprox(β1, β2)
+            @test isapprox(vsl1, vsl2)
+            @test isapprox(vsr1, vsr2)
+            @test isapprox(α1 ./ β1, ws.eigen_values)
+
+            # Using Workspace, factorize!
+            ws = Workspace(LAPACK.gges!, copy(A0))
+            A2, B2, α2, β2, vsl2, vsr2 = factorize!(ws, 'V', 'V', copy(A0), copy(B0))
+            @test isapprox(A1, A2)
+            @test isapprox(vsr1, vsr2)
+            show(devnull, "text/plain", ws)
+
+            @test_throws ArgumentError LAPACK.gges!(ws, 'V', 'V', copy(A0), copy(B0);
+                select = FastLapackInterface.lp)
+            for div in (-1, 1)
+                @test_throws FastLapackInterface.WorkspaceSizeError factorize!(
+                    ws, 'V', 'V', randn(T, n + div, n + div),
+                    randn(T, n + div, n + div); resize = false)
+                factorize!(ws, 'V', 'V', randn(T, n + div, n + div), randn(T, n + div, n + div))
+                @test length(ws.αr) == n + div
+            end
+        end
+    end
 end
