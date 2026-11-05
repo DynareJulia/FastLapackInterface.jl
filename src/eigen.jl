@@ -1,6 +1,6 @@
 # Workspaces for Eigenvalue decomposition
 using LinearAlgebra.LAPACK: chkfinite
-import LinearAlgebra.LAPACK: geevx!, syevr!, ggev!
+import LinearAlgebra.LAPACK: geevx!, syevr!, syevd!, ggev!
 
 """
     EigenWs
@@ -259,7 +259,8 @@ geevx!(ws::EigenWs, balanc::AbstractChar, jobvl::AbstractChar,
 """
     HermitianEigenWs
 
-Workspace to be used with Hermitian diagonalization using the [`LAPACK.syevr!`](@ref) function.
+Workspace to be used with Hermitian diagonalization using the [`LAPACK.syevr!`](@ref)
+or [`LAPACK.syevd!`](@ref) functions.
 Supports both `Real` and `Complex` Hermitian matrices.
 # Examples
 ```jldoctest
@@ -473,6 +474,91 @@ syevr!(ws::HermitianEigenWs, jobz::AbstractChar, range::AbstractChar,
     uplo::AbstractChar, A::AbstractMatrix,
     vl::AbstractFloat, vu::AbstractFloat, il::Integer, iu::Integer,
     abstol::AbstractFloat; resize = true)
+
+# Grows the work array `v` to `len` entries, which are the ones requested by
+# the workspace query of LAPACK.
+function _grow_work!(v::Vector, len, resize)
+    if length(v) < len
+        if !resize
+            throw(WorkspaceSizeError(length(v), len))
+        end
+        resize!(v, len)
+    end
+    return v
+end
+
+for (syevd, elty, relty) in ((:zheevd_, :ComplexF64, :Float64),
+    (:cheevd_, :ComplexF32, :Float32),
+    (:dsyevd_, :Float64, :Float64),
+    (:ssyevd_, :Float32, :Float32))
+    @eval begin
+        function syevd!(ws::HermitianEigenWs, jobz::AbstractChar, uplo::AbstractChar,
+                A::AbstractMatrix{$elty}; resize = true)
+            require_one_based_indexing(A)
+            chkstride1(A)
+            n = checksquare(A)
+            nws = length(ws.w)
+            if nws != n
+                if resize
+                    resize!(ws.w, n)
+                else
+                    throw(WorkspaceSizeError(nws, n))
+                end
+            end
+            info = Ref{BlasInt}()
+            # The first call is the workspace query
+            for query in (true, false)
+                lwork = query ? BlasInt(-1) : BlasInt(length(ws.work))
+                if eltype(A) <: Complex
+                    ccall((@blasfunc($syevd), liblapack), Cvoid,
+                        (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                            Ref{BlasInt}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
+                            Ptr{$relty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
+                            Ref{BlasInt}, Clong, Clong),
+                        jobz, uplo, n, A,
+                        max(1, stride(A, 2)), ws.w, ws.work, lwork,
+                        ws.rwork, query ? lwork : length(ws.rwork),
+                        ws.iwork, query ? lwork : length(ws.iwork),
+                        info, 1, 1)
+                else
+                    ccall((@blasfunc($syevd), liblapack), Cvoid,
+                        (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                            Ref{BlasInt}, Ptr{$relty}, Ptr{$elty}, Ref{BlasInt},
+                            Ptr{BlasInt}, Ref{BlasInt}, Ref{BlasInt}, Clong, Clong),
+                        jobz, uplo, n, A,
+                        max(1, stride(A, 2)), ws.w, ws.work, lwork,
+                        ws.iwork, query ? lwork : length(ws.iwork),
+                        info, 1, 1)
+                end
+                chklapackerror(info[])
+                if query
+                    _grow_work!(ws.work, BlasInt(real(ws.work[1])), resize)
+                    if eltype(A) <: Complex
+                        _grow_work!(ws.rwork, BlasInt(ws.rwork[1]), resize)
+                    end
+                    _grow_work!(ws.iwork, ws.iwork[1], resize)
+                end
+            end
+            return ws.w, A
+        end
+    end
+end
+
+"""
+    syevd!(ws, jobz, uplo, A; resize=true) -> (ws.w, A)
+
+Finds the eigenvalues (`jobz = N`) or eigenvalues and eigenvectors
+(`jobz = V`) of a symmetric matrix `A` with the divide-and-conquer algorithm
+using a preallocated [`HermitianEigenWs`](@ref).
+If `uplo = U`, the upper triangle of `A` is used. If `uplo = L`, the lower triangle of `A` is used.
+The divide-and-conquer algorithm needs larger work arrays than [`LAPACK.syevr!`](@ref)
+so they are resized by the first call if `resize==true`. If the workspace is not appropriate
+for `A` and `resize==false`, a `WorkspaceSizeError` is thrown.
+
+The eigenvalues are returned as `ws.w` and the eigenvectors overwrite `A`.
+"""
+syevd!(ws::HermitianEigenWs, jobz::AbstractChar, uplo::AbstractChar, A::AbstractMatrix;
+    resize = true)
 
 """
     GeneralizedEigenWs
