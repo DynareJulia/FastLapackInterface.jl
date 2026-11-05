@@ -38,6 +38,7 @@ LinearAlgebra.LAPACK.geevx!(::EigenWs, ::AbstractChar, ::AbstractChar, ::Abstrac
 LinearAlgebra.LAPACK.syevr!(::HermitianEigenWs, ::AbstractChar, ::AbstractChar,
        ::AbstractChar, ::AbstractMatrix, ::AbstractFloat, ::AbstractFloat, ::Integer, ::Integer,
        ::AbstractFloat)
+LinearAlgebra.LAPACK.syevd!(::HermitianEigenWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix)
 LinearAlgebra.LAPACK.ggev!(::GeneralizedEigenWs, ::AbstractChar, ::AbstractChar, ::AbstractMatrix,
       ::AbstractMatrix)
 ```

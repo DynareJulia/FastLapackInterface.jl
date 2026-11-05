@@ -158,6 +158,44 @@ end
         @test isapprox(Z2, Z2)
     end
 end
+# In a function as global variables would allocate
+function syevd_allocated(ws, A, A0)
+    copyto!(A, A0)
+    return @allocated LAPACK.syevd!(ws, 'V', 'U', A; resize = false)
+end
+
+@testset "HermitianEigenWs syevd!" begin
+    n = 4
+    @testset "$T" for T in (Float64, Float32, ComplexF64, ComplexF32)
+        A0 = randn(T, n, n)
+        A0 = (A0 + A0') / 2
+        w1, Z1 = LAPACK.syevd!('V', 'U', copy(A0))
+        ws = HermitianEigenWs(copy(A0))
+        resize!(ws.work, 1)
+        @test_throws FastLapackInterface.WorkspaceSizeError LAPACK.syevd!(
+            ws, 'V', 'U', copy(A0); resize = false)
+        A = copy(A0)
+        w2, Z2 = LAPACK.syevd!(ws, 'V', 'U', A)
+        @test w2 === ws.w
+        @test Z2 === A
+        @test w1 ≈ w2
+        @test Z2 * Diagonal(w2) * Z2' ≈ A0
+        @test 0 == syevd_allocated(ws, A, A0)
+        @test w2 ≈ w1
+        w3, _ = LAPACK.syevd!(ws, 'N', 'L', copy(A0))
+        @test w3 ≈ w1
+        for div in (-1, 1)
+            B0 = randn(T, n + div, n + div)
+            B0 = (B0 + B0') / 2
+            @test_throws FastLapackInterface.WorkspaceSizeError LAPACK.syevd!(
+                ws, 'V', 'U', copy(B0); resize = false)
+            w, Z = LAPACK.syevd!(ws, 'V', 'U', copy(B0))
+            @test length(ws.w) == n + div
+            @test Z * Diagonal(w) * Z' ≈ B0
+        end
+    end
+end
+
 @testset "GeneralizedEigenWs" begin
     n = 10
     @testset "Real, square" begin
